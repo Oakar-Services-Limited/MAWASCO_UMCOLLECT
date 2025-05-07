@@ -55,7 +55,7 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
 
   List<SearchAsset> entries = <SearchAsset>[];
   List<SearchOfftakes> oentries = <SearchOfftakes>[];
-  List<SearchCustomerMeter> cmentries = <SearchCustomerMeter>[];
+  List<Map<String, dynamic>> cmentries = <Map<String, dynamic>>[];
   List<SearchCustomerChambers> ccentries = <SearchCustomerChambers>[];
 
   List<SearchProductionMeter> bmentries = <SearchProductionMeter>[];
@@ -70,6 +70,7 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
   }
 
   searchAsset(v, searchItem) async {
+    print(v);
     await storage.write(key: 'editing', value: 'true');
     await storage.write(key: "data", value: '');
     setState(() {
@@ -86,22 +87,18 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
       dmaentries.clear();
     });
 
-
     try {
       String url;
       if (searchItem == 'customers') {
-        url = "${getUrl()}wt/customer-meters/search/customers?query=$v";
+        url = "${getUrl()}wt/customer-meters?accountNo=$v&limit=5";
       } else {
         url = "${getUrl()}$searchItem/details/$v";
       }
-
 
       final response = await get(Uri.parse(url), headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
         'Accept': 'application/json'
       });
-
-   
 
       if (response.statusCode != 200) {
         throw Exception(
@@ -109,6 +106,8 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
       }
 
       var data = json.decode(response.body);
+
+      print(data);
 
       setState(() {
         entries.clear();
@@ -121,18 +120,11 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
         error = "";
 
         if (searchItem == 'customers') {
-      
-
           if (data['success'] == true &&
               data['data'] != null &&
               data['data'] is List) {
             for (var item in data['data']) {
-              final customerMeter = SearchCustomerMeter(
-                  AccountNo: item["accountNo"].toString(),
-                  Name: item["name"] ?? "",
-                  MeterNo: item["meterNo"] ?? "",
-                  Location: item["location"] ?? "");
-              cmentries.add(customerMeter);
+              cmentries.add(item);
             }
             fetchedData = json.encode(data['data']);
             if (cmentries.isEmpty) {
@@ -180,13 +172,18 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
     }
   }
 
-  navigateToForm(BuildContext context, assetName) async {
+  navigateToForm(
+      BuildContext context, assetName, Map<String, dynamic> item) async {
     await storage.write(key: 'editing', value: 'false');
     await storage.write(key: "data", value: '');
     switch (assetName) {
       case 'Customer Meters':
         Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (_) => const CustomerMeters()));
+            context,
+            MaterialPageRoute(
+                builder: (_) => CustomerMeters(
+                      customerMeter: item,
+                    )));
         break;
       case 'Water Pipes':
         Navigator.pushReplacement(
@@ -325,14 +322,19 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
     }
   }
 
-  updateAssetInfo(BuildContext context, assetName) async {
+  updateAssetInfo(
+      BuildContext context, String assetName, Map<String, dynamic> item) async {
     await storage.write(key: 'editing', value: 'true');
     await storage.write(key: "data", value: fetchedData);
 
     switch (assetName) {
       case 'Customer Meters':
         Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (_) => const CustomerMeters()));
+            context,
+            MaterialPageRoute(
+                builder: (_) => CustomerMeters(
+                      customerMeter: item,
+                    )));
         break;
       case 'Water Pipes':
         if (_isCheckboxChecked == true) {
@@ -685,7 +687,7 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: () {
-                            navigateToForm(context, widget.assetName);
+                            navigateToForm(context, widget.assetName, {});
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xff0288D1),
@@ -741,23 +743,26 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
                   ? Center(child: isLoading)
                   : error.isNotEmpty
                       ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.search_off,
-                                size: 64,
-                                color: Colors.grey[400],
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                error,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.grey[600],
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.search_off,
+                                  size: 64,
+                                  color: Colors.grey[400],
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 16),
+                                Text(
+                                  error,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         )
                       : ListView.builder(
@@ -769,15 +774,11 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
                               bmentries.length +
                               dmaentries.length,
                           itemBuilder: (context, index) {
-                          
-
                             Widget item;
                             if (index < entries.length) {
-                         
                               item = _buildAssetItem(entries[index].Name);
                             } else if (index <
                                 entries.length + oentries.length) {
-                             
                               item = _buildAssetItem(
                                   oentries[index - entries.length].AccountName);
                             } else if (index <
@@ -786,16 +787,15 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
                                     cmentries.length) {
                               final customerIndex =
                                   index - entries.length - oentries.length;
-                           
+
                               if (customerIndex < cmentries.length) {
                                 final customerMeter = cmentries[customerIndex];
-                                
+
                                 item = _buildAssetItem(
-                                  customerMeter.Name,
+                                  customerMeter["name"] ?? "",
                                   customerMeter: customerMeter,
                                 );
                               } else {
-                             
                                 item = const SizedBox.shrink();
                               }
                             } else if (index <
@@ -803,7 +803,6 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
                                     oentries.length +
                                     cmentries.length +
                                     ccentries.length) {
-                           
                               item = _buildAssetItem(ccentries[index -
                                       entries.length -
                                       oentries.length -
@@ -816,7 +815,6 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
                                     cmentries.length +
                                     ccentries.length +
                                     bmentries.length) {
-                              
                               item = _buildAssetItem(bmentries[index -
                                       entries.length -
                                       oentries.length -
@@ -825,7 +823,6 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
                                   .AccountNumber
                                   .toString());
                             } else {
-                             
                               item = _buildAssetItem(dmaentries[index -
                                       entries.length -
                                       oentries.length -
@@ -844,10 +841,8 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
     );
   }
 
-  Widget _buildAssetItem(String name, {SearchCustomerMeter? customerMeter}) {
-    if (customerMeter != null) {
-     
-    }
+  Widget _buildAssetItem(String name, {Map<String, dynamic>? customerMeter}) {
+    if (customerMeter != null) {}
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -856,20 +851,7 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
       ),
       child: InkWell(
         onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => DialogInput(
-                title: 'Update ${widget.assetName}',
-                lines: 1,
-                value: name,
-                type: TextInputType.text,
-                onSubmit: (value) {
-                  updateAssetInfo(context, widget.assetName);
-                },
-              ),
-            ),
-          );
+          navigateToForm(context, widget.assetName, customerMeter!);
         },
         borderRadius: BorderRadius.circular(12),
         child: Padding(
@@ -894,7 +876,7 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            customerMeter.Name,
+                            customerMeter["name"] ?? "",
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
@@ -903,15 +885,15 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            "Account: ${customerMeter.AccountNo} | Meter: ${customerMeter.MeterNo}",
+                            "Account: ${customerMeter["accountNo"]} | Meter: ${customerMeter["meterNo"]}",
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey[600],
                             ),
                           ),
-                          if (customerMeter.Location.isNotEmpty)
+                          if (customerMeter["Location"]?.isNotEmpty == true)
                             Text(
-                              "Location: ${customerMeter.Location}",
+                              "Location: ${customerMeter["location"]}",
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey[600],

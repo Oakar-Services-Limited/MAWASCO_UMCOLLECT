@@ -99,7 +99,9 @@ class _MySelectInputState extends State<MySelectInput> {
                 ),
                 isExpanded: true,
                 underline: Container(),
-                value: _selectedOption,
+                value: widget.list.contains(_selectedOption)
+                    ? _selectedOption
+                    : null,
                 onChanged: (String? newValue) {
                   setState(() {
                     _selectedOption = newValue!;

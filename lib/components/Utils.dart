@@ -2,7 +2,7 @@
 import 'dart:convert';
 
 String getUrl() {
-  return "http://192.168.1.136:3003/api/";
+  return "http://192.168.137.1:3003/api/";
   // return "http://20.20.20.239:3003/api/";
 
   // return "https://api-utilitymanagerkiambu.dat.co.ke/api/";
@@ -40,4 +40,90 @@ String _decodeBase64(String str) {
   }
 
   return utf8.decode(base64Url.decode(output));
+}
+
+List<String> getDMAs() {
+  return [
+    "Gathugu",
+    "Indian",
+    "Mathaithi A",
+    "Mathaithi B",
+    "Muthua",
+    "Blue Valley",
+    "Giakairu",
+    "Industry",
+    "Sofia",
+    "Saigon",
+    "Karumaruma",
+    "Karindindu",
+    "Jamaica",
+    "Ragati",
+    "Kirimara Secondary",
+    "Ndiriti",
+    "Kiriko",
+    "Kiangai",
+    "Githaiti",
+    "Kiamuthumbi",
+    "Waweru",
+    "Factory line",
+    "Kiamariga Lower",
+    "Mutiini",
+    "King'ukiro",
+    "Gichoru",
+    "Itoga",
+    "Gikumbo",
+    "Mbogoini B",
+    "Mbari Njora",
+    "Ikonju",
+    "Kaiyaba",
+    "Mbari Ya Miiria",
+    "Karogoto",
+    "Rugoka",
+    "Gathumbi",
+    "Kimathi",
+    "Mugugutu",
+    "Migingo",
+    "Gatheu",
+    "Kirima",
+    "Gikore",
+    "Kiamucheru",
+    "Magutu",
+    "Giakimuru",
+    "Kanjuri",
+    "Gitumbi",
+    "Karembu",
+    "Mukangu",
+    "Ihwagi",
+  ];
+}
+
+List<String> getZones() {
+  return [
+    "--Select--",
+    "001 Gathugu",
+    "002 Urban Institution",
+    "003 Indian",
+    "004 Industrial",
+    "005 Karindundu",
+    "006 Mathaithi",
+    "007 Ragati",
+    "008 Saigon 1",
+    "009 Sofia",
+    "010 Muthua",
+    "011 Blue Valley",
+    "012 83",
+    "013 84",
+    "014 85",
+    "015 86",
+    "016 87",
+    "017 88",
+    "018 Jambo-88",
+    "019 Tumutumu-87",
+    "019 89",
+    "020 90",
+    "021 91",
+    "022 92",
+    "023 82(Inst.Rural)",
+    "024 93"
+  ];
 }

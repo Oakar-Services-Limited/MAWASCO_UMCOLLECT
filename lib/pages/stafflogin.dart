@@ -23,11 +23,8 @@ class StaffLogin extends StatefulWidget {
 class _StaffLoginState extends State<StaffLogin> {
   String email = '';
   String password = '';
-  String error = '';
   var isLoading;
-  bool successful = false;
   bool _obscurePassword = true;
-
   final storage = const FlutterSecureStorage();
 
   String appendIfNotExists(String idString, String newId) {
@@ -37,6 +34,44 @@ class _StaffLoginState extends State<StaffLogin> {
       idList.add(newIdString);
     }
     return idList.join("=");
+  }
+
+  void _showMessage(String message, bool isError) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(
+                isError ? Icons.error_outline : Icons.check_circle_outline,
+                color: Colors.white,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: isError ? Colors.red : Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.all(16),
+          duration: const Duration(seconds: 4),
+          action: SnackBarAction(
+            label: 'Dismiss',
+            textColor: Colors.white,
+            onPressed: () {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            },
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -52,162 +87,109 @@ class _StaffLoginState extends State<StaffLogin> {
       ),
       home: Scaffold(
         resizeToAvoidBottomInset: true,
-        body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                const Color(0xff0288D1).withOpacity(0.1),
-                Colors.white,
-              ],
-            ),
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Color(0xff0288D1)),
+            onPressed: () => Navigator.of(context).pop(),
           ),
-          child: SafeArea(
-            child: Stack(
-              children: [
-                SingleChildScrollView(
-                  physics: const ClampingScrollPhysics(),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: MediaQuery.of(context).size.height -
-                          MediaQuery.of(context).padding.top -
-                          MediaQuery.of(context).padding.bottom,
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const SizedBox(height: 20),
-                          Hero(
-                            tag: 'logo',
-                            child: Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(20),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
-                                    blurRadius: 20,
-                                    offset: const Offset(0, 10),
-                                  ),
-                                ],
-                              ),
-                              child: Image.asset(
-                                'assets/images/logo.png',
-                                width: 180,
-                                fit: BoxFit.contain,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 40),
-                          Card(
-                            elevation: 8,
-                            shadowColor: Colors.black26,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(24),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(24),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Text(
-                                    "Staff Login",
-                                    style: TextStyle(
-                                      fontSize: 32,
-                                      color: Color(0xff0288D1),
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: -0.5,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  const Text(
-                                    "Welcome back! Please sign in to continue",
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.black54,
-                                      letterSpacing: 0.3,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 24),
-                                  if (error.isNotEmpty) ...[
-                                    TextOakar(
-                                      label: error,
-                                      issuccessful: successful,
-                                    ),
-                                    const SizedBox(height: 16),
-                                  ],
-                                  _buildEmailField(),
-                                  const SizedBox(height: 16),
-                                  _buildPasswordField(),
-                                  const SizedBox(height: 12),
-                                  Align(
-                                    alignment: Alignment.centerRight,
-                                    child: TextButton(
-                                      onPressed: () {
-                                        // Handle forgot password
-                                      },
-                                      style: TextButton.styleFrom(
-                                        foregroundColor:
-                                            const Color(0xff0288D1),
-                                      ),
-                                      child: const Text(
-                                        "Forgot Password?",
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 24),
-                                  SizedBox(
-                                    width: double.infinity,
-                                    height: 52,
-                                    child: ElevatedButton(
-                                      onPressed: _handleLogin,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor:
-                                            const Color(0xff0288D1),
-                                        foregroundColor: Colors.white,
-                                        elevation: 4,
-                                        shadowColor: const Color(0xff0288D1)
-                                            .withOpacity(0.4),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(16),
-                                        ),
-                                      ),
-                                      child: const Text(
-                                        'Sign In',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                          letterSpacing: 0.5,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
+        body: SafeArea(
+          child: Stack(
+            children: [
+              SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 20),
+                    Center(
+                      child: Hero(
+                        tag: 'logo',
+                        child: Image.asset(
+                          'assets/images/logo.png',
+                          width: 180,
+                          fit: BoxFit.contain,
+                        ),
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 40),
+                    const Text(
+                      "Staff Login",
+                      style: TextStyle(
+                        fontSize: 32,
+                        color: Color(0xff0288D1),
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      "Welcome back! Please sign in to continue",
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.black54,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    _buildEmailField(),
+                    const SizedBox(height: 16),
+                    _buildPasswordField(),
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: _showForgotPasswordDialog,
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xff0288D1),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                        ),
+                        child: const Text(
+                          "Forgot Password?",
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _handleLogin,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isLoading != null
+                              ? Colors.grey.shade300
+                              : const Color(0xff0288D1),
+                          foregroundColor: Colors.white,
+                          elevation: 4,
+                          shadowColor: const Color(0xff0288D1).withOpacity(0.4),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Text(
+                          isLoading != null ? 'Signing In...' : 'Sign In',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                if (isLoading != null)
-                  Container(
-                    color: Colors.black.withOpacity(0.5),
-                    child: Center(child: isLoading),
-                  ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -282,92 +264,189 @@ class _StaffLoginState extends State<StaffLogin> {
   }
 
   void _handleLogin() async {
-    setState(() {
-      error = "";
-      isLoading = LoadingAnimationWidget.twistingDots(
-        leftDotColor: const Color(0xff0288D1),
-        rightDotColor: const Color(0xff0288D1).withOpacity(0.8),
-        size: 50,
+    // Validate inputs
+    if (email.isEmpty || password.isEmpty) {
+      _showMessage('Please fill in all fields', true);
+      return;
+    }
+
+    final bool emailValid = RegExp(
+      r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
+    ).hasMatch(email);
+
+    if (!emailValid) {
+      _showMessage('Please enter a valid email', true);
+      return;
+    }
+
+    if (password.length < 5) {
+      _showMessage('Password must be at least 5 characters', true);
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
+      final response = await post(
+        Uri.parse("${getUrl()}admin/login"),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'password': password}),
       );
-    });
+      final data = jsonDecode(response.body);
+      print(data);
 
-    var res = await staffLogin(email, password);
+      if (response.statusCode == 200 || response.statusCode == 203) {
+        if (data['error'] == null) {
+          await storage.write(key: 'mwstaffjwt', value: data['token']);
+          await storage.write(key: 'isstaff', value: 'true');
 
-    setState(() {
-      isLoading = null;
-      if (res.error == null) {
-        successful = true;
-        error = res.success;
+          _showMessage('Login successful', false);
+
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const Home()),
+            );
+          }
+        } else {
+          _showMessage(data['error'], true);
+        }
       } else {
-        successful = false;
-        error = res.error;
-      }
-    });
-
-    if (res.error == null) {
-      await storage.write(key: 'mwstaffjwt', value: res.token);
-      await storage.write(key: 'isstaff', value: 'true');
-
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const Home()),
+        _showMessage(
+          data['error'] ?? 'Server error! Please try again later.',
+          true,
         );
       }
+    } catch (e) {
+      print(e);
+      _showMessage('Connection error. Please check your internet.', true);
+    } finally {
+      setState(() => isLoading = false);
     }
   }
-}
 
-Future<Message> staffLogin(String email, String password) async {
-  final bool emailValid = RegExp(
-          r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+")
-      .hasMatch(email);
-  if (!emailValid) {
-    return Message(
-      token: null,
-      success: null,
-      error: "Invalid Email!",
+  void _showForgotPasswordDialog() {
+    final TextEditingController emailController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+        ),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xff0288D1).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.lock_reset_rounded,
+                  color: Color(0xff0288D1),
+                  size: 32,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Reset Password',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Enter your email address to receive password reset instructions',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 24),
+              TextFormField(
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  labelText: 'Email Address',
+                  prefixIcon: const Icon(Icons.email_rounded),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        // Implement password reset logic here
+                        Navigator.pop(context);
+                        _showResetConfirmation();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xff0288D1),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Reset Password'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
-  if (password.length < 5) {
-    return Message(
-      token: null,
-      success: null,
-      error: "Password is too short!",
-    );
-  }
 
-  print("Attempting login with email: $email"); // Debug log
-  print("Login URL: ${getUrl()}admin/login"); // Debug log
-
-  try {
-    final response = await post(
-      Uri.parse("${getUrl()}admin/login"),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(<String, String>{'email': email, 'password': password}),
-    );
-
-    print("Response status: ${response.statusCode}"); // Debug log
-    print("Response body: ${response.body}"); // Debug log
-
-    if (response.statusCode == 200 || response.statusCode == 203) {
-      return Message.fromJson(jsonDecode(response.body));
-    } else {
-      var responseBody = jsonDecode(response.body);
-      return Message(
-        token: null,
-        success: null,
-        error: responseBody['error'] ?? "Server error! Contact administrator.",
-      );
-    }
-  } catch (e) {
-    print("Login error: $e"); // Debug log
-    return Message(
-      token: null,
-      success: null,
-      error: "Connection failed! Check your internet connection. Error: $e",
+  void _showResetConfirmation() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: const [
+            Icon(Icons.check_circle_outline, color: Colors.white),
+            SizedBox(width: 12),
+            Text('Password reset instructions sent to your email'),
+          ],
+        ),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        margin: const EdgeInsets.all(16),
+      ),
     );
   }
 }

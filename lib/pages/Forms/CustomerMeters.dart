@@ -19,7 +19,8 @@ import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:http/http.dart' as http;
 
 class CustomerMeters extends StatefulWidget {
-  const CustomerMeters({super.key});
+  final Map<String, dynamic> customerMeter;
+  const CustomerMeters({super.key, required this.customerMeter});
 
   @override
   State<CustomerMeters> createState() => _CustomerMetersState();
@@ -52,6 +53,7 @@ class _CustomerMetersState extends State<CustomerMeters> {
   String myimage = '';
   String user = '';
   String userid = '';
+  String id = '';
   dynamic data;
 
   var isLoading;
@@ -72,10 +74,6 @@ class _CustomerMetersState extends State<CustomerMeters> {
   String dma = '';
   String location = '';
   String parcelno = '';
-
-  void _openDrawer() {
-    _scaffoldKey.currentState?.openDrawer();
-  }
 
   Future<String> convertFileToBase64(XFile file) async {
     List<int> fileBytes = await file.readAsBytes();
@@ -114,65 +112,52 @@ class _CustomerMetersState extends State<CustomerMeters> {
       lat = position.latitude;
       acc = position.accuracy;
     });
-
-    print("Longitude: $long");
-    print("Latitude: $lat");
-    print("Accuracy: $acc");
   }
 
   Future<void> fetchStoredData() async {
     try {
       var token = await storage.read(key: "mwstaffjwt");
       var decoded = parseJwt(token.toString());
-      editing = await storage.read(key: "editing");
-
       setState(() {
-        user = decoded["name"];
-        staffid = decoded["id"];
+        userid = decoded["id"];
       });
-
-      if (editing == 'true') {
-        prefillForm(data);
+      if (widget.customerMeter.isNotEmpty) {
+        prefillForm(widget.customerMeter);
       } else {}
     } catch (e) {}
   }
 
   prefillForm(data) async {
-    var fetchedData = await storage.read(key: "data");
-    data = json.decode(fetchedData!);
-
     setState(() {
-      userid = data[0]["ID"] ?? "";
-      accnum = data[0]["AccountNo"]?.toString() ?? "";
-      meterserial = data[0]["MeterSerial"] ?? "";
-      metertype = data[0]["MeterType"] ?? "";
-      size = data[0]["Size"] ?? "";
-      brandname = data[0]["BrandName"] ?? "";
-      material = data[0]["Material"] ?? "";
-      meterlocation = data[0]["MeterLocation"] ?? "";
-      status = data[0]["Status"] ?? "";
-      sewered = data[0]["Sewered"] ?? "";
-      othermeter = data[0]["OtherMeter"] ?? "";
-      installationmode = data[0]["InstallationMode"] ?? "";
-      remarks = data[0]["Remarks"] ?? "";
-      // myimage = data[0]["Picture"] ?? "";
+      id = data["id"] ?? "";
+      accnum = data["accountNo"]?.toString() ?? "";
+      meterserial = data["meterNo"] ?? "";
+      metertype = data["meterStatus"] ?? "";
+      size = data["meterSize"]?.toString() ?? "";
+      brandname = data["brand"] ?? "";
+      material = data["material"] ?? "";
+      meterlocation = data["location"] ?? "";
+      status = data["meterStatus"] ?? "";
+      remarks = data["remarks"] ?? "";
 
-      // Add fields from CustomerMeters1
-      name = data[0]["Name"] ?? "";
-      phone = data[0]["Phone"] ?? "";
+      name = data["name"] ?? "";
+      phone = data["phone"]?.toString() ?? "";
 
-      // Add fields from CustomerMeters2
-      accstatus = data[0]["AccountStatus"] ?? "";
-      acctype = data[0]["AccountType"] ?? "";
-      instituteMeterType = data[0]["Institution"] ?? "";
+      accstatus = data["accountStatus"] ?? "";
+      acctype = data["accountType"] ?? "";
+      instituteMeterType = data["institution"] ?? "";
 
-      // Add fields from CustomerMeters3
-      schemename = data[0]["SchemeName"] ?? "";
-      zone = data[0]["Zone"] ?? "";
-      route = data[0]["Route"] ?? "";
-      dma = data[0]["DMA"] ?? "";
-      location = data[0]["Location"] ?? "";
-      parcelno = data[0]["ParcelNo"] ?? "";
+      schemename = data["schemeName"] ?? "";
+      zone = data["zone"] ?? "";
+      route = data["route"] ?? "";
+      dma = data["dma"] ?? "";
+      location = data["location"] ?? "";
+      parcelno = data["parcelNo"] ?? "";
+
+      // New fields
+      meterclass = data["meterClass"] ?? "";
+      lat = double.tryParse(data["latitude"]?.toString() ?? "") ?? lat;
+      long = double.tryParse(data["longitude"]?.toString() ?? "") ?? long;
     });
   }
 
@@ -346,7 +331,7 @@ class _CustomerMetersState extends State<CustomerMeters> {
                     MyTextInput(
                       lines: 1,
                       value: accnum,
-                      type: TextInputType.text,
+                      type: TextInputType.number,
                       onSubmit: (value) {
                         setState(() {
                           accnum = value;
@@ -369,13 +354,13 @@ class _CustomerMetersState extends State<CustomerMeters> {
                       onSubmit: (value) => setState(() => size = value),
                       list: const [
                         "--Select--",
-                        "0.5\"16mm",
-                        "0.75\"25mm",
-                        "1\"32mm",
-                        "1.25\"40mm",
-                        "1.5\"50mm",
-                        "2\"63mm",
-                        "3\"90mm"
+                        "0.5",
+                        "0.75",
+                        "1",
+                        "1.25",
+                        "1.5",
+                        "2",
+                        "3"
                       ],
                       label: 'Meter Size',
                       value: size,
@@ -402,11 +387,9 @@ class _CustomerMetersState extends State<CustomerMeters> {
                       },
                       list: const [
                         "--Select--",
-                        "Active",
-                        "Sealed",
-                        "Dormant",
-                        "Closed",
-                        "Cut Off",
+                        "ACTIVE",
+                        "INACTIVE",
+                        "DISCONNECTED",
                       ],
                       label: 'Account Status',
                       value: accstatus,
@@ -429,6 +412,7 @@ class _CustomerMetersState extends State<CustomerMeters> {
                       onSubmit: (value) => setState(() => brandname = value),
                       list: const [
                         "--Select--",
+                        "YUONSO",
                         "Honey Well",
                         "Diehl",
                         "Lianli",
@@ -477,34 +461,7 @@ class _CustomerMetersState extends State<CustomerMeters> {
                     ),
                     MySelectInput(
                       onSubmit: (value) => setState(() => zone = value),
-                      list: const [
-                        "--Select--",
-                        "001 Gathugu",
-                        "002 Urban Institution",
-                        "003 Indian",
-                        "004 Industrial",
-                        "005 Karindundu",
-                        "006 Mathaithi",
-                        "007 Ragati",
-                        "008 Saigon 1",
-                        "009 Sofia",
-                        "010 Muthua",
-                        "011 Blue Valley",
-                        "012 83",
-                        "013 84",
-                        "014 85",
-                        "015 86",
-                        "016 87",
-                        "017 88",
-                        "018 Jambo-88",
-                        "019 Tumutumu-87",
-                        "019 89",
-                        "020 90",
-                        "021 91",
-                        "022 92",
-                        "023 82(Inst.Rural)",
-                        "024 93"
-                      ],
+                      list: getZones(),
                       label: 'Zone',
                       value: zone,
                     ),
@@ -517,40 +474,7 @@ class _CustomerMetersState extends State<CustomerMeters> {
                     ),
                     MySelectInput(
                       onSubmit: (value) => setState(() => dma = value),
-                      list: const [
-                        "--Select--",
-                        "Saigon",
-                        "Blue Valley",
-                        "Karindundu",
-                        "Mathaithi",
-                        "Gathugu",
-                        "Sofia",
-                        "Indian",
-                        "Industrial",
-                        "Muthua",
-                        "Ragati",
-                        "Kiamariga Factory Line",
-                        "Kiamariga Lower",
-                        "Mbari ya Miiria",
-                        "Karogogo",
-                        "Kaiyaba",
-                        "Ikonju",
-                        "Gitumbi",
-                        "Karembu",
-                        "Mukangu",
-                        "Kiangai",
-                        "Ndiriti",
-                        "Ihwagi",
-                        "Jambo",
-                        "Mugugutu",
-                        "Gatheu",
-                        "Kiunjugi/Kirima",
-                        "Migingo/Giakaburi",
-                        "Magutu",
-                        "Giakimuru",
-                        "Kanjuri",
-                        "Gikore"
-                      ],
+                      list: getDMAs(),
                       label: 'DMA',
                       value: dma,
                     ),
@@ -618,6 +542,7 @@ class _CustomerMetersState extends State<CustomerMeters> {
                             long.toString(),
                             myimage,
                             editing,
+                            id,
                           );
 
                           setState(() {
@@ -704,6 +629,7 @@ Future<Message> submitData(
   String long,
   String myimage,
   String? editing,
+  String? id,
 ) async {
   if (accountnumber.isEmpty) {
     return Message(
@@ -745,14 +671,9 @@ Future<Message> submitData(
     );
   }
 
-  print(
-      "Submitting customer meter data... $staffid, $lat, $long, $accountnumber, $meterserial, $size, $brandname, $material, $status,  $myimage,  $remarks, $editing, $name, $phone, $accstatus, $acctype, $instituteMeterType, $schemename, $zone, $route, $dma, $location, $parcelno, $meterclass");
-
   try {
     http.Response response;
-    const storage = FlutterSecureStorage();
-    String? update = await storage.read(key: "updateLocation");
-    print("Update: $update");
+
     final payload = {
       'name': name,
       'phone': phone,
@@ -774,15 +695,13 @@ Future<Message> submitData(
       'meterSize': size,
       'remarks': remarks,
       'userId': staffid,
-      'latitude': update == null ? lat : null,
-      'longitude': update == null ? long : null,
+      'latitude': id == '' ? lat : null,
+      'longitude': id == '' ? long : null,
     };
 
-    print("Request payload: $payload");
-
-    if (editing == 'true') {
+    if (id != '') {
       response = await http.put(
-        Uri.parse("${getUrl()}customers/$staffid"),
+        Uri.parse("${getUrl()}wt/customer-meters/$id"),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },
@@ -798,18 +717,19 @@ Future<Message> submitData(
       );
     }
 
-    print("Response status: ${response.statusCode}");
-    print("Response body: ${response.body}");
-
     if (response.statusCode == 201 || response.statusCode == 200) {
       final responseData = jsonDecode(response.body);
       if (responseData['success'] != null) {
-        return Message.fromJson(responseData);
+        return Message(
+          token: null,
+          success: id == '' ? "Created successfully" : "Updated successfully",
+          error: null,
+        );
       } else {
         return Message(
           token: null,
           success: null,
-          error: "Invalid response format",
+          error: responseData['error'] ?? "Invalid response format",
         );
       }
     } else {
@@ -821,7 +741,6 @@ Future<Message> submitData(
       );
     }
   } catch (e) {
-    print("Error submitting data: $e");
     return Message(
       token: null,
       success: null,
