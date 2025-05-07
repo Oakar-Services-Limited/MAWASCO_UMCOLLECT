@@ -1,0 +1,942 @@
+// ignore_for_file: use_build_context_synchronously, prefer_typing_uninitialized_variables
+
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import 'package:http/http.dart';
+import 'package:kiambu_umcollect/components/DialogInput.dart';
+import 'package:kiambu_umcollect/components/Utils.dart';
+import 'package:kiambu_umcollect/models/SearchAsset.dart';
+import 'package:kiambu_umcollect/pages/Forms/Appurtenances.dart';
+import 'package:kiambu_umcollect/pages/Forms/Boreholes.dart';
+import 'package:kiambu_umcollect/pages/Forms/LineProjects.dart';
+import 'package:kiambu_umcollect/pages/Forms/PointProjects.dart';
+import 'package:kiambu_umcollect/pages/Forms/Washouts.dart';
+import 'package:kiambu_umcollect/pages/Forms/ConnectionChambers.dart';
+import 'package:kiambu_umcollect/pages/Forms/ConsumerLine.dart';
+import 'package:kiambu_umcollect/pages/Forms/CustomerChambers%20.dart';
+import 'package:kiambu_umcollect/pages/Forms/CustomerLines.dart';
+import 'package:kiambu_umcollect/pages/Forms/CustomerMeters.dart';
+import 'package:kiambu_umcollect/pages/Forms/ManHoles.dart';
+import 'package:kiambu_umcollect/pages/Forms/MasterMeters.dart';
+import 'package:kiambu_umcollect/pages/Forms/NewSanConn.dart';
+import 'package:kiambu_umcollect/pages/Forms/NewWaterConn.dart';
+import 'package:kiambu_umcollect/pages/Forms/Offtakers.dart';
+import 'package:kiambu_umcollect/pages/Forms/SewerLines.dart';
+import 'package:kiambu_umcollect/pages/Forms/SewerMainTrunk.dart';
+import 'package:kiambu_umcollect/pages/Forms/Tanks.dart';
+import 'package:kiambu_umcollect/pages/Forms/Valves.dart';
+import 'package:kiambu_umcollect/pages/Forms/WaterPipes.dart';
+import 'package:kiambu_umcollect/pages/MappingLines.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
+
+class DataCollectorsDialog extends StatefulWidget {
+  final String assetName;
+
+  const DataCollectorsDialog({super.key, required this.assetName});
+
+  @override
+  State<DataCollectorsDialog> createState() => _DataCollectorsDialogState();
+}
+
+class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
+  final storage = const FlutterSecureStorage();
+  bool isUpdating = false;
+  String searchItem = '';
+  String assetname = '';
+  int objectID = 0;
+  String error = "";
+  var fetchedData = '';
+  var isLoading;
+  bool _isCheckboxChecked = false;
+  final TextEditingController _searchController = TextEditingController();
+
+  List<SearchAsset> entries = <SearchAsset>[];
+  List<SearchOfftakes> oentries = <SearchOfftakes>[];
+  List<SearchCustomerMeter> cmentries = <SearchCustomerMeter>[];
+  List<SearchCustomerChambers> ccentries = <SearchCustomerChambers>[];
+
+  List<SearchProductionMeter> bmentries = <SearchProductionMeter>[];
+  List<SearchDMAMeter> dmaentries = <SearchDMAMeter>[];
+
+  late GlobalKey<_DataCollectorsDialogState> dialogKey;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  searchAsset(v, searchItem) async {
+    await storage.write(key: 'editing', value: 'true');
+    await storage.write(key: "data", value: '');
+    setState(() {
+      isLoading = LoadingAnimationWidget.staggeredDotsWave(
+        color: const Color(0xff0288D1),
+        size: 50,
+      );
+      error = "";
+      entries.clear();
+      oentries.clear();
+      cmentries.clear();
+      ccentries.clear();
+      bmentries.clear();
+      dmaentries.clear();
+    });
+
+
+    try {
+      String url;
+      if (searchItem == 'customers') {
+        url = "${getUrl()}wt/customer-meters/search/customers?query=$v";
+      } else {
+        url = "${getUrl()}$searchItem/details/$v";
+      }
+
+
+      final response = await get(Uri.parse(url), headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+        'Accept': 'application/json'
+      });
+
+   
+
+      if (response.statusCode != 200) {
+        throw Exception(
+            'Server returned ${response.statusCode}: ${response.body}');
+      }
+
+      var data = json.decode(response.body);
+
+      setState(() {
+        entries.clear();
+        oentries.clear();
+        cmentries.clear();
+        ccentries.clear();
+        bmentries.clear();
+        dmaentries.clear();
+        isLoading = null;
+        error = "";
+
+        if (searchItem == 'customers') {
+      
+
+          if (data['success'] == true &&
+              data['data'] != null &&
+              data['data'] is List) {
+            for (var item in data['data']) {
+              final customerMeter = SearchCustomerMeter(
+                  AccountNo: item["accountNo"].toString(),
+                  Name: item["name"] ?? "",
+                  MeterNo: item["meterNo"] ?? "",
+                  Location: item["location"] ?? "");
+              cmentries.add(customerMeter);
+            }
+            fetchedData = json.encode(data['data']);
+            if (cmentries.isEmpty) {
+              error =
+                  "No customer found with that account number, meter number, or name";
+            }
+          } else {
+            error =
+                "No customer found with that account number, meter number, or name";
+          }
+        } else {
+          // Handle other asset types
+          if (data is List) {
+            if (data.isEmpty) {
+              error = "Not found!";
+            } else {
+              for (var item in data) {
+                if (searchItem == 'customerchamber') {
+                  ccentries.add(
+                      SearchCustomerChambers(AccountNo: item["AccountNo"]));
+                } else if (searchItem == 'productionmeters') {
+                  bmentries.add(SearchProductionMeter(
+                      AccountNumber: item["AccountNumber"]));
+                } else if (searchItem == 'dmameters') {
+                  dmaentries.add(SearchDMAMeter(DMAName: item["DMAName"]));
+                } else if (searchItem == 'offtakes') {
+                  oentries
+                      .add(SearchOfftakes(AccountName: item["AccountName"]));
+                } else {
+                  entries.add(SearchAsset(Name: item["Name"]));
+                }
+                fetchedData = json.encode(data);
+              }
+            }
+          } else {
+            error = "Invalid response format";
+          }
+        }
+      });
+    } catch (e, stackTrace) {
+      setState(() {
+        isLoading = null;
+        error = "Error searching: ${e.toString()}";
+      });
+    }
+  }
+
+  navigateToForm(BuildContext context, assetName) async {
+    await storage.write(key: 'editing', value: 'false');
+    await storage.write(key: "data", value: '');
+    switch (assetName) {
+      case 'Customer Meters':
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (_) => const CustomerMeters()));
+        break;
+      case 'Water Pipes':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (_) => MappingLines(
+                    assetName: widget.assetName,
+                    staffid: '',
+                  )),
+        );
+        break;
+      case 'Water Tanks':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const Tanks()),
+        );
+        break;
+      case 'Valves':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const Valves()),
+        );
+        break;
+      case 'Master Meters':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const MasterMeters()),
+        );
+        break;
+      case 'Washouts':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const Washouts()),
+        );
+        break;
+      case 'Offtakes':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const Offtakes()),
+        );
+        break;
+
+      case 'Boreholes':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const Boreholes()),
+        );
+        break;
+      case 'Appurtenances':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const Appurtenances()),
+        );
+        break;
+      case 'Sewer Lines':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (_) => MappingLines(
+                    assetName: widget.assetName,
+                    staffid: '',
+                  )),
+        );
+        break;
+      case 'Manholes':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const ManHoles()),
+        );
+        break;
+      case 'Project (Points)':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const PointProjects()),
+        );
+        break;
+      case 'Project (Lines)':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (_) => MappingLines(
+                    assetName: widget.assetName,
+                    staffid: '',
+                  )),
+        );
+        break;
+      case 'Customer Chambers':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const CustomerChambers()),
+        );
+        break;
+      case 'Connection Chambers':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const ConnectionChambers()),
+        );
+        break;
+      case 'Sewer MainTrunk':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (_) =>
+                  MappingLines(assetName: widget.assetName, staffid: '')),
+        );
+        break;
+      case 'New Water Connections':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const NewWaterConn()),
+        );
+        break;
+      case 'New Sanitation Connections':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const NewSanConn()),
+        );
+        break;
+      case 'Consumer Lines':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (_) =>
+                  MappingLines(assetName: widget.assetName, staffid: '')),
+        );
+        break;
+      case 'Customer Lines':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (_) =>
+                  MappingLines(assetName: widget.assetName, staffid: '')),
+        );
+        break;
+      default:
+    }
+  }
+
+  updateAssetInfo(BuildContext context, assetName) async {
+    await storage.write(key: 'editing', value: 'true');
+    await storage.write(key: "data", value: fetchedData);
+
+    switch (assetName) {
+      case 'Customer Meters':
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (_) => const CustomerMeters()));
+        break;
+      case 'Water Pipes':
+        if (_isCheckboxChecked == true) {
+          setState(() {
+            _isCheckboxChecked == false;
+          });
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (_) => MappingLines(
+                      assetName: widget.assetName,
+                      staffid: '',
+                    )),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (_) => const WaterPipes(
+                      coordinates: [],
+                    )),
+          );
+        }
+
+        break;
+      case 'Water Tanks':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const Tanks()),
+        );
+        break;
+
+      case 'Valves':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const Valves()),
+        );
+        break;
+      case 'Master Meters':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const MasterMeters()),
+        );
+        break;
+      case 'Washouts':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const Washouts()),
+        );
+        break;
+      case 'Offtakes':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const Offtakes()),
+        );
+        break;
+      case 'Boreholes':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const Boreholes()),
+        );
+        break;
+      case 'Appurtenances':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const Appurtenances()),
+        );
+        break;
+
+      case 'Sewer Lines':
+        if (_isCheckboxChecked == true) {
+          setState(() {
+            _isCheckboxChecked == false;
+          });
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (_) => MappingLines(
+                      assetName: widget.assetName,
+                      staffid: '',
+                    )),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (_) => const SewerLines(
+                      coordinates: [],
+                    )),
+          );
+        }
+        break;
+      case 'Manholes':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const ManHoles()),
+        );
+        break;
+      case 'Customer Chambers':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const CustomerChambers()),
+        );
+        break;
+      case 'Connection Chambers':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const ConnectionChambers()),
+        );
+        break;
+      case 'Sewer MainTrunk':
+        if (_isCheckboxChecked == true) {
+          setState(() {
+            _isCheckboxChecked == false;
+          });
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (_) => MappingLines(
+                      assetName: widget.assetName,
+                      staffid: '',
+                    )),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (_) => const SewerMainTrunk(
+                      coordinates: [],
+                    )),
+          );
+        }
+
+        break;
+      case 'New Water Connections':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const NewWaterConn()),
+        );
+        break;
+      case 'New Sanitation Connections':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const NewSanConn()),
+        );
+        break;
+      case 'Line Project':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (_) => MappingLines(
+                    assetName: widget.assetName,
+                    staffid: '',
+                  )),
+        );
+        break;
+      case 'Consumer Lines':
+        if (_isCheckboxChecked == true) {
+          setState(() {
+            _isCheckboxChecked == false;
+          });
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (_) => MappingLines(
+                      assetName: widget.assetName,
+                      staffid: '',
+                    )),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (_) => const ConsumerLines(
+                      coordinates: [],
+                    )),
+          );
+        }
+        break;
+      case 'Customer Lines':
+        if (_isCheckboxChecked == true) {
+          setState(() {
+            _isCheckboxChecked == false;
+          });
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (_) => MappingLines(
+                      assetName: widget.assetName,
+                      staffid: '',
+                    )),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (_) => const CustomerLines(
+                      coordinates: [],
+                    )),
+          );
+        }
+        break;
+      default:
+    }
+  }
+
+  getSearchItem() {
+    switch (widget.assetName) {
+      case "Customer Meters":
+        setState(() {
+          searchItem = "customers";
+        });
+        break;
+      case "Water Pipes":
+        setState(() {
+          searchItem = "waterpipes";
+        });
+        break;
+      case "Water Tanks":
+        setState(() {
+          searchItem = "tanks";
+        });
+        break;
+      case "Valves":
+        setState(() {
+          searchItem = "valves";
+        });
+        break;
+      case "Master Meters":
+        setState(() {
+          searchItem = "dmameters";
+        });
+        break;
+      case "Washouts":
+        setState(() {
+          searchItem = "productionmeters";
+        });
+        break;
+      case "Offtakes":
+        setState(() {
+          searchItem = "offtakes";
+        });
+        break;
+
+      case "Boreholes":
+        setState(() {
+          searchItem = "boreholes";
+        });
+        break;
+      case "Appurtenances":
+        setState(() {
+          searchItem = "appurtenances";
+        });
+        break;
+      case "Sewer Lines":
+        setState(() {
+          searchItem = "sewerlines";
+        });
+        break;
+      case "Manholes":
+        setState(() {
+          searchItem = "manholes";
+        });
+        break;
+      case "Customer Chambers":
+        setState(() {
+          searchItem = "customerchamber";
+        });
+        break;
+      case "Connection Chambers":
+        setState(() {
+          searchItem = "connectionchamber";
+        });
+        break;
+      case "Sewer MainTrunk":
+        setState(() {
+          searchItem = "sewermaintrunk";
+        });
+        break;
+      case "New Water Connections":
+        setState(() {
+          searchItem = "newwaterconnections";
+        });
+        break;
+      case "New Sanitation Connections":
+        setState(() {
+          searchItem = "newsanitationconnections";
+        });
+        break;
+      case "Consumer Lines":
+        setState(() {
+          searchItem = "consumerlines";
+        });
+        break;
+      case "Customer Lines":
+        setState(() {
+          searchItem = "customerlines";
+        });
+        break;
+      default:
+    }
+  }
+
+  @override
+  void initState() {
+    dialogKey = GlobalKey<_DataCollectorsDialogState>();
+    getSearchItem();
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          widget.assetName,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        backgroundColor: const Color(0xff0288D1),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: Container(
+        color: Colors.grey[50],
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            navigateToForm(context, widget.assetName);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xff0288D1),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          icon: const Icon(Icons.add_circle_outline),
+                          label: const Text(
+                            'New Asset',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: 'Search existing asset...',
+                            prefixIcon: const Icon(Icons.search,
+                                color: Color(0xff0288D1)),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey[100],
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 16),
+                          ),
+                          onChanged: (value) {
+                            searchAsset(value, searchItem);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: isLoading != null
+                  ? Center(child: isLoading)
+                  : error.isNotEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.search_off,
+                                size: 64,
+                                color: Colors.grey[400],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                error,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: entries.length +
+                              oentries.length +
+                              cmentries.length +
+                              ccentries.length +
+                              bmentries.length +
+                              dmaentries.length,
+                          itemBuilder: (context, index) {
+                          
+
+                            Widget item;
+                            if (index < entries.length) {
+                         
+                              item = _buildAssetItem(entries[index].Name);
+                            } else if (index <
+                                entries.length + oentries.length) {
+                             
+                              item = _buildAssetItem(
+                                  oentries[index - entries.length].AccountName);
+                            } else if (index <
+                                entries.length +
+                                    oentries.length +
+                                    cmentries.length) {
+                              final customerIndex =
+                                  index - entries.length - oentries.length;
+                           
+                              if (customerIndex < cmentries.length) {
+                                final customerMeter = cmentries[customerIndex];
+                                
+                                item = _buildAssetItem(
+                                  customerMeter.Name,
+                                  customerMeter: customerMeter,
+                                );
+                              } else {
+                             
+                                item = const SizedBox.shrink();
+                              }
+                            } else if (index <
+                                entries.length +
+                                    oentries.length +
+                                    cmentries.length +
+                                    ccentries.length) {
+                           
+                              item = _buildAssetItem(ccentries[index -
+                                      entries.length -
+                                      oentries.length -
+                                      cmentries.length]
+                                  .AccountNo
+                                  .toString());
+                            } else if (index <
+                                entries.length +
+                                    oentries.length +
+                                    cmentries.length +
+                                    ccentries.length +
+                                    bmentries.length) {
+                              
+                              item = _buildAssetItem(bmentries[index -
+                                      entries.length -
+                                      oentries.length -
+                                      cmentries.length -
+                                      ccentries.length]
+                                  .AccountNumber
+                                  .toString());
+                            } else {
+                             
+                              item = _buildAssetItem(dmaentries[index -
+                                      entries.length -
+                                      oentries.length -
+                                      cmentries.length -
+                                      ccentries.length -
+                                      bmentries.length]
+                                  .DMAName);
+                            }
+                            return item;
+                          },
+                        ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAssetItem(String name, {SearchCustomerMeter? customerMeter}) {
+    if (customerMeter != null) {
+     
+    }
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => DialogInput(
+                title: 'Update ${widget.assetName}',
+                lines: 1,
+                value: name,
+                type: TextInputType.text,
+                onSubmit: (value) {
+                  updateAssetInfo(context, widget.assetName);
+                },
+              ),
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xff0288D1).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.edit_location_alt,
+                  color: Color(0xff0288D1),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: customerMeter != null
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            customerMeter.Name,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xff0288D1),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "Account: ${customerMeter.AccountNo} | Meter: ${customerMeter.MeterNo}",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          if (customerMeter.Location.isNotEmpty)
+                            Text(
+                              "Location: ${customerMeter.Location}",
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                        ],
+                      )
+                    : Text(
+                        name,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xff0288D1),
+                        ),
+                      ),
+              ),
+              const Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: Color(0xff0288D1),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
