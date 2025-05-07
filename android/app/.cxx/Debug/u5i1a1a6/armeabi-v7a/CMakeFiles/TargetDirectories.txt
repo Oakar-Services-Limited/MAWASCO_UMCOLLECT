@@ -1,0 +1,2 @@
+C:/Users/Dmuteti/Desktop/DevProjects/Utility Manager/MAWASCO_UM_Collector/android/app/.cxx/Debug/u5i1a1a6/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/Dmuteti/Desktop/DevProjects/Utility Manager/MAWASCO_UM_Collector/android/app/.cxx/Debug/u5i1a1a6/armeabi-v7a/CMakeFiles/rebuild_cache.dir
