@@ -70,7 +70,7 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
   }
 
   searchAsset(v, searchItem) async {
-    print(v);
+    print('searched value: $v, searched item: $searchItem');
     await storage.write(key: 'editing', value: 'true');
     await storage.write(key: "data", value: '');
     setState(() {
@@ -78,6 +78,7 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
         color: const Color(0xff0288D1),
         size: 50,
       );
+
       error = "";
       entries.clear();
       oentries.clear();
@@ -92,7 +93,7 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
       if (searchItem == 'customers') {
         url = "${getUrl()}wt/customer-meters?accountNo=$v&limit=5";
       } else {
-        url = "${getUrl()}$searchItem/details/$v";
+        url = "${getUrl()}wt/$searchItem/$v";
       }
 
       final response = await get(Uri.parse(url), headers: <String, String>{
@@ -550,7 +551,7 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
         break;
       case "Water Pipes":
         setState(() {
-          searchItem = "waterpipes";
+          searchItem = "water-pipes";
         });
         break;
       case "Water Tanks":

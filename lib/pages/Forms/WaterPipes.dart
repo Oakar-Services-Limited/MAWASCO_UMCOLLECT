@@ -2,10 +2,8 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:kiambu_umcollect/components/MyDrawer.dart';
 import 'package:kiambu_umcollect/components/MySelectInput.dart';
 import 'package:kiambu_umcollect/components/MyTextInput.dart';

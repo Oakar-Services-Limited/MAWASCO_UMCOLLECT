@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kiambu_umcollect/components/MySelectInput.dart';
 import 'package:kiambu_umcollect/components/MyDrawer.dart';
+import 'package:kiambu_umcollect/components/MyTextInput.dart';
+import 'package:kiambu_umcollect/components/MyTextInputII.dart';
 import 'package:kiambu_umcollect/components/SubmitButton.dart';
 import 'package:kiambu_umcollect/components/Utils.dart';
 import 'package:kiambu_umcollect/models/Map.dart';
@@ -27,6 +29,7 @@ class _NRWLeakagesState extends State<NRWLeakages> {
   var long = 36.0, lat = -2.0, acc = 100.0;
   String image = '#';
   String dmaname = '';
+  String description = '';
   String nature = '';
   String name = '';
   String date = '';
@@ -333,6 +336,17 @@ class _NRWLeakagesState extends State<NRWLeakages> {
                                   label: 'Nature of Leakage',
                                   value: nature,
                                 ),
+                                MyTextInput(
+                                  lines: 1,
+                                  value: description,
+                                  type: TextInputType.text,
+                                  onSubmit: (value) {
+                                    setState(() {
+                                      description = value;
+                                    });
+                                  },
+                                  title: 'Describe the incident',
+                                ),
                                 const SizedBox(
                                   height: 4,
                                 ),
@@ -360,6 +374,7 @@ class _NRWLeakagesState extends State<NRWLeakages> {
                                         userid,
                                         myimage,
                                         dmaname,
+                                        description,
                                         nature,
                                         lat,
                                         long,
@@ -369,11 +384,14 @@ class _NRWLeakagesState extends State<NRWLeakages> {
                                       setState(() {
                                         isLoading = null;
                                         if (res.error == null) {
-                                          successful = true;
                                           error = res.success;
+                                          Navigator.pushReplacement(
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder: (_) => const NRW()));
                                         } else {
-                                          successful = false;
-                                          error = res.error;
+                                          error = res.error ??
+                                              "An unknown error occurred";
                                         }
                                       });
                                       if (res.error == null) {
@@ -407,6 +425,7 @@ Future<Message> submitData(
   String userid,
   String myimage,
   String dmaname,
+  String description,
   String nature,
   double lat,
   double long,
@@ -430,36 +449,62 @@ Future<Message> submitData(
   }
 
   try {
+    final storage = const FlutterSecureStorage();
+    final token = await storage.read(key: "mwstaffjwt");
+
+    if (token == null) {
+      return Message(
+        token: null,
+        success: null,
+        error: "Authentication required. Please login again.",
+      );
+    }
+
     final response = await post(
-      Uri.parse("${getUrl()}nrw_leakages/create"),
+      Uri.parse("${getUrl()}nrw/leakages"),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
+        'Authorization': 'Bearer $token',
       },
-      body: jsonEncode(<String, String>{
+      body: jsonEncode(<String, dynamic>{
         'DMAName': dmaname,
+        'description': description,
         'Nature': nature,
-        'Latitude': lat.toString(),
-        'Longitude': long.toString(),
-        'DateReported': date,
-        'Image': myimage,
-        'ReportedBy': name,
+        'latitude': lat.toString(),
+        'longitude': long.toString(),
+        'dateReported': date,
+        'image': myimage,
+        'reportedBy': name,
       }),
     );
 
-    if (response.statusCode == 200 || response.statusCode == 203) {
-      return Message.fromJson(jsonDecode(response.body));
+    print("Response status: ${response.statusCode}");
+    print("Response body: ${response.body}");
+
+    final responseData = jsonDecode(response.body);
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return Message(
+        token: responseData['token'],
+        success:
+            responseData['message'] ?? "Leakage report submitted successfully!",
+        error: null,
+      );
     } else {
       return Message(
         token: null,
         success: null,
-        error: "Server error! Contact administrator.",
+        error: responseData['message'] ??
+            responseData['error'] ??
+            "Server error! Contact administrator.",
       );
     }
   } catch (e) {
+    print("Error: $e");
     return Message(
       token: null,
       success: null,
-      error: "Connection failed! Check your internet connection.!",
+      error: "Connection failed! Check your internet connection.",
     );
   }
 }
