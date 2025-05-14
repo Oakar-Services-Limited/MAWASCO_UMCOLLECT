@@ -25,6 +25,7 @@ class NRWLeakages extends StatefulWidget {
 }
 
 class _NRWLeakagesState extends State<NRWLeakages> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final storage = const FlutterSecureStorage();
   var long = 36.0, lat = -2.0, acc = 100.0;
   String image = '#';
@@ -168,254 +169,262 @@ class _NRWLeakagesState extends State<NRWLeakages> {
     });
   }
 
+  void _showSnackBar(String message, bool isSuccess) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(color: Colors.white),
+        ),
+        backgroundColor: isSuccess ? Colors.green : Colors.red,
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Report Incident',
-      theme: ThemeData(),
-      home: Scaffold(
-        appBar: AppBar(
-          actions: <Widget>[
-            IconButton(
-              icon: const Icon(
-                Icons.arrow_back,
-                color: Colors.white,
-              ),
-              onPressed: () {
-                Navigator.pushReplacement(
-                    context, MaterialPageRoute(builder: (_) => const NRW()));
-              },
+    return Scaffold(
+      key: _scaffoldKey,
+      appBar: AppBar(
+        actions: <Widget>[
+          IconButton(
+            icon: const Icon(
+              Icons.arrow_back,
+              color: Colors.white,
             ),
-          ],
-          title: const Text(
-            "Report Leakage",
-            style: TextStyle(color: Colors.white),
+            onPressed: () {
+              Navigator.pushReplacement(
+                  context, MaterialPageRoute(builder: (_) => const NRW()));
+            },
           ),
-          backgroundColor: const Color(0xff0288D1),
-          iconTheme: const IconThemeData(color: Colors.white),
+        ],
+        title: const Text(
+          "Report Leakage",
+          style: TextStyle(color: Colors.white),
         ),
-        drawer: const MyDrawer(),
-        body: Stack(
-          children: [
-            SafeArea(
-                child: Container(
-                    padding: const EdgeInsets.all(12.0),
-                    child: SizedBox(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(
-                              height: 8,
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
-                              child: SizedBox(
-                                height: 250,
-                                child: MyMap(
-                                  lat: lat,
-                                  lon: long,
-                                  acc: acc,
-                                ),
+        backgroundColor: const Color(0xff0288D1),
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      drawer: const MyDrawer(),
+      body: Stack(
+        children: [
+          SafeArea(
+              child: Container(
+                  padding: const EdgeInsets.all(12.0),
+                  child: SizedBox(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(
+                            height: 8,
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
+                            child: SizedBox(
+                              height: 250,
+                              child: MyMap(
+                                lat: lat,
+                                lon: long,
+                                acc: acc,
                               ),
                             ),
-                            const SizedBox(
-                              height: 8,
-                            ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Take a Photo',
-                                  style: TextStyle(
-                                    color: Color(0xff0288D1),
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
+                          ),
+                          const SizedBox(
+                            height: 8,
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Take a Photo',
+                                style: TextStyle(
+                                  color: Color(0xff0288D1),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
                                 ),
-                                const SizedBox(
-                                  height: 8,
-                                ),
-                                Card(
-                                  elevation: 2,
-                                  clipBehavior: Clip.hardEdge,
-                                  child: Stack(
-                                    children: [
-                                      SizedBox(
-                                        height: 150,
-                                        width: double.infinity,
-                                        child: _image == null
-                                            ? const Align(
-                                                alignment: Alignment.center,
-                                                child: Text(
-                                                  "No image selected",
-                                                  style: TextStyle(
-                                                    color: Color.fromARGB(
-                                                        255, 28, 100, 140),
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 8,
-                                                  ),
-                                                ),
-                                              )
-                                            : GestureDetector(
-                                                onTap: () {
-                                                  showDialog(
-                                                    context: context,
-                                                    builder:
-                                                        (BuildContext context) {
-                                                      return Dialog(
-                                                        child: Container(
-                                                          color: Colors.black,
-                                                          child:
-                                                              InteractiveViewer(
-                                                            child: Image.file(
-                                                                _image!),
-                                                          ),
-                                                        ),
-                                                      );
-                                                    },
-                                                  );
-                                                },
-                                                child: Image.file(
-                                                  _image!,
-                                                  fit: BoxFit.cover,
+                              ),
+                              const SizedBox(
+                                height: 8,
+                              ),
+                              Card(
+                                elevation: 2,
+                                clipBehavior: Clip.hardEdge,
+                                child: Stack(
+                                  children: [
+                                    SizedBox(
+                                      height: 150,
+                                      width: double.infinity,
+                                      child: _image == null
+                                          ? const Align(
+                                              alignment: Alignment.center,
+                                              child: Text(
+                                                "No image selected",
+                                                style: TextStyle(
+                                                  color: Color.fromARGB(
+                                                      255, 28, 100, 140),
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 8,
                                                 ),
                                               ),
-                                      ),
-                                      Align(
-                                        alignment: Alignment.bottomCenter,
-                                        child: IconButton(
-                                          icon: const Icon(
-                                            Icons.photo_camera,
-                                            size: 50,
-                                            color: Color.fromARGB(
-                                                255, 28, 100, 140),
-                                          ),
-                                          onPressed: () => takePhoto(),
+                                            )
+                                          : GestureDetector(
+                                              onTap: () {
+                                                showDialog(
+                                                  context: context,
+                                                  builder:
+                                                      (BuildContext context) {
+                                                    return Dialog(
+                                                      child: Container(
+                                                        color: Colors.black,
+                                                        child:
+                                                            InteractiveViewer(
+                                                          child: Image.file(
+                                                              _image!),
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
+                                                );
+                                              },
+                                              child: Image.file(
+                                                _image!,
+                                                fit: BoxFit.cover,
+                                              ),
+                                            ),
+                                    ),
+                                    Align(
+                                      alignment: Alignment.bottomCenter,
+                                      child: IconButton(
+                                        icon: const Icon(
+                                          Icons.photo_camera,
+                                          size: 50,
+                                          color:
+                                              Color.fromARGB(255, 28, 100, 140),
                                         ),
+                                        onPressed: () => takePhoto(),
                                       ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(
-                                  height: 8,
-                                ),
-                                MySelectInput(
-                                  onSubmit: (value) {
-                                    setState(() {
-                                      dmaname = value;
-                                    });
-                                  },
-                                  list: const [
-                                    "--Select--",
-                                    "Kamiti A",
-                                    "Kamiti B",
-                                    "Samaki 1",
-                                    "Samaki 2",
-                                    "Makanja 1",
-                                    "Makanja 2",
-                                    "Kiu River",
-                                    "Kiu Kenda",
-                                    "Kanjata",
-                                    "Kiambu Golf Club",
+                                    ),
                                   ],
-                                  label: 'Select DMA Name',
-                                  value: dmaname,
                                 ),
-                                MySelectInput(
-                                  onSubmit: (value) {
+                              ),
+                              const SizedBox(
+                                height: 8,
+                              ),
+                              MySelectInput(
+                                onSubmit: (value) {
+                                  setState(() {
+                                    dmaname = value;
+                                  });
+                                },
+                                list: const [
+                                  "--Select--",
+                                  "Kamiti A",
+                                  "Kamiti B",
+                                  "Samaki 1",
+                                  "Samaki 2",
+                                  "Makanja 1",
+                                  "Makanja 2",
+                                  "Kiu River",
+                                  "Kiu Kenda",
+                                  "Kanjata",
+                                  "Kiambu Golf Club",
+                                ],
+                                label: 'Select DMA Name',
+                                value: dmaname,
+                              ),
+                              MySelectInput(
+                                onSubmit: (value) {
+                                  setState(() {
+                                    nature = value;
+                                  });
+                                },
+                                list: const [
+                                  "--Select--",
+                                  "Visible",
+                                  "Underground",
+                                ],
+                                label: 'Nature of Leakage',
+                                value: nature,
+                              ),
+                              MyTextInput(
+                                lines: 1,
+                                value: description,
+                                type: TextInputType.text,
+                                onSubmit: (value) {
+                                  setState(() {
+                                    description = value;
+                                  });
+                                },
+                                title: 'Describe the incident',
+                              ),
+                              const SizedBox(
+                                height: 4,
+                              ),
+                              Align(
+                                alignment: Alignment.bottomCenter,
+                                child: SubmitButton(
+                                  label: "Submit",
+                                  onButtonPressed: () async {
                                     setState(() {
-                                      nature = value;
-                                    });
-                                  },
-                                  list: const [
-                                    "--Select--",
-                                    "Visible",
-                                    "Underground",
-                                  ],
-                                  label: 'Nature of Leakage',
-                                  value: nature,
-                                ),
-                                MyTextInput(
-                                  lines: 1,
-                                  value: description,
-                                  type: TextInputType.text,
-                                  onSubmit: (value) {
-                                    setState(() {
-                                      description = value;
-                                    });
-                                  },
-                                  title: 'Describe the incident',
-                                ),
-                                const SizedBox(
-                                  height: 4,
-                                ),
-                                TextOakar(
-                                    label: error, issuccessful: successful),
-                                const SizedBox(
-                                  height: 4,
-                                ),
-                                Align(
-                                  alignment: Alignment.bottomCenter,
-                                  child: SubmitButton(
-                                    label: "Submit",
-                                    onButtonPressed: () async {
-                                      setState(() {
-                                        error = "";
-                                        isLoading = LoadingAnimationWidget
-                                            .staggeredDotsWave(
-                                          color: const Color.fromARGB(
-                                              255, 28, 100, 140),
-                                          size: 100,
-                                        );
-                                      });
-
-                                      var res = await submitData(
-                                        userid,
-                                        myimage,
-                                        dmaname,
-                                        description,
-                                        nature,
-                                        lat,
-                                        long,
-                                        name,
-                                        date,
+                                      error = "";
+                                      isLoading = LoadingAnimationWidget
+                                          .staggeredDotsWave(
+                                        color: const Color.fromARGB(
+                                            255, 28, 100, 140),
+                                        size: 100,
                                       );
-                                      setState(() {
-                                        isLoading = null;
-                                        if (res.error == null) {
-                                          error = res.success;
-                                          Navigator.pushReplacement(
-                                              context,
-                                              MaterialPageRoute(
-                                                  builder: (_) => const NRW()));
-                                        } else {
-                                          error = res.error ??
-                                              "An unknown error occurred";
-                                        }
-                                      });
+                                    });
+
+                                    var res = await submitData(
+                                      userid,
+                                      myimage,
+                                      dmaname,
+                                      description,
+                                      nature,
+                                      lat,
+                                      long,
+                                      name,
+                                      date,
+                                    );
+                                    setState(() {
+                                      isLoading = null;
                                       if (res.error == null) {
+                                        error = "";
+                                        _showSnackBar(
+                                            res.success ??
+                                                "Leakage report submitted successfully!",
+                                            true);
                                         Timer(const Duration(seconds: 2), () {
                                           Navigator.pushReplacement(
-                                              context,
-                                              MaterialPageRoute(
-                                                  builder: (_) => const NRW()));
+                                            context,
+                                            MaterialPageRoute(
+                                                builder: (_) => const NRW()),
+                                          );
                                         });
+                                      } else {
+                                        error = res.error ??
+                                            "An unknown error occurred";
+                                        _showSnackBar(error, false);
                                       }
-                                    },
-                                  ),
+                                    });
+                                  },
                                 ),
-                              ],
-                            ),
-                          ],
-                        ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                    ))),
-            Center(
-              child: isLoading ?? const SizedBox(),
-            ),
-          ],
-        ),
+                    ),
+                  ))),
+          Center(
+            child: isLoading ?? const SizedBox(),
+          ),
+        ],
       ),
     );
   }
