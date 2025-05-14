@@ -118,6 +118,7 @@ class _CustomerMetersState extends State<CustomerMeters> {
     try {
       var token = await storage.read(key: "mwstaffjwt");
       var decoded = parseJwt(token.toString());
+      print('decoded is $decoded');
       setState(() {
         userid = decoded["id"];
       });
@@ -537,7 +538,7 @@ class _CustomerMetersState extends State<CustomerMeters> {
                             location,
                             parcelno,
                             remarks,
-                            staffid,
+                            userid,
                             lat.toString(),
                             long.toString(),
                             myimage,
@@ -624,7 +625,7 @@ Future<Message> submitData(
   String location,
   String parcelno,
   String remarks,
-  String staffid,
+  String userid,
   String lat,
   String long,
   String myimage,
@@ -694,10 +695,12 @@ Future<Message> submitData(
       'parcelNo': parcelno,
       'meterSize': size,
       'remarks': remarks,
-      'userId': staffid,
+      'userId': userid,
       'latitude': id == '' ? lat : null,
       'longitude': id == '' ? long : null,
     };
+
+    print('Payload is $payload, userid is: $userid');
 
     if (id != '') {
       response = await http.put(

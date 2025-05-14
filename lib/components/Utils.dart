@@ -2,7 +2,7 @@
 import 'dart:convert';
 
 String getUrl() {
-  return "http://192.168.137.1:3003/api/";
+  return "http://192.168.1.136:3003/api/";
   // return "http://20.20.20.239:3003/api/";
 
   // return "https://api-utilitymanagerkiambu.dat.co.ke/api/";
