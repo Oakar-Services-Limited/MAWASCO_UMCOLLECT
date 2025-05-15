@@ -14,7 +14,9 @@ import 'package:kiambu_umcollect/pages/TextOakar.dart';
 
 class MeterReadingDialog extends StatefulWidget {
   final String accountno;
-  const MeterReadingDialog({super.key, required this.accountno});
+  final String meterid;
+  const MeterReadingDialog(
+      {super.key, required this.accountno, required this.meterid});
 
   @override
   State<MeterReadingDialog> createState() => _ForgetPasswordDialogState();
@@ -173,8 +175,8 @@ class _ForgetPasswordDialogState extends State<MeterReadingDialog> {
                       size: 100,
                     );
                   });
-                  var res =
-                      await submitData(widget.accountno, meterreading, myimage);
+                  var res = await submitData(
+                      widget.accountno, widget.meterid, meterreading, myimage);
                   setState(() {
                     isLoading = null;
                     if (res.error == null) {
@@ -204,7 +206,7 @@ class _ForgetPasswordDialogState extends State<MeterReadingDialog> {
 }
 
 Future<Message> submitData(
-    String accountno, String meterreading, String image) async {
+    String accountno, String meterid, String meterreading, String image) async {
   if (meterreading.isEmpty) {
     return Message(
       token: null,
@@ -224,22 +226,23 @@ Future<Message> submitData(
   DateTime now = DateTime.now();
   String dateread = DateFormat('yyyy-MM-dd').format(now);
 
-  print("dialog data: $dateread, $accountno, $meterreading, $image, ");
+  print(
+      "dialog data: $dateread, $accountno, $meterid, $meterreading, $image, ");
   try {
     final response = await post(
-      Uri.parse("${getUrl()}customerreading/create"),
+      Uri.parse("${getUrl()}meter-reading/create"),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
       body: jsonEncode(<String, String>{
-        'AccountNumber': accountno,
-        'Units': meterreading,
-        'Date': dateread,
-        'Image': image,
+        'accountNo': accountno,
+        'units': meterreading,
+        'dateread': dateread,
+        'image': image,
       }),
     );
 
-    if (response.statusCode == 200 || response.statusCode == 203) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       return Message.fromJson(jsonDecode(response.body));
     } else {
       return Message(

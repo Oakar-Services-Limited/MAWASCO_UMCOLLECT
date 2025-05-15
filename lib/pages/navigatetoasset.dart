@@ -49,6 +49,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
   String small_distance = "";
   var lat = 0.0, lon = 0.0;
   String accountno = '';
+  String id = '';
   var selected;
   var choice;
   LatLng destination = const LatLng(0.0, 0.0);
@@ -444,20 +445,28 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
     print("searched account $v");
     try {
       final response = await http.get(
-        Uri.parse("${getUrl()}customers/searchone/$v"),
+        Uri.parse("${getUrl()}wt/customer-meters?accountNo=$v&limit=5"),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
+          'Accept': 'application/json'
         },
       );
       if (response.statusCode == 200 || response.statusCode == 203) {
-        List<dynamic> body = jsonDecode(response.body);
+        var data = jsonDecode(response.body);
 
-        if (body.isNotEmpty) {
-          setState(() {
-            selected = body.first;
-          });
-
-          print("account no is : $selected");
+        if (data['success'] == true &&
+            data['data'] != null &&
+            data['data'] is List) {
+          if (data['data'].isNotEmpty) {
+            setState(() {
+              selected = data['data'].first;
+            });
+            print("account no is : $selected");
+          } else {
+            setState(() {
+              selected = null;
+            });
+          }
         } else {
           setState(() {
             selected = null;
@@ -465,8 +474,12 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
         }
       } else {
         print("RESPONSE IS: ${response.statusCode}");
+        setState(() {
+          selected = null;
+        });
       }
     } catch (e) {
+      print("Error searching accounts: $e");
       setState(() {
         selected = null;
       });
@@ -658,11 +671,13 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                           "selected: $selected");
                                                       setState(() {
                                                         accountno = selected[
-                                                                "AccountNo"]
+                                                                "accountNo"]
+                                                            .toString();
+                                                        id = selected["id"]
                                                             .toString();
                                                       });
                                                       print(
-                                                          "selected accountno: $accountno");
+                                                          "selected accountno: $accountno, id: $id");
                                                       FocusScope.of(context)
                                                           .unfocus();
                                                       setState(() {
@@ -670,10 +685,10 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                         selected = null;
                                                         destination = LatLng(
                                                             double.tryParse(choice[
-                                                                    "Latitude"]
+                                                                    "latitude"]
                                                                 .toString())!,
                                                             double.tryParse(choice[
-                                                                    "Longitude"]
+                                                                    "longitude"]
                                                                 .toString())!);
                                                         destinationPosition =
                                                             Marker(
@@ -733,7 +748,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                                   widget.label ==
                                                                       "Customer Meters"
                                                               ? Text(
-                                                                  'MeterType: ${selected["MeterType"]}',
+                                                                  'Customer Name: ${selected["name"]}',
                                                                   style: const TextStyle(
                                                                       color: Colors
                                                                           .grey,
@@ -778,7 +793,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                           widget.label ==
                                                                   "Customer Meters"
                                                               ? Text(
-                                                                  'Account No: ${selected["AccountNo"]}',
+                                                                  'Account No: ${selected["accountNo"]}',
                                                                   style: const TextStyle(
                                                                       color: Colors
                                                                           .grey,
@@ -961,7 +976,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                               child: TextButton(
                                                   onPressed: () {
                                                     print(
-                                                        "selected value is: $selected");
+                                                        "selected value is: $selected, $choice");
                                                     if (choice != null) {
                                                       setState(() {
                                                         routing = true;
@@ -1084,7 +1099,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                 child: TextButton(
                                                     onPressed: () async {
                                                       print(
-                                                          "account number here: $accountno");
+                                                          "account number here: $accountno, id: $id");
                                                       if (choice != null) {
                                                         setState(() {
                                                           choice = null;
@@ -1094,6 +1109,8 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                             MaterialPageRoute(
                                                                 builder: (_) =>
                                                                     MeterReadingDialog(
+                                                                        meterid:
+                                                                            id,
                                                                         accountno:
                                                                             accountno)));
                                                       } else {
