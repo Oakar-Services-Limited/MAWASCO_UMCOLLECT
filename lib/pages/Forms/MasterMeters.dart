@@ -13,6 +13,7 @@ import 'package:kiambu_umcollect/components/Utils.dart';
 import 'package:kiambu_umcollect/models/Map.dart';
 import 'package:kiambu_umcollect/pages/Assets.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:kiambu_umcollect/pages/home.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:http/http.dart' as http;
 
@@ -140,11 +141,7 @@ class _MasterMetersState extends State<MasterMeters> {
             ),
             onPressed: () {
               Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => Assets(
-                            staffid: staffid,
-                          )));
+                  context, MaterialPageRoute(builder: (_) => Home()));
             },
           ),
         ],
