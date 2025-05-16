@@ -315,25 +315,10 @@ class _NRWLeakagesState extends State<NRWLeakages> {
                               const SizedBox(
                                 height: 8,
                               ),
-                              MySelectInput(
-                                onSubmit: (value) {
-                                  setState(() {
-                                    dmaname = value;
-                                  });
-                                },
-                                list: const [
-                                  "--Select--",
-                                  "Kamiti A",
-                                  "Kamiti B",
-                                  "Samaki 1",
-                                  "Samaki 2",
-                                  "Makanja 1",
-                                  "Makanja 2",
-                                  "Kiu River",
-                                  "Kiu Kenda",
-                                  "Kanjata",
-                                  "Kiambu Golf Club",
-                                ],
+                             MySelectInput(
+                                onSubmit: (value) =>
+                                    setState(() => dmaname = value),
+                                list: getDMAs(),
                                 label: 'Select DMA Name',
                                 value: dmaname,
                               ),

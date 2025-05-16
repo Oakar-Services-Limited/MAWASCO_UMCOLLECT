@@ -66,59 +66,59 @@ class _AssetNavigationState extends State<AssetNavigation> {
         //  station = decoded["Department"];
       });
 
-      fetchStats(decoded["id"]);
-      getFarmersSectionStats(decoded["name"]);
+     // fetchStats(decoded["id"]);
+    //  getFarmersSectionStats(decoded["name"]);
     }
   }
 
-  Future<void> fetchStats(String id) async {
-    try {
-      final dynamic response;
+  // Future<void> fetchStats(String id) async {
+  //   try {
+  //     final dynamic response;
 
-      response = await http.get(
-        Uri.parse("${getUrl()}workplan/mobile/stats/$id"),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-      );
-      var data = json.decode(response.body);
-      setState(() {
-        activities = data["acToday"].toString();
-        workplans = data["wpToday"].toString();
-        reports = data["repToday"].toString();
-      });
-    } catch (e) {}
-  }
+  //     response = await http.get(
+  //       Uri.parse("${getUrl()}workplan/mobile/stats/$id"),
+  //       headers: <String, String>{
+  //         'Content-Type': 'application/json; charset=UTF-8',
+  //       },
+  //     );
+  //     var data = json.decode(response.body);
+  //     setState(() {
+  //       activities = data["acToday"].toString();
+  //       workplans = data["wpToday"].toString();
+  //       reports = data["repToday"].toString();
+  //     });
+  //   } catch (e) {}
+  // }
 
-  Future<void> getFarmersSectionStats(user) async {
-    try {
-      final response = await http.get(
-        Uri.parse("${getUrl()}farmerdetails/mapped/$user"),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8'
-        },
-      );
+  // Future<void> getFarmersSectionStats(user) async {
+  //   try {
+  //     final response = await http.get(
+  //       Uri.parse("${getUrl()}farmerdetails/mapped/$user"),
+  //       headers: <String, String>{
+  //         'Content-Type': 'application/json; charset=UTF-8'
+  //       },
+  //     );
 
-      var body = json.decode(response.body);
-      var mystats = body;
+  //     var body = json.decode(response.body);
+  //     var mystats = body;
 
-      List<int> numbers = [
-        body["FD"],
-        body["FA"],
-        body["FR"],
-        body["FG"],
-        body["VC"]
-      ];
-      int minimum = numbers.reduce(
-        (currentMin, element) => element < currentMin ? element : currentMin,
-      );
+  //     List<int> numbers = [
+  //       body["FD"],
+  //       body["FA"],
+  //       body["FR"],
+  //       body["FG"],
+  //       body["VC"]
+  //     ];
+  //     int minimum = numbers.reduce(
+  //       (currentMin, element) => element < currentMin ? element : currentMin,
+  //     );
 
-      setState(() {
-        total_farmers = mystats["TF"].toString(); // Convert to string
-        mapped = minimum.toString();
-      });
-    } catch (e) {}
-  }
+  //     setState(() {
+  //       total_farmers = mystats["TF"].toString(); // Convert to string
+  //       mapped = minimum.toString();
+  //     });
+  //   } catch (e) {}
+  // }
 
   @override
   Widget build(BuildContext context) {

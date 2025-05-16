@@ -414,15 +414,29 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
   }
 
   void searchObjectID(String v) async {
+    print("searched object id $v");
+
+    String table;
+
+    switch (widget.label) {
+      case "Tanks":
+        table = "wt_tanks";
+        break;
+      default:
+        table = widget.label.replaceAll(RegExp(" "), "");
+    }
     try {
       final response = await http.get(
-        Uri.parse(
-            "${getUrl()}customers/searchothers/${widget.label.replaceAll(RegExp(" "), "")}/$v"),
+        Uri.parse("${getUrl()}admin/searchassets/$table/$v"),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },
       );
+      print("response is: ${response.body}");
+      print("response status code is: ${response.statusCode}");
       if (response.statusCode == 200 || response.statusCode == 203) {
+        print("response is: ${response.body}");
+        print("response status code is: ${response.statusCode}");
         List<dynamic> body = jsonDecode(response.body);
         if (body.isNotEmpty) {
           setState(() {
@@ -435,6 +449,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
         }
       }
     } catch (e) {
+      print("error is: $e");
       setState(() {
         selected = null;
       });
@@ -781,7 +796,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                                         )
                                                                       : Text(
                                                                           selected[
-                                                                              "Name"],
+                                                                              "ObjectID"].toString(),
                                                                           style: const TextStyle(
                                                                               color: Color.fromARGB(255, 28, 100, 140),
                                                                               fontSize: 18,

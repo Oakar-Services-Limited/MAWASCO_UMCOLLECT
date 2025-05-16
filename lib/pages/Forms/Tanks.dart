@@ -193,43 +193,12 @@ class _TanksState extends State<Tanks> {
                       title: 'Name',
                     ),
                     MySelectInput(
-                      onSubmit: (value) {
-                        setState(() {
-                          zone = value;
-                        });
-                      },
-                      list: const [
-                        "--Select--",
-                        "001 Gathugu",
-                        "Urban Giakairu",
-                        "002 Urban Institution",
-                        "003 Indian",
-                        "004 Industrial",
-                        "005 Karindundu",
-                        "006 Mathaithi",
-                        "007 Ragati",
-                        "008 Saigon 1",
-                        "009 Sofia",
-                        "010 Muthua",
-                        "011 Blue Valley",
-                        "012 83",
-                        "013 84",
-                        "014 85",
-                        "015 86",
-                        "016 87",
-                        "017 88",
-                        "018 Jambo-88",
-                        "019 Tumutumu-87",
-                        "019 89",
-                        "020 90",
-                        "021 91",
-                        "022 92",
-                        "023 82(Inst.Rural)",
-                        "024 93",
-                      ],
+                      onSubmit: (value) => setState(() => zone = value),
+                      list: getZones(),
                       label: 'Zone',
                       value: zone,
                     ),
+                  
                     MyTextInput(
                       lines: 1,
                       value: elevation,
