@@ -70,7 +70,6 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
   }
 
   searchAsset(v, searchItem) async {
-    print('searched value: $v, searched item: $searchItem');
     await storage.write(key: 'editing', value: 'true');
     await storage.write(key: "data", value: '');
     setState(() {
@@ -88,13 +87,34 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
       dmaentries.clear();
     });
 
+    switch (widget.assetName) {
+      case 'Water Pipes':
+        searchItem = 'wt_water_pipes';
+        break;
+      case 'Water Tanks':
+        searchItem = 'wt_tanks';
+        break;
+      case 'Valves':
+        searchItem = 'wt_valves';
+        break;
+      case 'Master Meters':
+        searchItem = 'wt_master_meters';
+      case 'Washouts':
+        searchItem = 'wt_washouts';
+        break;
+      default:
+        searchItem = 'customers';
+    }
+
     try {
       String url;
       if (searchItem == 'customers') {
         url = "${getUrl()}wt/customer-meters?accountNo=$v&limit=5";
       } else {
-        url = "${getUrl()}wt/$searchItem/$v";
+        url = "${getUrl()}wt/assetsearch/$searchItem/$v";
       }
+
+      print('searched value: $v, searched item: $searchItem');
 
       final response = await get(Uri.parse(url), headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
@@ -166,6 +186,7 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
         }
       });
     } catch (e, stackTrace) {
+      print("505 ERROR: $e, $stackTrace");
       setState(() {
         isLoading = null;
         error = "Error searching: ${e.toString()}";
