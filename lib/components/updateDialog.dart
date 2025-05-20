@@ -164,18 +164,22 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
             } else {
               for (var item in data) {
                 if (searchItem == 'customerchamber') {
-                  ccentries.add(
-                      SearchCustomerChambers(AccountNo: item["AccountNo"]));
+                  ccentries.add(SearchCustomerChambers(
+                      AccountNo:
+                          int.tryParse(item["AccountNo"]?.toString() ?? "0") ??
+                              0));
                 } else if (searchItem == 'productionmeters') {
                   bmentries.add(SearchProductionMeter(
-                      AccountNumber: item["AccountNumber"]));
+                      AccountNumber: item["AccountNumber"]?.toString() ?? ""));
                 } else if (searchItem == 'dmameters') {
-                  dmaentries.add(SearchDMAMeter(DMAName: item["DMAName"]));
+                  dmaentries.add(SearchDMAMeter(
+                      DMAName: item["DMAName"]?.toString() ?? ""));
                 } else if (searchItem == 'offtakes') {
-                  oentries
-                      .add(SearchOfftakes(AccountName: item["AccountName"]));
+                  oentries.add(SearchOfftakes(
+                      AccountName: item["AccountName"]?.toString() ?? ""));
                 } else {
-                  entries.add(SearchAsset(Name: item["Name"]));
+                  entries.add(
+                      SearchAsset(Name: item["ObjectID"]?.toString() ?? ""));
                 }
                 fetchedData = json.encode(data);
               }
@@ -923,14 +927,36 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
                             ),
                         ],
                       )
-                    : Text(
-                        name,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xff0288D1),
-                        ),
-                      ),
+                    : widget.assetName == 'Valves'
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Valve:",
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xff0288D1),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                "ObjectID: $name",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          )
+                        : Text(
+                            name,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xff0288D1),
+                            ),
+                          ),
               ),
               const Icon(
                 Icons.arrow_forward_ios,
