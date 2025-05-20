@@ -74,30 +74,29 @@ class _ValvesState extends State<Valves> {
       });
 
       if (editing == 'true') {
-        //  prefillForm(data);
+        prefillForm(data);
       } else {}
     } catch (e) {}
   }
 
-  // prefillForm(data) async {
-  //   var fetchedData = await storage.read(key: "data");
-  //   data = json.decode(fetchedData!);
+  prefillForm(data) async {
+    var fetchedData = await storage.read(key: "data");
+    data = json.decode(fetchedData!);
 
-  //   setState(() {
-  //     valveID = data[0]["ID"] ?? "";
-  //     type = data[0]["Type"] ?? "";
-  //     name = data[0]["Name"] ?? "";
-  //     diameter = data[0]["Diameter"]?.toString() ?? "";
-  //     zone = data[0]["Zone"]?.toString() ?? "";
-  //     subzone = data[0]["Subzone"]?.toString() ?? "";
-  //     pipelinename = data[0]["Pipeline"] ?? '' ?? "";
-  //     year = data[0]["YearOfInstallation"]?.toString() ?? "";
-  //     depth = data[0]["Depth"]?.toString() ?? "";
-  //     status = data[0]["Status"] ?? "";
-  //     remarks = data[0]["Remarks"] ?? "";
-  //     myimage = data[0]["Picture"] ?? '';
-  //   });
-  // }
+    setState(() {
+      valveID = data[0]["id"] ?? "";
+      dma = data[0]["dma"] ?? "";
+      type = data[0]["type"] ?? "";
+      status = data[0]["status"] ?? "";
+      size = data[0]["size"] ?? "";
+      schemename = data[0]["schemeName"] ?? "";
+      zone = data[0]["zone"] ?? "";
+      route = data[0]["route"] ?? "";
+      location = data[0]["location"] ?? "";
+      remarks = data[0]["remarks"] ?? "";
+      user = data[0]["userId"] ?? "";
+    });
+  }
 
   getLocation() async {
     position = await Geolocator.getCurrentPosition(

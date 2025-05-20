@@ -31,6 +31,7 @@ class _WaterPipesState extends State<WaterPipes> {
   late Position position;
   String? editing = 'false';
   String error = '';
+  String waterpipeID = '';
   String linename = '';
   String material = '';
   String intake = '';
@@ -82,32 +83,32 @@ class _WaterPipesState extends State<WaterPipes> {
       });
 
       if (editing == 'true') {
-        // prefillForm(data);
+        prefillForm(data);
       } else {}
     } catch (e) {}
   }
 
-  // prefillForm(data) async {
-  //   var fetchedData = await storage.read(key: "data");
-  //   data = json.decode(fetchedData!);
+  prefillForm(data) async {
+    var fetchedData = await storage.read(key: "data");
+    data = json.decode(fetchedData!);
 
-  //   setState(() {
-  //     waterpipeID = data[0]["ID"] ?? "";
-  //     linetype = data[0]["Length"]?.toString() ?? "";
-  //     linename = data[0]["Name"] ?? "";
-  //     diameter = data[0]["Diameter"] ?? "";
-  //     zone = data[0]["Material"] ?? "";
-  //     pipematerial = data[0]["Length"]?.toString() ?? "";
-  //     year = data[0]["Year"]?.toString() ?? "";
-
-  //     wpclass = data[0]["Class"] ?? "";
-
-  //     status = data[0]["Status"] ?? "";
-  //     distribution = data[0]["Distribution"] ?? "";
-
-  //     remarks = data[0]["Remarks"] ?? "";
-  //   });
-  // }
+    setState(() {
+      waterpipeID = data[0]["id"] ?? "";
+      linename = data[0]["lineName"] ?? "";
+      lineType = data[0]["lineType"] ?? "";
+      material = data[0]["material"] ?? "";
+      intake = data[0]["intake"]?.toString() ?? "";
+      function = data[0]["function"] ?? "";
+      dma = data[0]["dma"] ?? "";
+      route = data[0]["route"] ?? "";
+      schemename = data[0]["schemeName"] ?? "";
+      zone = data[0]["zone"] ?? "";
+      size = data[0]["size"] ?? "";
+      status = data[0]["status"] ?? "";
+      remarks = data[0]["remarks"] ?? "";
+      user = data[0]["userId"] ?? "";
+    });
+  }
 
   @override
   void initState() {

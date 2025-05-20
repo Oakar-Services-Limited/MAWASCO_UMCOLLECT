@@ -88,16 +88,16 @@ class _MasterMetersState extends State<MasterMeters> {
     data = json.decode(fetchedData!);
 
     setState(() {
-      masterMeterID = data[0]["ID"];
-      name = data[0]["Name"];
-      size = data[0]["Size"];
-      route = data[0]["Route"];
-      zone = data[0]["Zone"];
-      dma = data[0]["DMA"];
-      cover = data[0]["Cover"];
-      location = data[0]["Location"];
-      remarks = data[0]["Remarks"];
-      user = data[0]["User"];
+      masterMeterID = data[0]["id"]?.toString() ?? "";
+      name = data[0]["name"]?.toString() ?? "";
+      size = data[0]["size"]?.toString() ?? "";
+      route = data[0]["route"]?.toString() ?? "";
+      zone = data[0]["zone"]?.toString() ?? "";
+      dma = data[0]["dma"]?.toString() ?? "";
+      cover = data[0]["cover"]?.toString() ?? "";
+      location = data[0]["location"]?.toString() ?? "";
+      remarks = data[0]["remarks"]?.toString() ?? "";
+      user = data[0]["userId"]?.toString() ?? "";
     });
   }
 

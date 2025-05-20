@@ -81,15 +81,15 @@ class _WashoutsState extends State<Washouts> {
     data = json.decode(fetchedData!);
 
     setState(() {
-      washoutsID = data[0]["ID"];
-      name = data[0]["Name"];
-      size = data[0]["Size"];
-      route = data[0]["Route"];
-      zone = data[0]["Zone"];
-      dma = data[0]["DMA"];
-      location = data[0]["Location"];
-      remarks = data[0]["Remarks"];
-      user = data[0]["User"];
+      washoutsID = data[0]["id"] ?? "";
+      name = data[0]["name"] ?? "";
+      size = data[0]["size"] ?? "";
+      route = data[0]["route"] ?? "";
+      zone = data[0]["zone"] ?? "";
+      dma = data[0]["dma"] ?? "";
+      location = data[0]["location"] ?? "";
+      remarks = data[0]["remarks"] ?? "";
+      user = data[0]["userId"] ?? "";
     });
   }
 

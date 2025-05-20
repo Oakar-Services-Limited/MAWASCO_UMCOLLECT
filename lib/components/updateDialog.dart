@@ -180,8 +180,9 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
                 } else {
                   entries.add(
                       SearchAsset(Name: item["ObjectID"]?.toString() ?? ""));
+                  // Store the complete item data
+                  fetchedData = json.encode(item);
                 }
-                fetchedData = json.encode(data);
               }
             }
           } else {
@@ -200,8 +201,9 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
 
   navigateToForm(
       BuildContext context, assetName, Map<String, dynamic> item) async {
-    await storage.write(key: 'editing', value: 'false');
-    await storage.write(key: "data", value: '');
+    await storage.write(key: 'editing', value: 'true');
+    await storage.write(key: "data", value: json.encode([item]));
+
     switch (assetName) {
       case 'Customer Meters':
         Navigator.pushReplacement(
@@ -251,7 +253,6 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
           MaterialPageRoute(builder: (_) => const Offtakes()),
         );
         break;
-
       case 'Boreholes':
         Navigator.pushReplacement(
           context,
@@ -868,8 +869,6 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
   }
 
   Widget _buildAssetItem(String name, {Map<String, dynamic>? customerMeter}) {
-    if (customerMeter != null) {}
-
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
@@ -877,7 +876,19 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
       ),
       child: InkWell(
         onTap: () {
-          navigateToForm(context, widget.assetName, customerMeter!);
+          if (customerMeter != null) {
+            navigateToForm(context, widget.assetName, customerMeter);
+          } else {
+            // For non-customer meter items, pass the complete item data
+            Map<String, dynamic> itemData = {};
+            try {
+              itemData = json.decode(fetchedData);
+            } catch (e) {
+              print("Error decoding item data: $e");
+              itemData = {"ObjectID": name};
+            }
+            navigateToForm(context, widget.assetName, itemData);
+          }
         },
         borderRadius: BorderRadius.circular(12),
         child: Padding(

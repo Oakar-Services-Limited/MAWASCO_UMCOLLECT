@@ -87,19 +87,19 @@ class _TanksState extends State<Tanks> {
     data = json.decode(fetchedData!);
 
     setState(() {
-      tankID = data[0]["ID"] ?? "";
-      name = data[0]["Name"] ?? "";
-      zone = data[0]["Zone"] ?? "";
-      elevation = data[0]["Elevation"]?.toString() ?? "";
-      area = data[0]["Area"] ?? "";
-      location = data[0]["Location"] ?? "";
-      inletpipe = data[0]["InletPipe"] ?? "";
-      outletpipe = data[0]["OutletPipe"] ?? "";
-      material = data[0]["Material"] ?? "";
-      capacity = data[0]["Capacity"] ?? "";
-      status = data[0]["Status"] ?? "";
-      remarks = data[0]["Remarks"] ?? "";
-      user = data[0]["User"] ?? "";
+      tankID = data[0]["id"] ?? "";
+      name = data[0]["name"] ?? "";
+      zone = data[0]["zone"] ?? "";
+      elevation = data[0]["elevation"]?.toString() ?? "";
+      area = data[0]["area"] ?? "";
+      location = data[0]["location"] ?? "";
+      inletpipe = data[0]["inletPipe"] ?? "";
+      outletpipe = data[0]["outletPipe"] ?? "";
+      material = data[0]["material"] ?? "";
+      capacity = data[0]["capacity"] ?? "";
+      status = data[0]["status"] ?? "";
+      remarks = data[0]["remarks"] ?? "";
+      user = data[0]["userId"] ?? "";
     });
   }
 
