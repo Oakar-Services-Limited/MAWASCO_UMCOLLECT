@@ -6,11 +6,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-import 'package:kiambu_umcollect/components/MyDrawer.dart';
-import 'package:kiambu_umcollect/components/MyTextInput.dart';
-import 'package:kiambu_umcollect/pages/TextOakar.dart';
-import 'package:kiambu_umcollect/pages/login.dart';
-import 'package:kiambu_umcollect/pages/publiclogin.dart';
+import 'package:um_collect/components/MyDrawer.dart';
+import 'package:um_collect/components/MyTextInput.dart';
+import 'package:um_collect/pages/TextOakar.dart';
+import 'package:um_collect/pages/login.dart';
+import 'package:um_collect/pages/publiclogin.dart';
 import '../Components/SubmitButton.dart';
 import '../Components/Utils.dart';
 

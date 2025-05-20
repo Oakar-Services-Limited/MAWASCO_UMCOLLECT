@@ -2,13 +2,13 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:kiambu_umcollect/Components/MyTextInput.dart';
-import 'package:kiambu_umcollect/components/SubmitButton.dart';
-import 'package:kiambu_umcollect/components/Utils.dart';
-import 'package:kiambu_umcollect/pages/TextOakar.dart';
+import 'package:um_collect/Components/MyTextInput.dart';
+import 'package:um_collect/components/SubmitButton.dart';
+import 'package:um_collect/components/Utils.dart';
+import 'package:um_collect/pages/TextOakar.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:http/http.dart';
-import 'package:kiambu_umcollect/pages/publiclogin.dart';
+import 'package:um_collect/pages/publiclogin.dart';
 
 class Register extends StatefulWidget {
   const Register({super.key});

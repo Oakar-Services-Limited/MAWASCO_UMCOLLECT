@@ -6,10 +6,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart';
-import 'package:kiambu_umcollect/components/MyTextInput.dart';
-import 'package:kiambu_umcollect/components/Utils.dart';
-import 'package:kiambu_umcollect/pages/TextOakar.dart';
-import 'package:kiambu_umcollect/pages/login.dart';
+import 'package:um_collect/components/MyTextInput.dart';
+import 'package:um_collect/components/Utils.dart';
+import 'package:um_collect/pages/TextOakar.dart';
+import 'package:um_collect/pages/login.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 class MyWallet extends StatefulWidget {

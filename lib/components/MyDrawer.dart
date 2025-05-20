@@ -1,10 +1,10 @@
 // ignore_for_file: file_names
 
 import 'package:flutter/material.dart';
-import 'package:kiambu_umcollect/components/FootNote.dart';
-import 'package:kiambu_umcollect/pages/incidences.dart';
-import 'package:kiambu_umcollect/pages/privaypolicy.dart';
-import 'package:kiambu_umcollect/pages/stafflogin.dart';
+import 'package:um_collect/components/FootNote.dart';
+import 'package:um_collect/pages/incidences.dart';
+import 'package:um_collect/pages/privaypolicy.dart';
+import 'package:um_collect/pages/stafflogin.dart';
 
 class MyDrawer extends StatefulWidget {
   const MyDrawer({super.key});

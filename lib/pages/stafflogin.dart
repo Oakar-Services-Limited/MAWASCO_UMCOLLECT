@@ -1,8 +1,8 @@
 // ignore_for_file: file_names, prefer_typing_uninitialized_variables
 
 import 'package:http/http.dart';
-import 'package:kiambu_umcollect/pages/TextOakar.dart';
-import 'package:kiambu_umcollect/pages/home.dart';
+import 'package:um_collect/pages/TextOakar.dart';
+import 'package:um_collect/pages/home.dart';
 
 import '../Components/SubmitButton.dart';
 import '../Components/MyTextInput.dart';

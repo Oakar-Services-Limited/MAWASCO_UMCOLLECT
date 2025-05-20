@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:kiambu_umcollect/pages/reportIncident.dart';
+import 'package:um_collect/pages/reportIncident.dart';
 
 class IRItem extends StatefulWidget {
   final String incident;

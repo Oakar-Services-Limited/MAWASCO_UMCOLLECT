@@ -2,12 +2,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:kiambu_umcollect/components/Utils.dart';
-import 'package:kiambu_umcollect/pages/home.dart';
+import 'package:um_collect/components/Utils.dart';
+import 'package:um_collect/pages/home.dart';
 import 'dart:async';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-import 'package:kiambu_umcollect/pages/login.dart';
+import 'package:um_collect/pages/login.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 Future<void> main() async {

@@ -6,8 +6,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart';
 import 'package:intl/intl.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-import 'package:kiambu_umcollect/components/MyDrawer.dart';
-import 'package:kiambu_umcollect/components/Utils.dart';
+import 'package:um_collect/components/MyDrawer.dart';
+import 'package:um_collect/components/Utils.dart';
 
 class IncidentDetails extends StatefulWidget {
   final String incidentid;

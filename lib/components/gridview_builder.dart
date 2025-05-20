@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:kiambu_umcollect/models/grid_icons.dart';
-import 'package:kiambu_umcollect/pages/reportIncident.dart';
+import 'package:um_collect/models/grid_icons.dart';
+import 'package:um_collect/pages/reportIncident.dart';
 
 class GridViewBuilderWidget extends StatelessWidget {
   const GridViewBuilderWidget({super.key});

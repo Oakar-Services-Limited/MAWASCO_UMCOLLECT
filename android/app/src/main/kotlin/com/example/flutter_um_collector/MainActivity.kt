@@ -1,4 +1,4 @@
-package ke.co.osl.um_collector
+package ke.co.osl.um_collect
 
 import io.flutter.embedding.android.FlutterActivity
 

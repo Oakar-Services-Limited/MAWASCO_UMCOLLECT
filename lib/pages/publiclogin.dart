@@ -1,7 +1,7 @@
 // ignore_for_file: file_names, prefer_typing_uninitialized_variables
 
 import 'package:http/http.dart';
-import 'package:kiambu_umcollect/pages/incidences.dart';
+import 'package:um_collect/pages/incidences.dart';
 
 import '../Components/SubmitButton.dart';
 import 'dart:async';

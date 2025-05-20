@@ -4,8 +4,8 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
-import 'package:kiambu_umcollect/components/StaffDrawer.dart';
-import 'package:kiambu_umcollect/components/Utils.dart';
+import 'package:um_collect/components/StaffDrawer.dart';
+import 'package:um_collect/components/Utils.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_html/flutter_html.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as GoogleMaps;

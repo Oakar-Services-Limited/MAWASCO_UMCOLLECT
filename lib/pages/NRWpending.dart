@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:kiambu_umcollect/components/NewNRWItem.dart';
-import 'package:kiambu_umcollect/components/StaffDrawer.dart';
-import 'package:kiambu_umcollect/components/Utils.dart';
-import 'package:kiambu_umcollect/pages/NRW.dart';
+import 'package:um_collect/components/NewNRWItem.dart';
+import 'package:um_collect/components/StaffDrawer.dart';
+import 'package:um_collect/components/Utils.dart';
+import 'package:um_collect/pages/NRW.dart';
 import 'package:http/http.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 

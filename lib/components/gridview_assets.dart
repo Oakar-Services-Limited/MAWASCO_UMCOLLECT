@@ -1,8 +1,8 @@
 // ignore_for_file: must_be_immutable
 
 import 'package:flutter/material.dart';
-import 'package:kiambu_umcollect/components/updateDialog.dart';
-import 'package:kiambu_umcollect/models/grid_icons.dart';
+import 'package:um_collect/components/updateDialog.dart';
+import 'package:um_collect/models/grid_icons.dart';
 
 class GridViewAssets extends StatefulWidget {
   final String staffid;

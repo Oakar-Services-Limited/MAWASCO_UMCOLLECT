@@ -3,9 +3,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:kiambu_umcollect/pages/publiclogin.dart';
-import 'package:kiambu_umcollect/pages/stafflogin.dart';
-import 'package:kiambu_umcollect/pages/login_options.dart';
+import 'package:um_collect/pages/publiclogin.dart';
+import 'package:um_collect/pages/stafflogin.dart';
+import 'package:um_collect/pages/login_options.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});

@@ -2,7 +2,7 @@
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:kiambu_umcollect/components/MyDrawer.dart';
+import 'package:um_collect/components/MyDrawer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class PrivacyPolicy extends StatelessWidget {

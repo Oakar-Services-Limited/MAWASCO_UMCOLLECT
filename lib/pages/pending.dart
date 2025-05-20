@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:kiambu_umcollect/components/NewCallItem.dart';
-import 'package:kiambu_umcollect/components/StaffDrawer.dart';
-import 'package:kiambu_umcollect/components/Utils.dart';
-import 'package:kiambu_umcollect/pages/home.dart';
+import 'package:um_collect/components/NewCallItem.dart';
+import 'package:um_collect/components/StaffDrawer.dart';
+import 'package:um_collect/components/Utils.dart';
+import 'package:um_collect/pages/home.dart';
 import 'package:http/http.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 

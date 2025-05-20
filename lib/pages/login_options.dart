@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:kiambu_umcollect/pages/publiclogin.dart';
-import 'package:kiambu_umcollect/pages/stafflogin.dart';
+import 'package:um_collect/pages/publiclogin.dart';
+import 'package:um_collect/pages/stafflogin.dart';
 
 class LoginOption extends StatelessWidget {
   final String title;
@@ -78,4 +78,4 @@ class LoginOption extends StatelessWidget {
       ),
     );
   }
-} 
+}

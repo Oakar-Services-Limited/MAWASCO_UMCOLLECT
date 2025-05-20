@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:kiambu_umcollect/components/Utils.dart';
+import 'package:um_collect/components/Utils.dart';
 import 'package:intl/intl.dart';
 
 class MyReportedItem extends StatefulWidget {

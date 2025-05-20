@@ -4,16 +4,16 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:kiambu_umcollect/components/MyDrawer.dart';
-import 'package:kiambu_umcollect/components/MyRow.dart';
-import 'package:kiambu_umcollect/components/MyRowIII.dart';
-import 'package:kiambu_umcollect/components/StaffDrawer.dart';
+import 'package:um_collect/components/MyDrawer.dart';
+import 'package:um_collect/components/MyRow.dart';
+import 'package:um_collect/components/MyRowIII.dart';
+import 'package:um_collect/components/StaffDrawer.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
-import 'package:kiambu_umcollect/pages/navigatetoasset.dart';
-import 'package:kiambu_umcollect/pages/home.dart';
-import 'package:kiambu_umcollect/pages/login.dart';
+import 'package:um_collect/pages/navigatetoasset.dart';
+import 'package:um_collect/pages/home.dart';
+import 'package:um_collect/pages/login.dart';
 import '../Components/Utils.dart';
 
 class AssetNavigation extends StatefulWidget {
@@ -66,8 +66,8 @@ class _AssetNavigationState extends State<AssetNavigation> {
         //  station = decoded["Department"];
       });
 
-     // fetchStats(decoded["id"]);
-    //  getFarmersSectionStats(decoded["name"]);
+      // fetchStats(decoded["id"]);
+      //  getFarmersSectionStats(decoded["name"]);
     }
   }
 
@@ -139,7 +139,6 @@ class _AssetNavigationState extends State<AssetNavigation> {
             "Asset Navigation",
             style: TextStyle(color: Colors.white),
           ),
-        
           backgroundColor: const Color(0xff0288D1),
           iconTheme: const IconThemeData(color: Colors.white),
         ),
@@ -191,7 +190,7 @@ class _AssetNavigationState extends State<AssetNavigation> {
                                       context,
                                       MaterialPageRoute(
                                           builder: (_) => NavigateToAsset(
-                                                label: 'Tanks',
+                                                label: 'Master Meters',
                                                 staffid: widget.staffid,
                                               )));
                                 },

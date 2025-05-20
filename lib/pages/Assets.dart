@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:kiambu_umcollect/components/StaffDrawer.dart';
-import 'package:kiambu_umcollect/components/Utils.dart';
-import 'package:kiambu_umcollect/components/gridview_assets.dart';
-import 'package:kiambu_umcollect/pages/home.dart';
+import 'package:um_collect/components/StaffDrawer.dart';
+import 'package:um_collect/components/Utils.dart';
+import 'package:um_collect/components/gridview_assets.dart';
+import 'package:um_collect/pages/home.dart';
 import 'package:geolocator/geolocator.dart';
 
 class Assets extends StatefulWidget {

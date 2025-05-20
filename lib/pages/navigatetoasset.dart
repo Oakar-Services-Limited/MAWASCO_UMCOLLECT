@@ -5,11 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart' as geolocator;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
-import 'package:kiambu_umcollect/components/BulkMeterReadingDialog.dart';
-import 'package:kiambu_umcollect/components/MeterReadingDialog.dart';
+import 'package:um_collect/components/BulkMeterReadingDialog.dart';
+import 'package:um_collect/components/MeterReadingDialog.dart';
 import 'package:location/location.dart';
-import 'package:kiambu_umcollect/Components/Utils.dart';
-import 'package:kiambu_umcollect/components/MyDrawer.dart';
+import 'package:um_collect/Components/Utils.dart';
+import 'package:um_collect/components/MyDrawer.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:math' show cos, sqrt, asin;
 import 'dart:math' as math;
@@ -422,6 +422,15 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
       case "Tanks":
         table = "wt_tanks";
         break;
+      case "Valves":
+        table = "wt_valves";
+        break;
+      case "Washouts":
+        table = "wt_washouts";
+        break;
+      case "Master Meters":
+        table = "wt_master_meters";
+        break;
       default:
         table = widget.label.replaceAll(RegExp(" "), "");
     }
@@ -795,8 +804,8 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                                               fontWeight: FontWeight.w600),
                                                                         )
                                                                       : Text(
-                                                                          selected[
-                                                                              "ObjectID"].toString(),
+                                                                          selected["ObjectID"]
+                                                                              .toString(),
                                                                           style: const TextStyle(
                                                                               color: Color.fromARGB(255, 28, 100, 140),
                                                                               fontSize: 18,

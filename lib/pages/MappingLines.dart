@@ -4,14 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:kiambu_umcollect/components/StaffDrawer.dart';
-import 'package:kiambu_umcollect/pages/Assets.dart';
-import 'package:kiambu_umcollect/pages/Forms/ConsumerLine.dart';
-import 'package:kiambu_umcollect/pages/Forms/CustomerLines.dart';
-import 'package:kiambu_umcollect/pages/Forms/LineProjects.dart';
-import 'package:kiambu_umcollect/pages/Forms/SewerLines.dart';
-import 'package:kiambu_umcollect/pages/Forms/SewerMainTrunk.dart';
-import 'package:kiambu_umcollect/pages/Forms/WaterPipes.dart';
+import 'package:um_collect/components/StaffDrawer.dart';
+import 'package:um_collect/pages/Assets.dart';
+import 'package:um_collect/pages/Forms/ConsumerLine.dart';
+import 'package:um_collect/pages/Forms/CustomerLines.dart';
+import 'package:um_collect/pages/Forms/LineProjects.dart';
+import 'package:um_collect/pages/Forms/SewerLines.dart';
+import 'package:um_collect/pages/Forms/SewerMainTrunk.dart';
+import 'package:um_collect/pages/Forms/WaterPipes.dart';
 
 class MappingLines extends StatefulWidget {
   final String assetName;

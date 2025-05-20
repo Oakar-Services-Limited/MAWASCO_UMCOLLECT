@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:kiambu_umcollect/pages/incidentdetailsnrw.dart';
-import 'package:kiambu_umcollect/pages/navigatenrw.dart';
+import 'package:um_collect/pages/incidentdetailsnrw.dart';
+import 'package:um_collect/pages/navigatenrw.dart';
 import 'package:intl/intl.dart';
 
 class NewNRWItem extends StatefulWidget {

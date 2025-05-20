@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:kiambu_umcollect/pages/incidentdetails.dart';
-import 'package:kiambu_umcollect/pages/navigate.dart';
+import 'package:um_collect/pages/incidentdetails.dart';
+import 'package:um_collect/pages/navigate.dart';
 import 'package:intl/intl.dart';
 
 class NewCallItem extends StatefulWidget {

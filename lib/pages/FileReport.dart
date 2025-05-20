@@ -6,11 +6,11 @@ import 'package:http/http.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-import 'package:kiambu_umcollect/components/MyDrawer.dart';
-import 'package:kiambu_umcollect/components/SubmitButton.dart';
-import 'package:kiambu_umcollect/components/Utils.dart';
-import 'package:kiambu_umcollect/pages/TextOakar.dart';
-import 'package:kiambu_umcollect/pages/complete.dart';
+import 'package:um_collect/components/MyDrawer.dart';
+import 'package:um_collect/components/SubmitButton.dart';
+import 'package:um_collect/components/Utils.dart';
+import 'package:um_collect/pages/TextOakar.dart';
+import 'package:um_collect/pages/complete.dart';
 
 class FileReport extends StatefulWidget {
   final String incidentid;

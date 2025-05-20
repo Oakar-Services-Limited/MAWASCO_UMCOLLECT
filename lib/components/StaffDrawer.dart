@@ -2,14 +2,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:kiambu_umcollect/components/FootNote.dart';
-import 'package:kiambu_umcollect/pages/Settings.dart';
-import 'package:kiambu_umcollect/pages/home.dart';
-import 'package:kiambu_umcollect/pages/incidences.dart';
-import 'package:kiambu_umcollect/pages/incidences_home.dart';
-import 'package:kiambu_umcollect/pages/login.dart';
-import 'package:kiambu_umcollect/pages/assetnavigation.dart';
-import 'package:kiambu_umcollect/pages/privaypolicy.dart';
+import 'package:um_collect/components/FootNote.dart';
+import 'package:um_collect/pages/Settings.dart';
+import 'package:um_collect/pages/home.dart';
+import 'package:um_collect/pages/incidences.dart';
+import 'package:um_collect/pages/incidences_home.dart';
+import 'package:um_collect/pages/login.dart';
+import 'package:um_collect/pages/assetnavigation.dart';
+import 'package:um_collect/pages/privaypolicy.dart';
 
 class StaffDrawer extends StatefulWidget {
   final String staffid;

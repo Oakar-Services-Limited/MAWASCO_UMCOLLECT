@@ -2,8 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:kiambu_umcollect/pages/complete.dart';
-import 'package:kiambu_umcollect/pages/pending.dart';
+import 'package:um_collect/pages/complete.dart';
+import 'package:um_collect/pages/pending.dart';
 
 class IncidencesHome extends StatefulWidget {
   final String staffid;

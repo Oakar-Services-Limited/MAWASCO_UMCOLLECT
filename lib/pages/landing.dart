@@ -4,10 +4,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:kiambu_umcollect/components/Utils.dart';
-import 'package:kiambu_umcollect/pages/home.dart';
+import 'package:um_collect/components/Utils.dart';
+import 'package:um_collect/pages/home.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:kiambu_umcollect/pages/login.dart';
+import 'package:um_collect/pages/login.dart';
 
 class Landing extends StatefulWidget {
   const Landing({super.key});
