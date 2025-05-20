@@ -927,36 +927,27 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
                             ),
                         ],
                       )
-                    : widget.assetName == 'Valves'
-                        ? Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Valve:",
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Color(0xff0288D1),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                "ObjectID: $name",
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ],
-                          )
-                        : Text(
-                            name,
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "${widget.assetName}:",
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
                               color: Color(0xff0288D1),
                             ),
                           ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "ObjectID: $name",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
               ),
               const Icon(
                 Icons.arrow_forward_ios,
