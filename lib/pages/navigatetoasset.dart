@@ -15,6 +15,9 @@ import 'dart:math' show cos, sqrt, asin;
 import 'dart:math' as math;
 import 'package:http/http.dart' as http;
 
+// ==========================================
+// Navigation to Asset Widget
+// ==========================================
 class NavigateToAsset extends StatefulWidget {
   final String label;
   final String staffid;
@@ -29,6 +32,9 @@ class NavigateToAsset extends StatefulWidget {
 }
 
 class _NavigateToAssetState extends State<NavigateToAsset> {
+  // ==========================================
+  // Controller and State Variables
+  // ==========================================
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final Completer<GoogleMapController?> _controller = Completer();
   Map<PolylineId, Polyline> polylines = {};
@@ -41,6 +47,10 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
   StreamSubscription<LocationData>? locationSubscription;
   bool _isVisible = false;
   bool routing = false;
+
+  // ==========================================
+  // Navigation Information Variables
+  // ==========================================
   String html_instructions = "";
   String distance = "";
   String duration = "";
@@ -55,6 +65,9 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
   LatLng destination = const LatLng(0.0, 0.0);
   var loading;
 
+  // ==========================================
+  // Lifecycle Methods
+  // ==========================================
   @override
   void initState() {
     super.initState();
@@ -62,6 +75,15 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
     print("widget label is ${widget.label}");
   }
 
+  @override
+  void dispose() {
+    locationSubscription?.cancel();
+    super.dispose();
+  }
+
+  // ==========================================
+  // Initialization Methods
+  // ==========================================
   initializeServices() async {
     _vehicleIcon = await BitmapDescriptor.fromAssetImage(
       const ImageConfiguration(devicePixelRatio: 0.5),
@@ -72,6 +94,9 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
     getNavigation(_vehicleIcon);
   }
 
+  // ==========================================
+  // Location and Map Control Methods
+  // ==========================================
   void _getCurrentLocation() async {
     try {
       geolocator.Position position =
@@ -124,6 +149,9 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
     } catch (e) {}
   }
 
+  // ==========================================
+  // Navigation and Routing Methods
+  // ==========================================
   getNavigation(BitmapDescriptor vehicleIcon) async {
     try {
       bool serviceEnabled;
@@ -173,51 +201,123 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
 
   void getDirections(LatLng dst) async {
     try {
+      print(
+          "Getting directions from: ${curLocation.latitude}, ${curLocation.longitude} to: ${dst.latitude}, ${dst.longitude}");
       List<LatLng> polylineCoordinates = [];
       List<dynamic> points = [];
-      PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
-        googleApiKey: 'AIzaSyAuvt2CB5r1jLoA5k00VnDkJmrAM3cL52g',
-        request: PolylineRequest(
-          origin: PointLatLng(curLocation.latitude, curLocation.longitude),
-          destination: PointLatLng(dst.latitude, dst.longitude),
-          mode: TravelMode.driving,
-        ),
-      );
 
-      // Calculate distance using your existing method
-      double calculatedDistance = calculateDistance(curLocation.latitude,
-          curLocation.longitude, dst.latitude, dst.longitude);
+      // Use a different API key that has Directions API enabled
+      String apiKey = 'AIzaSyAuvt2CB5r1jLoA5k00VnDkJmrAM3cL52g';
 
-      setState(() {
-        distance = "${calculatedDistance.toStringAsFixed(2)} km";
-        // Duration will be set in getNavigationInstructions
-      });
+      // First try to get directions using the Directions API directly
+      String directionsUrl =
+          'https://maps.googleapis.com/maps/api/directions/json?origin=${curLocation.latitude},${curLocation.longitude}&destination=${dst.latitude},${dst.longitude}&key=$apiKey';
 
-      if (result.points.isNotEmpty) {
-        if (result.points.length > 1 && routing) {
-          PointLatLng point0 = result.points[0];
-          PointLatLng point1 = result.points[1];
-          double bearing = calculateHeading(
-              LatLng(point0.latitude, point0.longitude),
-              LatLng(point1.latitude, point1.longitude));
-          _updateCameraPosition(curLocation, bearing);
+      print("Requesting directions from URL: $directionsUrl");
+
+      var response = await http.get(Uri.parse(directionsUrl));
+      print("Directions API Response Status: ${response.statusCode}");
+      print("Directions API Response Body: ${response.body}");
+
+      if (response.statusCode == 200) {
+        var data = json.decode(response.body);
+        if (data['status'] == 'OK') {
+          // Extract points from the response
+          List<dynamic> routes = data['routes'];
+          if (routes.isNotEmpty) {
+            List<dynamic> legs = routes[0]['legs'];
+            if (legs.isNotEmpty) {
+              List<dynamic> steps = legs[0]['steps'];
+              for (var step in steps) {
+                String polyline = step['polyline']['points'];
+                List<PointLatLng> decodedPoints =
+                    PolylinePoints().decodePolyline(polyline);
+                for (var point in decodedPoints) {
+                  polylineCoordinates
+                      .add(LatLng(point.latitude, point.longitude));
+                }
+              }
+            }
+          }
+        } else {
+          print(
+              "Directions API Error: ${data['status']} - ${data['error_message'] ?? 'No error message'}");
+
+          // Show error message to user
+          if (data['status'] == 'REQUEST_DENIED' &&
+              data['error_message']?.contains('Billing') == true) {
+            _showSnackbar(
+                context,
+                'Directions API not available. Showing direct route instead.',
+                Colors.orange);
+            // Fallback to direct line
+            _drawDirectLine(curLocation, dst);
+            return;
+          } else {
+            _showSnackbar(context,
+                'Could not get directions: ${data['status']}', Colors.red);
+            return;
+          }
         }
-
-        for (var point in result.points) {
-          polylineCoordinates.add(LatLng(point.latitude, point.longitude));
-          points.add({'lat': point.latitude, 'lng': point.longitude});
-        }
+      } else {
+        print("HTTP Error: ${response.statusCode}");
+        _showSnackbar(context,
+            'Error getting directions: ${response.statusCode}', Colors.red);
+        return;
       }
-      addPolyLine(polylineCoordinates);
-    } catch (e) {}
+
+      print("Number of polyline coordinates: ${polylineCoordinates.length}");
+
+      if (polylineCoordinates.isNotEmpty) {
+        // Clear existing polylines
+        setState(() {
+          polylines.clear();
+        });
+
+        // Add new polyline
+        addPolyLine(polylineCoordinates);
+
+        // Fit camera to show the entire route
+        _fitCameraToBounds(curLocation, dst);
+      } else {
+        print("No polyline coordinates generated");
+        _showSnackbar(context, 'No route found between points', Colors.orange);
+      }
+    } catch (e) {
+      print("Error getting directions: $e");
+      _showSnackbar(context, 'Error getting directions: $e', Colors.red);
+      // Fallback to direct line on any error
+      _drawDirectLine(curLocation, dst);
+    }
+  }
+
+  // Fallback method to draw a direct line between points
+  void _drawDirectLine(LatLng start, LatLng end) {
+    print("Drawing direct line between points");
+    List<LatLng> directLine = [start, end];
+
+    setState(() {
+      polylines.clear();
+      addPolyLine(directLine);
+      _fitCameraToBounds(start, end);
+    });
+
+    // Calculate and display direct distance
+    double directDistance = calculateDistance(
+        start.latitude, start.longitude, end.latitude, end.longitude);
+
+    setState(() {
+      distance = "${directDistance.toStringAsFixed(2)} km";
+      duration = "Direct route";
+    });
   }
 
   Future<void> getNavigationInstructions(LatLng dst) async {
     try {
-      double originLat = curLocation.latitude; // Origin latitude
-      double originLng = curLocation.longitude; // Origin longitude
-      double destinationLat = dst.latitude; // Destination latitude
-      double destinationLng = dst.longitude; // Destination longitude
+      double originLat = curLocation.latitude;
+      double originLng = curLocation.longitude;
+      double destinationLat = dst.latitude;
+      double destinationLng = dst.longitude;
       String apiKey = 'AIzaSyAuvt2CB5r1jLoA5k00VnDkJmrAM3cL52g';
 
       String url =
@@ -234,7 +334,6 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
               small_duration = steps[0]["duration"]["text"];
               small_distance = steps[0]["distance"]["text"];
               maneuver = steps[0]["maneuver"];
-              // Set the total duration from the legs
               duration = routes[0]['legs'][0]['duration']['text'];
             });
           }
@@ -243,16 +342,24 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
     } catch (e) {}
   }
 
+  // ==========================================
+  // Map Drawing and Calculation Methods
+  // ==========================================
   addPolyLine(List<LatLng> polylineCoordinates) {
+    print("Adding polyline with ${polylineCoordinates.length} points");
     PolylineId id = const PolylineId('poly');
     Polyline polyline = Polyline(
       polylineId: id,
-      color: const Color.fromARGB(255, 23, 117, 126),
+      color: const Color(0xff0288D1),
       points: polylineCoordinates,
       width: 5,
+      patterns: [PatternItem.dash(30), PatternItem.gap(20)],
     );
-    polylines[id] = polyline;
-    setState(() {});
+    setState(() {
+      polylines[id] = polyline;
+      print(
+          "Polyline added to map. Current polylines count: ${polylines.length}");
+    });
   }
 
   double calculateDistance(lat1, lon1, lat2, lon2) {
@@ -265,23 +372,18 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
   }
 
   double calculateHeading(LatLng from, LatLng to) {
-    // Convert coordinates from degrees to radians
     double fromLat = from.latitude * math.pi / 180;
     double fromLng = from.longitude * math.pi / 180;
     double toLat = to.latitude * math.pi / 180;
     double toLng = to.longitude * math.pi / 180;
 
-    // Calculate bearing using Haversine formula
     double deltaLng = toLng - fromLng;
     double y = math.sin(deltaLng) * math.cos(toLat);
     double x = math.cos(fromLat) * math.sin(toLat) -
         math.sin(fromLat) * math.cos(toLat) * math.cos(deltaLng);
     double bearing = math.atan2(y, x);
 
-    // Convert bearing from radians to degrees
     bearing = bearing * 180 / math.pi;
-
-    // Normalize the bearing to be in the range [0, 360]
     bearing = (bearing + 360) % 360;
 
     return bearing;
@@ -302,6 +404,9 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
     });
   }
 
+  // ==========================================
+  // UI Helper Methods
+  // ==========================================
   IconData _getMeneuverIcon(String mn) {
     switch (mn) {
       case 'turn-left':
@@ -349,12 +454,16 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
     }
   }
 
-  @override
-  void dispose() {
-    locationSubscription?.cancel();
-    super.dispose();
+  void _showSnackbar(BuildContext context, String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor: color,
+    ));
   }
 
+  // ==========================================
+  // Search Methods for Different Asset Types
+  // ==========================================
   void searchIncidenID(String v) async {
     try {
       final response = await http.get(
@@ -375,7 +484,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
             selected = null;
           });
         }
-      } else {}
+      }
     } catch (e) {
       setState(() {
         selected = null;
@@ -394,8 +503,6 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
       if (response.statusCode == 200 || response.statusCode == 203) {
         List<dynamic> body = jsonDecode(response.body);
 
-        print("facilities: $body");
-
         if (body.isNotEmpty) {
           setState(() {
             selected = body.first;
@@ -405,7 +512,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
             selected = null;
           });
         }
-      } else {}
+      }
     } catch (e) {
       setState(() {
         selected = null;
@@ -414,8 +521,6 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
   }
 
   void searchObjectID(String v) async {
-    print("searched object id $v, label: ${widget.label}");
-
     String table;
 
     switch (widget.label) {
@@ -441,11 +546,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
           'Content-Type': 'application/json; charset=UTF-8',
         },
       );
-      print("response is: ${response.body}");
-      print("response status code is: ${response.statusCode}");
       if (response.statusCode == 200 || response.statusCode == 203) {
-        print("response is: ${response.body}");
-        print("response status code is: ${response.statusCode}");
         List<dynamic> body = jsonDecode(response.body);
         if (body.isNotEmpty) {
           setState(() {
@@ -458,7 +559,6 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
         }
       }
     } catch (e) {
-      print("error is: $e");
       setState(() {
         selected = null;
       });
@@ -466,7 +566,6 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
   }
 
   void searchAccounts(String v) async {
-    print("searched account $v");
     try {
       final response = await http.get(
         Uri.parse("${getUrl()}wt/customer-meters?accountNo=$v&limit=5"),
@@ -485,7 +584,6 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
             setState(() {
               selected = data['data'].first;
             });
-            print("account no is : $selected");
           } else {
             setState(() {
               selected = null;
@@ -497,13 +595,11 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
           });
         }
       } else {
-        print("RESPONSE IS: ${response.statusCode}");
         setState(() {
           selected = null;
         });
       }
     } catch (e) {
-      print("Error searching accounts: $e");
       setState(() {
         selected = null;
       });
@@ -511,7 +607,6 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
   }
 
   void searchWaterConnection(String v) async {
-    print("searched water account here $v");
     try {
       final response = await http.get(
         Uri.parse("${getUrl()}water/searchwater/$v"),
@@ -521,21 +616,16 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
       );
       if (response.statusCode == 200 || response.statusCode == 203) {
         List<dynamic> body = jsonDecode(response.body);
-        print("waterbody: $body");
 
         if (body.isNotEmpty) {
           setState(() {
             selected = body.first;
           });
-
-          print("water account no is : $selected");
         } else {
           setState(() {
             selected = null;
           });
         }
-      } else {
-        print("RESPONSE here IS: ${response.statusCode}");
       }
     } catch (e) {
       setState(() {
@@ -545,7 +635,6 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
   }
 
   void searchSanitationConnection(String v) async {
-    print("searched sanitation account $v");
     try {
       final response = await http.get(
         Uri.parse("${getUrl()}sanitation/searchsanitation/$v"),
@@ -560,15 +649,11 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
           setState(() {
             selected = body.first;
           });
-
-          print("account no is : $selected");
         } else {
           setState(() {
             selected = null;
           });
         }
-      } else {
-        print("RESPONSE IS: ${response.statusCode}");
       }
     } catch (e) {
       setState(() {
@@ -577,6 +662,9 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
     }
   }
 
+  // ==========================================
+  // Build Method
+  // ==========================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -720,10 +808,12 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                               const MarkerId(
                                                                   'destination'),
                                                           position: LatLng(
-                                                              destination
-                                                                  .latitude,
-                                                              destination
-                                                                  .longitude),
+                                                              double.tryParse(choice[
+                                                                      "latitude"]
+                                                                  .toString())!,
+                                                              double.tryParse(choice[
+                                                                      "longitude"]
+                                                                  .toString())!),
                                                           icon: BitmapDescriptor
                                                               .defaultMarkerWithHue(
                                                                   BitmapDescriptor
@@ -823,7 +913,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                                                 children: [
                                                                                   Text(
                                                                                     widget.label.toString(),
-                                                                                    style: const TextStyle(color: Color.fromARGB(255, 28, 100, 140), fontSize: 18, fontWeight: FontWeight.bold),
+                                                                                    style: const TextStyle(color: Color(0xff0288D1), fontSize: 18, fontWeight: FontWeight.bold),
                                                                                   ),
                                                                                   const SizedBox(height: 4),
                                                                                   Text(
@@ -835,7 +925,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                                             ),
                                                                             const Icon(
                                                                               Icons.arrow_forward_ios,
-                                                                              color: Color.fromARGB(255, 28, 100, 140),
+                                                                              color: Color(0xff0288D1),
                                                                               size: 20,
                                                                             ),
                                                                           ],
@@ -1011,8 +1101,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                             const Icon(
                                               Icons.directions_car,
                                               size: 44,
-                                              color: Color.fromARGB(
-                                                  255, 28, 100, 140),
+                                              color: Color(0xff0288D1),
                                             ),
                                             const SizedBox(
                                               width: 12,
@@ -1041,8 +1130,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                   style: const ButtonStyle(
                                                       backgroundColor:
                                                           WidgetStatePropertyAll(
-                                                    Color.fromARGB(
-                                                        255, 28, 100, 140),
+                                                    Color(0xff0288D1),
                                                   )),
                                                   child: const Text(
                                                     "Start Trip",
@@ -1093,11 +1181,8 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                               style: const ButtonStyle(
                                                   side: WidgetStatePropertyAll(
                                                       BorderSide(
-                                                          color: Color.fromARGB(
-                                                              255,
-                                                              28,
-                                                              100,
-                                                              140),
+                                                          color:
+                                                              Color(0xff0288D1),
                                                           width: 1)),
                                                   backgroundColor:
                                                       WidgetStatePropertyAll(
@@ -1106,8 +1191,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                 "Get Directions on Google Map",
                                                 style: TextStyle(
                                                     fontSize: 16,
-                                                    color: Color.fromARGB(
-                                                        255, 28, 100, 140),
+                                                    color: Color(0xff0288D1),
                                                     fontWeight:
                                                         FontWeight.w400),
                                               )),
@@ -1298,9 +1382,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                   child: Text(
                                     "Trip Details: $distance - $duration",
                                     style: const TextStyle(
-                                        color:
-                                            Color.fromARGB(255, 23, 117, 126),
-                                        fontSize: 16),
+                                        color: Color(0xff0288D1), fontSize: 16),
                                   ),
                                 ),
                                 const SizedBox(height: 8),
@@ -1314,8 +1396,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                             Icon(
                                               _getMeneuverIcon(maneuver),
                                               size: 44,
-                                              color: const Color.fromARGB(
-                                                  255, 23, 117, 126),
+                                              color: const Color(0xff0288D1),
                                             ),
                                             const SizedBox(
                                               height: 2,
@@ -1380,13 +1461,6 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
         ],
       ),
     );
-  }
-
-  void _showSnackbar(BuildContext context, String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message),
-      backgroundColor: color,
-    ));
   }
 
   DateTime parsePostgresTimestamp(String timestamp) {
