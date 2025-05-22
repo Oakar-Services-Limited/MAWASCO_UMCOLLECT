@@ -414,7 +414,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
   }
 
   void searchObjectID(String v) async {
-    print("searched object id $v");
+    print("searched object id $v, label: ${widget.label}");
 
     String table;
 
@@ -436,7 +436,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
     }
     try {
       final response = await http.get(
-        Uri.parse("${getUrl()}admin/searchassets/$table/$v"),
+        Uri.parse("${getUrl()}admin/$table/$v"),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },
@@ -803,13 +803,42 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                                               fontSize: 16,
                                                                               fontWeight: FontWeight.w600),
                                                                         )
-                                                                      : Text(
-                                                                          selected["ObjectID"]
-                                                                              .toString(),
-                                                                          style: const TextStyle(
+                                                                      : Row(
+                                                                          children: [
+                                                                            Container(
+                                                                              padding: const EdgeInsets.all(12),
+                                                                              decoration: BoxDecoration(
+                                                                                color: const Color(0xff0288D1).withOpacity(0.1),
+                                                                                borderRadius: BorderRadius.circular(8),
+                                                                              ),
+                                                                              child: const Icon(
+                                                                                Icons.edit_location_alt,
+                                                                                color: Color(0xff0288D1),
+                                                                              ),
+                                                                            ),
+                                                                            const SizedBox(width: 8),
+                                                                            Expanded(
+                                                                              child: Column(
+                                                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                                                children: [
+                                                                                  Text(
+                                                                                    widget.label.toString(),
+                                                                                    style: const TextStyle(color: Color.fromARGB(255, 28, 100, 140), fontSize: 18, fontWeight: FontWeight.bold),
+                                                                                  ),
+                                                                                  const SizedBox(height: 4),
+                                                                                  Text(
+                                                                                    'ObjectID: ${selected["ObjectID"]}',
+                                                                                    style: const TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w600),
+                                                                                  ),
+                                                                                ],
+                                                                              ),
+                                                                            ),
+                                                                            const Icon(
+                                                                              Icons.arrow_forward_ios,
                                                                               color: Color.fromARGB(255, 28, 100, 140),
-                                                                              fontSize: 18,
-                                                                              fontWeight: FontWeight.bold),
+                                                                              size: 20,
+                                                                            ),
+                                                                          ],
                                                                         ),
                                                           const SizedBox(
                                                             height: 4,
@@ -848,13 +877,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                                               fontSize: 16,
                                                                               fontWeight: FontWeight.w600),
                                                                         )
-                                                                      : Text(
-                                                                          'Type: ${selected["Type"]}',
-                                                                          style: const TextStyle(
-                                                                              color: Colors.grey,
-                                                                              fontSize: 16,
-                                                                              fontWeight: FontWeight.w600),
-                                                                        ),
+                                                                      : const SizedBox(),
                                                         ],
                                                       ),
                                                     )),
@@ -890,8 +913,6 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                     selected = null;
                                                   });
                                                 }
-
-                                                print("account nu: $selected");
                                               },
                                               decoration: InputDecoration(
                                                   contentPadding:
