@@ -225,26 +225,9 @@ class _InterventionsState extends State<Interventions> {
                       },
                       title: 'Staff Name',
                     ),
-                    MySelectInput(
-                      onSubmit: (value) {
-                        setState(() {
-                          dma = value;
-                        });
-                      },
-                      list: const [
-                        "--Select--",
-                        "Kamiti A",
-                        "Kamiti B",
-                        "Samaki 1",
-                        "Samaki 2",
-                        "Makanja 1",
-                        "Makanja 2",
-                        "Kiu River",
-                        "Kiu Kenda",
-                        "Kanjata",
-                        "Kiambu Golf Club",
-                        "Other",
-                      ],
+                       MySelectInput(
+                      onSubmit: (value) => setState(() => dma = value),
+                      list: getDMAs(),
                       label: 'DMA Name',
                       value: dma,
                     ),
