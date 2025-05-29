@@ -11,8 +11,11 @@ import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/models/SearchAsset.dart';
 import 'package:um_collect/pages/Forms/Appurtenances.dart';
 import 'package:um_collect/pages/Forms/Boreholes.dart';
+import 'package:um_collect/pages/Forms/GritChamber.dart';
 import 'package:um_collect/pages/Forms/LineProjects.dart';
 import 'package:um_collect/pages/Forms/PointProjects.dart';
+import 'package:um_collect/pages/Forms/PumpingStations.dart';
+import 'package:um_collect/pages/Forms/SewerTreatment.dart';
 import 'package:um_collect/pages/Forms/Washouts.dart';
 import 'package:um_collect/pages/Forms/ConnectionChambers.dart';
 import 'package:um_collect/pages/Forms/ConsumerLine.dart';
@@ -281,6 +284,25 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
           MaterialPageRoute(builder: (_) => const ManHoles()),
         );
         break;
+      case 'Pumping Stations':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const PumpingStations()),
+        );
+        break;
+      case 'Grit Chambers':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const GritChambers()),
+        );
+        break;
+      case 'Sewer Treatment':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const SewerTreatment()),
+        );
+        break;  
+        
       case 'Project (Points)':
         Navigator.pushReplacement(
           context,
@@ -624,6 +646,21 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
       case "Manholes":
         setState(() {
           searchItem = "manholes";
+        });
+        break;
+      case "Pumping Stations":
+        setState(() {
+          searchItem = "pumpingstations";
+        });
+        break;
+      case "Grit Chambers":
+        setState(() {
+          searchItem = "gritchambers";
+        });
+        break;
+      case "Sewer Treatment":
+        setState(() {
+          searchItem = "sewertreatment";
         });
         break;
       case "Customer Chambers":
