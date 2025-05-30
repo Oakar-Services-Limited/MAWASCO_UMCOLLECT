@@ -144,7 +144,6 @@ class _AssetNavigationState extends State<AssetNavigation> {
                                 child: LayoutBuilder(
                                   builder: (context, constraints) {
                                     return MyRowIII(
-                                      no: workplans,
                                       title: 'Tanks',
                                       image: 'assets/images/water-tank.png',
                                       availableWidth: constraints.maxWidth,
@@ -170,7 +169,6 @@ class _AssetNavigationState extends State<AssetNavigation> {
                                 child: LayoutBuilder(
                                   builder: (context, constraints) {
                                     return MyRowIII(
-                                      no: reports,
                                       title: 'Valves',
                                       image: 'assets/images/valve.png',
                                       availableWidth: constraints.maxWidth,
@@ -200,7 +198,6 @@ class _AssetNavigationState extends State<AssetNavigation> {
                                 child: LayoutBuilder(
                                   builder: (context, constraints) {
                                     return MyRowIII(
-                                      no: total_farmers,
                                       title: 'Washouts',
                                       image: 'assets/images/bulkmeter.png',
                                       availableWidth: constraints.maxWidth,
@@ -226,7 +223,6 @@ class _AssetNavigationState extends State<AssetNavigation> {
                                 child: LayoutBuilder(
                                   builder: (context, constraints) {
                                     return MyRowIII(
-                                      no: mapped,
                                       title: 'Master Meters',
                                       image: 'assets/images/water-meter.png',
                                       availableWidth: constraints.maxWidth,
@@ -240,59 +236,59 @@ class _AssetNavigationState extends State<AssetNavigation> {
                         const SizedBox(
                           height: 20,
                         ),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: InkWell(
-                                onTap: () {
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (_) => NavigateToAsset(
-                                                label: 'Offtakers',
-                                                staffid: widget.staffid,
-                                              )));
-                                },
-                                child: LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    return MyRowIII(
-                                      no: total_farmers,
-                                      title: 'Offtakers',
-                                      image: 'assets/images/offtaker.png',
-                                      availableWidth: constraints.maxWidth,
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                            const SizedBox(
-                              width: 16,
-                            ),
-                            Expanded(
-                              child: InkWell(
-                                onTap: () {
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (_) => NavigateToAsset(
-                                                label: 'Boreholes',
-                                                staffid: widget.staffid,
-                                              )));
-                                },
-                                child: LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    return MyRowIII(
-                                      no: mapped,
-                                      title: 'Boreholes',
-                                      image: 'assets/images/borehole.png',
-                                      availableWidth: constraints.maxWidth,
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                        // Row(
+                        //   children: [
+                        //     Expanded(
+                        //       child: InkWell(
+                        //         onTap: () {
+                        //           Navigator.push(
+                        //               context,
+                        //               MaterialPageRoute(
+                        //                   builder: (_) => NavigateToAsset(
+                        //                         label: 'Offtakers',
+                        //                         staffid: widget.staffid,
+                        //                       )));
+                        //         },
+                        //         child: LayoutBuilder(
+                        //           builder: (context, constraints) {
+                        //             return MyRowIII(
+                        //               no: total_farmers,
+                        //               title: 'Offtakers',
+                        //               image: 'assets/images/offtaker.png',
+                        //               availableWidth: constraints.maxWidth,
+                        //             );
+                        //           },
+                        //         ),
+                        //       ),
+                        //     ),
+                        //     const SizedBox(
+                        //       width: 16,
+                        //     ),
+                        //     Expanded(
+                        //       child: InkWell(
+                        //         onTap: () {
+                        //           Navigator.push(
+                        //               context,
+                        //               MaterialPageRoute(
+                        //                   builder: (_) => NavigateToAsset(
+                        //                         label: 'Boreholes',
+                        //                         staffid: widget.staffid,
+                        //                       )));
+                        //         },
+                        //         child: LayoutBuilder(
+                        //           builder: (context, constraints) {
+                        //             return MyRowIII(
+                        //               no: mapped,
+                        //               title: 'Boreholes',
+                        //               image: 'assets/images/borehole.png',
+                        //               availableWidth: constraints.maxWidth,
+                        //             );
+                        //           },
+                        //         ),
+                        //       ),
+                        //     ),
+                        //   ],
+                        // ),
                         const SizedBox(
                           height: 20,
                         ),
@@ -312,7 +308,6 @@ class _AssetNavigationState extends State<AssetNavigation> {
                                 child: LayoutBuilder(
                                   builder: (context, constraints) {
                                     return MyRowIII(
-                                      no: total_farmers,
                                       title: 'Manholes',
                                       image: 'assets/images/manhole.png',
                                       availableWidth: constraints.maxWidth,
@@ -331,81 +326,104 @@ class _AssetNavigationState extends State<AssetNavigation> {
                                       context,
                                       MaterialPageRoute(
                                           builder: (_) => NavigateToAsset(
-                                                label: 'Appurtenances',
+                                                label: 'Customer Meters',
                                                 staffid: widget.staffid,
                                               )));
                                 },
                                 child: LayoutBuilder(
                                   builder: (context, constraints) {
                                     return MyRowIII(
-                                      no: mapped,
-                                      title: 'Appurtenances',
-                                      image: 'assets/images/appurtenance.png',
+                                      
+                                      title: 'Customer Meters',
+                                      image: 'assets/images/customer-meter.png',
                                       availableWidth: constraints.maxWidth,
                                     );
                                   },
                                 ),
                               ),
                             ),
+                            // Expanded(
+                            //   child: InkWell(
+                            //     onTap: () {
+                            //       Navigator.push(
+                            //           context,
+                            //           MaterialPageRoute(
+                            //               builder: (_) => NavigateToAsset(
+                            //                     label: 'Appurtenances',
+                            //                     staffid: widget.staffid,
+                            //                   )));
+                            //     },
+                            //     child: LayoutBuilder(
+                            //       builder: (context, constraints) {
+                            //         return MyRowIII(
+                            //           no: mapped,
+                            //           title: 'Appurtenances',
+                            //           image: 'assets/images/appurtenance.png',
+                            //           availableWidth: constraints.maxWidth,
+                            //         );
+                            //       },
+                            //     ),
+                            //   ),
+                            // ),
                           ],
                         ),
                         const SizedBox(
                           height: 20,
                         ),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: InkWell(
-                                onTap: () {
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (_) => NavigateToAsset(
-                                                label: 'Connection Chamber',
-                                                staffid: widget.staffid,
-                                              )));
-                                },
-                                child: LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    return MyRowIII(
-                                      no: total_farmers,
-                                      title: 'Connection Chamber',
-                                      image:
-                                          'assets/images/connectionchamber.png',
-                                      availableWidth: constraints.maxWidth,
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                            const SizedBox(
-                              width: 16,
-                            ),
-                            Expanded(
-                              child: InkWell(
-                                onTap: () {
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (_) => NavigateToAsset(
-                                                label: 'Customer Chambers',
-                                                staffid: widget.staffid,
-                                              )));
-                                },
-                                child: LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    return MyRowIII(
-                                      no: mapped,
-                                      title: 'Customer Chambers',
-                                      image: 'assets/images/sewerchamber.png',
-                                      availableWidth: constraints.maxWidth,
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                        // Row(
+                        //   children: [
+                        //     Expanded(
+                        //       child: InkWell(
+                        //         onTap: () {
+                        //           Navigator.push(
+                        //               context,
+                        //               MaterialPageRoute(
+                        //                   builder: (_) => NavigateToAsset(
+                        //                         label: 'Connection Chamber',
+                        //                         staffid: widget.staffid,
+                        //                       )));
+                        //         },
+                        //         child: LayoutBuilder(
+                        //           builder: (context, constraints) {
+                        //             return MyRowIII(
+                        //               no: total_farmers,
+                        //               title: 'Connection Chamber',
+                        //               image:
+                        //                   'assets/images/connectionchamber.png',
+                        //               availableWidth: constraints.maxWidth,
+                        //             );
+                        //           },
+                        //         ),
+                        //       ),
+                        //     ),
+                        //     const SizedBox(
+                        //       width: 16,
+                        //     ),
+                        //     Expanded(
+                        //       child: InkWell(
+                        //         onTap: () {
+                        //           Navigator.push(
+                        //               context,
+                        //               MaterialPageRoute(
+                        //                   builder: (_) => NavigateToAsset(
+                        //                         label: 'Customer Chambers',
+                        //                         staffid: widget.staffid,
+                        //                       )));
+                        //         },
+                        //         child: LayoutBuilder(
+                        //           builder: (context, constraints) {
+                        //             return MyRowIII(
+                        //               no: mapped,
+                        //               title: 'Customer Chambers',
+                        //               image: 'assets/images/sewerchamber.png',
+                        //               availableWidth: constraints.maxWidth,
+                        //             );
+                        //           },
+                        //         ),
+                        //       ),
+                        //     ),
+                        //   ],
+                        // ),
                         const SizedBox(
                           height: 20,
                         ),
@@ -425,7 +443,6 @@ class _AssetNavigationState extends State<AssetNavigation> {
                                 child: LayoutBuilder(
                                   builder: (context, constraints) {
                                     return MyRowIII(
-                                      no: total_farmers,
                                       title: 'Facilities',
                                       image: 'assets/images/facility.png',
                                       availableWidth: constraints.maxWidth,
@@ -451,7 +468,6 @@ class _AssetNavigationState extends State<AssetNavigation> {
                                 child: LayoutBuilder(
                                   builder: (context, constraints) {
                                     return MyRowIII(
-                                      no: mapped,
                                       title: 'Incidences',
                                       image: 'assets/images/incident.png',
                                       availableWidth: constraints.maxWidth,
@@ -465,59 +481,59 @@ class _AssetNavigationState extends State<AssetNavigation> {
                         const SizedBox(
                           height: 10,
                         ),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: InkWell(
-                                onTap: () {
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (_) => NavigateToAsset(
-                                                label: 'Water Connection',
-                                                staffid: widget.staffid,
-                                              )));
-                                },
-                                child: LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    return MyRowIII(
-                                      no: total_farmers,
-                                      title: 'Water Connection',
-                                      image: 'assets/images/customer-meter.png',
-                                      availableWidth: constraints.maxWidth,
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                            const SizedBox(
-                              width: 16,
-                            ),
-                            Expanded(
-                              child: InkWell(
-                                onTap: () {
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (_) => NavigateToAsset(
-                                                label: 'Sanitation Connection',
-                                                staffid: widget.staffid,
-                                              )));
-                                },
-                                child: LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    return MyRowIII(
-                                      no: mapped,
-                                      title: 'Sanitation Connection',
-                                      image: 'assets/images/sewer.png',
-                                      availableWidth: constraints.maxWidth,
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                        // Row(
+                        //   children: [
+                        //     Expanded(
+                        //       child: InkWell(
+                        //         onTap: () {
+                        //           Navigator.push(
+                        //               context,
+                        //               MaterialPageRoute(
+                        //                   builder: (_) => NavigateToAsset(
+                        //                         label: 'Water Connection',
+                        //                         staffid: widget.staffid,
+                        //                       )));
+                        //         },
+                        //         child: LayoutBuilder(
+                        //           builder: (context, constraints) {
+                        //             return MyRowIII(
+                        //               no: total_farmers,
+                        //               title: 'Water Connection',
+                        //               image: 'assets/images/customer-meter.png',
+                        //               availableWidth: constraints.maxWidth,
+                        //             );
+                        //           },
+                        //         ),
+                        //       ),
+                        //     ),
+                        //     const SizedBox(
+                        //       width: 16,
+                        //     ),
+                        //     Expanded(
+                        //       child: InkWell(
+                        //         onTap: () {
+                        //           Navigator.push(
+                        //               context,
+                        //               MaterialPageRoute(
+                        //                   builder: (_) => NavigateToAsset(
+                        //                         label: 'Sanitation Connection',
+                        //                         staffid: widget.staffid,
+                        //                       )));
+                        //         },
+                        //         child: LayoutBuilder(
+                        //           builder: (context, constraints) {
+                        //             return MyRowIII(
+                        //               no: mapped,
+                        //               title: 'Sanitation Connection',
+                        //               image: 'assets/images/sewer.png',
+                        //               availableWidth: constraints.maxWidth,
+                        //             );
+                        //           },
+                        //         ),
+                        //       ),
+                        //     ),
+                        //   ],
+                        // ),
                         const SizedBox(
                           height: 48,
                         ),

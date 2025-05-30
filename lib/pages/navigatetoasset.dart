@@ -464,33 +464,36 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
   // ==========================================
   // Search Methods for Different Asset Types
   // ==========================================
-  void searchIncidenID(String v) async {
-    try {
-      final response = await http.get(
-        Uri.parse("${getUrl()}reports/serial/search/$v"),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-      );
-      if (response.statusCode == 200 || response.statusCode == 203) {
-        List<dynamic> body = jsonDecode(response.body);
+  // void searchIncidenID(String v) async {
+  //   print("Searching for incident ID: $v");
+  //   try {
+  //     final response = await http.get(
+  //       Uri.parse("${getUrl()}admin/$table/$v"),
+  //       headers: <String, String>{
+  //         'Content-Type': 'application/json; charset=UTF-8',
+  //       },
+  //     );
+  //     print("Response status: ${response.statusCode}");
+  //     print("Response body: ${response.body}");
+  //     if (response.statusCode == 200 || response.statusCode == 203) {
+  //       List<dynamic> body = jsonDecode(response.body);
 
-        if (body.isNotEmpty) {
-          setState(() {
-            selected = body.first;
-          });
-        } else {
-          setState(() {
-            selected = null;
-          });
-        }
-      }
-    } catch (e) {
-      setState(() {
-        selected = null;
-      });
-    }
-  }
+  //       if (body.isNotEmpty) {
+  //         setState(() {
+  //           selected = body.first;
+  //         });
+  //       } else {
+  //         setState(() {
+  //           selected = null;
+  //         });
+  //       }
+  //     }
+  //   } catch (e) {
+  //     setState(() {
+  //       selected = null;
+  //     });
+  //   }
+  // }
 
   void searchFacilityByName(String v) async {
     try {
@@ -521,6 +524,8 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
   }
 
   void searchObjectID(String v) async {
+    print("Searching for object ID: $v");
+    print("Widget label: ${widget.label}");
     String table;
 
     switch (widget.label) {
@@ -536,6 +541,9 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
       case "Master Meters":
         table = "wt_master_meters";
         break;
+      case "Incidences":
+        table = "om_reports";
+        break;
       default:
         table = widget.label.replaceAll(RegExp(" "), "");
     }
@@ -546,6 +554,8 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
           'Content-Type': 'application/json; charset=UTF-8',
         },
       );
+      print("Response status: ${response.statusCode}");
+      print("Response body: ${response.body}");
       if (response.statusCode == 200 || response.statusCode == 203) {
         List<dynamic> body = jsonDecode(response.body);
         if (body.isNotEmpty) {
@@ -857,8 +867,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                             CrossAxisAlignment
                                                                 .start,
                                                         children: [
-                                                          widget.label ==
-                                                                      "Incidences" ||
+                                                         
                                                                   widget.label ==
                                                                       "Customer Meters"
                                                               ? Text(
@@ -872,6 +881,17 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                                           FontWeight
                                                                               .w600),
                                                                 )
+                                                                :  widget.label ==
+                                                                      "Incidences" ? Text(
+                                                                      'Incident Serial: ${selected["serialNo"]}',
+                                                                      style: const TextStyle(
+                                                                          color: Colors
+                                                                              .grey,
+                                                                          fontSize:
+                                                                              16,
+                                                                          fontWeight:
+                                                                              FontWeight.w600),
+                                                                    )
                                                               : widget.label ==
                                                                       "Water Connection"
                                                                   ? Text(
@@ -946,18 +966,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                                           FontWeight
                                                                               .w600),
                                                                 )
-                                                              : widget.label ==
-                                                                      "Incidences"
-                                                                  ? Text(
-                                                                      'Type: ${selected["Type"]}',
-                                                                      style: const TextStyle(
-                                                                          color: Colors
-                                                                              .grey,
-                                                                          fontSize:
-                                                                              16,
-                                                                          fontWeight:
-                                                                              FontWeight.w600),
-                                                                    )
+                                                              
                                                                   : widget.label ==
                                                                           "Water Connection"
                                                                       ? Text(
@@ -981,9 +990,6 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                   if (widget.label ==
                                                       "Customer Meters") {
                                                     searchAccounts(value);
-                                                  } else if (widget.label ==
-                                                      "Incidences") {
-                                                    searchIncidenID(value);
                                                   } else if (widget.label ==
                                                       "Water Connection") {
                                                     searchWaterConnection(

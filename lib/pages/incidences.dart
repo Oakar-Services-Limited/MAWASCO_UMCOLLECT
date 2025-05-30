@@ -62,6 +62,9 @@ class _IncidencesState extends State<Incidences> {
         headers: {'Content-Type': 'application/json'},
       );
 
+      print("Response INCIDECES: ${response.body}");
+      print("Response INCIDECES: ${response.statusCode}");
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success']) {
@@ -259,12 +262,14 @@ class _IncidencesState extends State<Incidences> {
                                     final imageName = category.name
                                         .toLowerCase()
                                         .replaceAll(' ', '');
-                                    final imagePath =
-                                        'assets/images/$imageName.png';
+                                    // final imagePath =
+                                    //     'assets/images/$imageName.png';
+                                    print(
+                                        "Image name: $imageName,");
                                     return IRItem(
                                       incident: category.name,
-                                      asset: imagePath,
-                                      image: imagePath,
+                                      asset: 'assets/images/$imageName.png',
+                                      image: 'assets/images/$imageName.png',
                                       categoryId: category.id,
                                     );
                                   },

@@ -80,7 +80,7 @@ class _PumpingStationsState extends State<PumpingStations> {
 
     setState(() {
       pumpingStationID = data[0]["ID"];
-      name = data[0]["Name"];
+      name = data[0]["name"];
       depth = data[0]["Depth"];
       material = data[0]["Material"];
       status = data[0]["Status"];

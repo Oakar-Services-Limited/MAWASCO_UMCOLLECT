@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:um_collect/components/FootNote.dart';
+import 'package:um_collect/pages/Assets.dart';
 import 'package:um_collect/pages/Settings.dart';
 import 'package:um_collect/pages/home.dart';
 import 'package:um_collect/pages/incidences.dart';
@@ -178,10 +179,12 @@ class _StaffDrawerState extends State<StaffDrawer> {
                       ),
                       TextButton(
                         onPressed: () {
-                          const store = FlutterSecureStorage();
-                          store.deleteAll();
-                          Navigator.pushReplacement(context,
-                              MaterialPageRoute(builder: (_) => const Login()));
+                          Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => Assets(staffid: widget.staffid,
+                                       
+                                      )));
                         },
                         child: const Padding(
                           padding: EdgeInsets.all(8),

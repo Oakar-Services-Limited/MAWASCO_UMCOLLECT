@@ -9,6 +9,7 @@ import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:um_collect/components/MyDrawer.dart';
 import 'package:um_collect/components/MyTextInput.dart';
 import 'package:um_collect/pages/TextOakar.dart';
+import 'package:um_collect/pages/home.dart';
 import 'package:um_collect/pages/login.dart';
 import 'package:um_collect/pages/stafflogin.dart';
 import '../Components/SubmitButton.dart';
@@ -72,7 +73,8 @@ class _SettingsState extends State<Settings> {
               ),
               GestureDetector(
                 onTap: () {
-                  Navigator.pop(context);
+                   Navigator.pushReplacement(context,
+                      MaterialPageRoute(builder: (_) => const Home()));
                 },
                 child: const Icon(Icons.arrow_back),
               )

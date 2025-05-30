@@ -286,10 +286,12 @@ class _ReportIncidentState extends State<ReportIncident> {
                         const SizedBox(height: 12),
                         _buildMapCard(),
                         const SizedBox(height: 24),
-                        _buildSectionTitle('Take a Photo'),
-                        const SizedBox(height: 12),
-                        _buildImageCapture(),
-                        const SizedBox(height: 24),
+                        if (widget.incident != "Supply Fail") ...[
+                          _buildSectionTitle('Take a Photo'),
+                          const SizedBox(height: 12),
+                          _buildImageCapture(),
+                          const SizedBox(height: 24),
+                        ],
                         if (widget.incident == "Sewer Incident") ...[
                           _buildSectionTitle('Incident Details'),
                           const SizedBox(height: 12),

@@ -120,6 +120,15 @@ class _GridViewAssetsState extends State<GridViewAssets> {
                   )),
         );
         break;
+        case 'Project (Lines)':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => const DataCollectorsDialog(
+                    assetName: 'Project (Lines)',
+                  )),
+        );  
+        break;
       case 'Customer Chambers':
         Navigator.push(
           context,

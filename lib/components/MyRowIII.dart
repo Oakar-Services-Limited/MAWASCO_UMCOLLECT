@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 
 class MyRowIII extends StatefulWidget {
-  final String no;
   final String title;
   final String image;
   final double availableWidth; // Pass available width
 
   const MyRowIII({
     super.key,
-    required this.no,
     required this.title,
     required this.image,
     required this.availableWidth,
@@ -49,17 +47,7 @@ class _MyRowIIIState extends State<MyRowIII> {
                   height: 8,
                 ),
               ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  widget.no == "" ? "" : widget.no,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xff0288D1),
-                  ),
-                ),
-              ),
+             
             ],
           ),
           const SizedBox(

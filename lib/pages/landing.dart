@@ -74,7 +74,7 @@ class _LandingState extends State<Landing> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-        title: 'Ambulex',
+        title: 'Mawasco UM Collector',
         home: Scaffold(
           body: Stack(
             children: [

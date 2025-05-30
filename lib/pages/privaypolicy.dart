@@ -3,6 +3,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:um_collect/components/MyDrawer.dart';
+import 'package:um_collect/pages/home.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class PrivacyPolicy extends StatelessWidget {
@@ -28,7 +29,8 @@ class PrivacyPolicy extends StatelessWidget {
               color: Colors.white,
             ),
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.pushReplacement(
+                  context, MaterialPageRoute(builder: (_) => const Home()));
             },
           ),
         ],
@@ -75,19 +77,19 @@ class PrivacyPolicy extends StatelessWidget {
               ),
             ),
             const Text(
-              '2. Location Information: Our app may collect and store your location information to provide location-based services, such as mapping features. You can control the app’s access to your location through your device settings.',
+              '2. Location Information: Our app may collect and store your location information to provide location-based services, such as mapping features. You can control the app\'s access to your location through your device settings.',
               style: TextStyle(
                 fontSize: 16,
               ),
             ),
             const Text(
-              '3. Camera Usage: We may request access to your device’s camera for features such as capturing images or scanning QR codes. We do not store images captured by the camera unless explicitly permitted by you.',
+              '3. Camera Usage: We may request access to your device\'s camera for features such as capturing images or scanning QR codes. We do not store images captured by the camera unless explicitly permitted by you.',
               style: TextStyle(
                 fontSize: 16,
               ),
             ),
             const Text(
-              '4. Access to System Files and Documents: Our app may require access to system files and documents on your device to perform specific functions, such as importing or exporting data. We ensure that this access is limited to what is necessary for the app’s functionality and does not compromise your data security.',
+              '4. Access to System Files and Documents: Our app may require access to system files and documents on your device to perform specific functions, such as importing or exporting data. We ensure that this access is limited to what is necessary for the app\'s functionality and does not compromise your data security.',
               style: TextStyle(
                 fontSize: 16,
               ),
@@ -118,6 +120,47 @@ class PrivacyPolicy extends StatelessWidget {
             const SizedBox(height: 10),
             const Text(
               'We reserve the right to update or modify this Privacy Policy at any time. Any changes will be effective immediately upon posting the updated Privacy Policy on this page. We encourage you to review this Privacy Policy periodically for any updates.',
+              style: TextStyle(
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'MAWASCO Data Ownership and Consent',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'By using our services, you acknowledge and consent that:',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              '1. All customer data collected through this application belongs to MAWASCO and is subject to MAWASCO\'s regulations and policies.',
+              style: TextStyle(
+                fontSize: 16,
+              ),
+            ),
+            const Text(
+              '2. Your data will be stored and processed by MAWASCO for operational purposes and in accordance with MAWASCO\'s regulations.',
+              style: TextStyle(
+                fontSize: 16,
+              ),
+            ),
+            const Text(
+              '3. Due to operational requirements and regulatory compliance, customer data cannot be deleted from MAWASCO\'s systems.',
+              style: TextStyle(
+                fontSize: 16,
+              ),
+            ),
+            const Text(
+              '4. For any queries regarding your data, you may contact MAWASCO through the contact number provided in the Play Store listing or by directly reaching out to MAWASCO\'s customer service.',
               style: TextStyle(
                 fontSize: 16,
               ),

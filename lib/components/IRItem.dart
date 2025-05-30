@@ -35,8 +35,7 @@ class _CollectedItemState extends State<IRItem> {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-        child: GestureDetector(
+    return GestureDetector(
       onTap: () {
         print("Tapped on incident: ${widget.incident}");
         print("Tapped on categoryId: ${widget.categoryId}");
@@ -137,7 +136,7 @@ class _CollectedItemState extends State<IRItem> {
           ],
         ),
       ),
-    ));
+    );
   }
 }
 

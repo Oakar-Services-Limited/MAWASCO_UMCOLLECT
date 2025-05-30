@@ -47,9 +47,9 @@ class GridIcons {
     return [
       'assets/images/sewer.png',
       'assets/images/manhole.png',
-      'assets/images/pump.png',
-      'assets/images/filter.png',
-      'assets/images/sewerchamber.png',
+      // 'assets/images/pump.png',
+      // 'assets/images/filter.png',
+      // 'assets/images/sewerchamber.png',
     ];
   }
 
@@ -57,9 +57,9 @@ class GridIcons {
     return [
       'Sewer Lines',
       'Manholes',
-      'Pumping Stations',
-      'Grit Chambers',
-      'Sewer Treatment'
+      // 'Pumping Stations',
+      // 'Grit Chambers',
+      // 'Sewer Treatment'
     ];
   }
 
