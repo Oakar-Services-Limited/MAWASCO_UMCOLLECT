@@ -337,7 +337,7 @@ class _HomeState extends State<Home> {
       crossAxisCount: 3,
       mainAxisSpacing: 15,
       crossAxisSpacing: 8,
-      childAspectRatio: 0.7,
+      childAspectRatio: 0.8,
       children: [
         _buildServiceCard(
           'Mapping',
@@ -370,8 +370,8 @@ class _HomeState extends State<Home> {
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: 2,
       mainAxisSpacing: 15,
-      crossAxisSpacing: 15,
-      childAspectRatio: 1.5,
+      crossAxisSpacing: 8,
+      childAspectRatio: 1.2,
       children: [
         _buildServiceCard(
           'Customer Meters',
@@ -437,7 +437,7 @@ class _HomeState extends State<Home> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(15),
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(15),
