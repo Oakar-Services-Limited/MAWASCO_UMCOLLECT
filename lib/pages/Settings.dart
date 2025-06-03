@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:um_collect/components/MyDrawer.dart';
 import 'package:um_collect/components/MyTextInput.dart';
+import 'package:um_collect/components/StaffDrawer.dart';
 import 'package:um_collect/pages/TextOakar.dart';
 import 'package:um_collect/pages/home.dart';
 import 'package:um_collect/pages/login.dart';
@@ -35,6 +36,7 @@ class _SettingsState extends State<Settings> {
   String error = '';
   var isLoading;
   bool successful = false;
+  bool isLoadingDetails = true;
 
   @override
   initState() {
@@ -44,6 +46,7 @@ class _SettingsState extends State<Settings> {
 
   //Fetch user details from API
   getUserDetails() async {
+    setState(() => isLoadingDetails = true);
     try {
       var token = await storage.read(key: "mwstaffjwt");
       if (token == null) {
@@ -62,18 +65,15 @@ class _SettingsState extends State<Settings> {
 
       if (response.statusCode == 200) {
         var decoded = jsonDecode(response.body);
-        print("decoded: $decoded");
         setState(() {
           userDetails = decoded;
+          isLoadingDetails = false;
         });
       } else {
-        print(
-            "Failed to fetch user details. Status code: ${response.statusCode}");
         Navigator.pushReplacement(
             context, MaterialPageRoute(builder: (_) => const Login()));
       }
     } catch (e) {
-      print("Error fetching user details: $e");
       Navigator.pushReplacement(
           context, MaterialPageRoute(builder: (_) => const Login()));
     }
@@ -83,6 +83,8 @@ class _SettingsState extends State<Settings> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
+      drawer:
+          userDetails != null ? StaffDrawer(staffid: userDetails["id"]) : null,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: const Color(0xff0288D1),
@@ -98,89 +100,98 @@ class _SettingsState extends State<Settings> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
+      body: isLoadingDetails
+          ? Center(
+              child: LoadingAnimationWidget.staggeredDotsWave(
                 color: const Color(0xff0288D1),
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.2),
-                    spreadRadius: 5,
-                    blurRadius: 7,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
+                size: 50,
               ),
+            )
+          : SingleChildScrollView(
               child: Column(
                 children: [
-                  const CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Colors.white,
-                    child: Icon(
-                      Icons.person,
-                      size: 50,
-                      color: Color(0xff0288D1),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xff0288D1),
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(30),
+                        bottomRight: Radius.circular(30),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.2),
+                          spreadRadius: 5,
+                          blurRadius: 7,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        const CircleAvatar(
+                          radius: 50,
+                          backgroundColor: Colors.white,
+                          child: Icon(
+                            Icons.person,
+                            size: 50,
+                            color: Color(0xff0288D1),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          userDetails?["name"] ?? "",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          userDetails?["position"] ?? "",
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    userDetails?["name"] ?? "",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    userDetails?["position"] ?? "",
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 16,
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildInfoSection("Personal Information", [
+                          _buildInfoTile(Icons.email, "Email",
+                              userDetails?["email"] ?? ""),
+                          _buildInfoTile(Icons.phone, "Phone",
+                              userDetails?["phone"] ?? ""),
+                          _buildInfoTile(Icons.work, "Department",
+                              userDetails?["department"] ?? ""),
+                          _buildInfoTile(Icons.verified_user, "Role",
+                              userDetails?["role"] ?? ""),
+                          _buildInfoTile(
+                              Icons.admin_panel_settings,
+                              "Access Level",
+                              userDetails?["accessLevel"] ?? ""),
+                          _buildInfoTile(
+                            Icons.circle,
+                            "Status",
+                            userDetails?["status"] ?? "",
+                            statusColor: userDetails?["status"] == "Active"
+                                ? Colors.green
+                                : Colors.red,
+                          ),
+                        ]),
+                        const SizedBox(height: 24),
+                        _buildPasswordSection(),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildInfoSection("Personal Information", [
-                    _buildInfoTile(
-                        Icons.email, "Email", userDetails?["email"] ?? ""),
-                    _buildInfoTile(
-                        Icons.phone, "Phone", userDetails?["phone"] ?? ""),
-                    _buildInfoTile(Icons.work, "Department",
-                        userDetails?["department"] ?? ""),
-                    _buildInfoTile(Icons.verified_user, "Role",
-                        userDetails?["role"] ?? ""),
-                    _buildInfoTile(Icons.admin_panel_settings, "Access Level",
-                        userDetails?["accessLevel"] ?? ""),
-                    _buildInfoTile(
-                      Icons.circle,
-                      "Status",
-                      userDetails?["status"] ?? "",
-                      statusColor: userDetails?["status"] == "Active"
-                          ? Colors.green
-                          : Colors.red,
-                    ),
-                  ]),
-                  const SizedBox(height: 24),
-                  _buildPasswordSection(),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -281,7 +292,7 @@ class _SettingsState extends State<Settings> {
               lines: 1,
               type: TextInputType.visiblePassword,
             ),
-            if (error.isNotEmpty)
+            if (error.isNotEmpty && isLoading == null)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: TextOakar(label: error, issuccessful: successful),
@@ -292,7 +303,9 @@ class _SettingsState extends State<Settings> {
               child: ElevatedButton(
                 onPressed: _handlePasswordChange,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xff0288D1),
+                  backgroundColor: isLoading != null
+                      ? Colors.grey[300]
+                      : const Color(0xff0288D1),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -300,9 +313,10 @@ class _SettingsState extends State<Settings> {
                 ),
                 child: Text(
                   isLoading != null ? "Updating..." : "Update Password",
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
+                    color: isLoading != null ? Colors.grey[600] : Colors.white,
                   ),
                 ),
               ),
@@ -313,102 +327,75 @@ class _SettingsState extends State<Settings> {
     );
   }
 
-  void _handlePasswordChange() {
+  void _handlePasswordChange() async {
+    if (oldPass.length < 5 || nePass.length < 5 || cPass.length < 5) {
+      setState(() {
+        successful = false;
+        error = "One of the Passwords is too short!";
+      });
+      return;
+    }
+
+    if (nePass != cPass) {
+      setState(() {
+        successful = false;
+        error = "Passwords do not match!";
+      });
+      return;
+    }
+
     setState(() {
       isLoading = LoadingAnimationWidget.staggeredDotsWave(
         color: const Color(0xff0288D1),
         size: 100,
       );
+      error = '';
     });
-    changePass(oldPass, nePass, cPass, userDetails["id"]).then((res) {
-      setState(() {
-        isLoading = null;
-        if (res.error == null) {
+
+    try {
+      final token = await storage.read(key: "mwstaffjwt");
+      final response = await http.post(
+        Uri.parse("${getUrl()}admin/change-password"),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'newPassword': nePass,
+          'oldPassword': oldPass,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+      print(data);
+
+      if (response.statusCode == 200 || response.statusCode == 203) {
+        setState(() {
           successful = true;
-          error = res.success;
-        } else {
-          successful = false;
-          error = res.error;
-        }
-      });
-      if (res.error == null) {
-        storage.write(key: 'mwstaffjwt', value: "");
+          error = data['message'];
+        });
+
+        await storage.write(key: 'mwstaffjwt', value: "");
         Timer(const Duration(seconds: 1), () {
           Navigator.pushReplacement(
-              context, MaterialPageRoute(builder: (_) => const StaffLogin()));
+            context,
+            MaterialPageRoute(builder: (_) => const StaffLogin()),
+          );
+        });
+      } else {
+        setState(() {
+          successful = false;
+          error = data['message'] ?? "Server error! Contact administrator.";
         });
       }
-    });
-  }
-}
-
-Future<Message> changePass(
-    String oldPass, String newPass, String cPass, String id) async {
-  if (oldPass.length < 5 || newPass.length < 5 || cPass.length < 5) {
-    return Message(
-      token: null,
-      success: null,
-      error: "One of the Passwords is too short!",
-    );
-  }
-  if (newPass != cPass) {
-    return Message(
-      token: null,
-      success: null,
-      error: "Passwords do not match!",
-    );
-  }
-  if (id == "") {
-    return Message(
-      token: null,
-      success: null,
-      error: "You are not logged in!",
-    );
-  }
-
-  try {
-    final response = await http.put(
-      Uri.parse("${getUrl()}mobile/$id"),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(
-          <String, String>{'NewPassword': newPass, 'Password': oldPass}),
-    );
-    if (response.statusCode == 200 || response.statusCode == 203) {
-      return Message.fromJson(jsonDecode(response.body));
-    } else {
-      return Message(
-        token: null,
-        success: null,
-        error: "Server error! Contact administrator.",
-      );
+    } catch (e) {
+      print(e);
+      setState(() {
+        successful = false;
+        error = "Server connection failed! Check your internet.";
+      });
+    } finally {
+      setState(() => isLoading = null);
     }
-  } catch (e) {
-    return Message(
-      token: null,
-      success: null,
-      error: "Server connection failed! Check your internet.",
-    );
-  }
-}
-
-class Message {
-  var token;
-  var success;
-  var error;
-
-  Message({
-    required this.token,
-    required this.success,
-    required this.error,
-  });
-
-  factory Message.fromJson(Map<String, dynamic> json) {
-    return Message(
-      token: json['token'],
-      success: json['success'],
-      error: json['error'],
-    );
   }
 }

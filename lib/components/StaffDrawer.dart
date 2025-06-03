@@ -21,310 +21,110 @@ class StaffDrawer extends StatefulWidget {
 }
 
 class _StaffDrawerState extends State<StaffDrawer> {
-  TextStyle style = const TextStyle(
-      color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold);
-
   @override
   Widget build(BuildContext context) {
     return Drawer(
       child: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xff0288D1),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xff0288D1), Color(0xff03A9F4)],
+          ),
         ),
-        child: Column(
-          children: [
-            Flexible(
-              child: ListView(
-                // Important: Remove any padding from the ListView.
-                padding: const EdgeInsets.all(0),
-                children: [
-                  DrawerHeader(
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
+        child: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      radius: 50,
+                      backgroundColor: Colors.white,
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        width: 80,
+                      ),
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Center(
-                            child: Image.asset(
-                          'assets/images/logo.png',
-                          width: 100,
-                        )),
-                        const SizedBox(
-                          height: 12,
-                        ),
-                        const Text(
-                          'UM Collect',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              fontSize: 28,
-                              color: Color(0xff0288D1),
-                              fontWeight: FontWeight.w200),
-                        ),
-                      ],
+                    SizedBox(height: 12),
+                    Text(
+                      'UM Collect',
+                      style: TextStyle(
+                        fontSize: 24,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  Column(
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pushReplacement(context,
-                              MaterialPageRoute(builder: (_) => const Home()));
-                        },
-                        child: const Padding(
-                          padding: EdgeInsets.all(8),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              Icon(Icons.home, color: Colors.white),
-                              SizedBox(
-                                width: 24,
-                              ),
-                              Text(
-                                'Home',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w400),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const Incidences()));
-                        },
-                        child: const Padding(
-                          padding: EdgeInsets.all(8),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              Icon(Icons.sync_problem, color: Colors.white),
-                              SizedBox(
-                                width: 24,
-                              ),
-                              Text(
-                                'Report Incident',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w400),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => AssetNavigation(
-                                        staffid: widget.staffid,
-                                      )));
-                        },
-                        child: const Padding(
-                          padding: EdgeInsets.all(8),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              Icon(Icons.navigation, color: Colors.white),
-                              SizedBox(
-                                width: 24,
-                              ),
-                              Text(
-                                'Asset Navigation',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w400),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => IncidencesHome(
-                                        staffid: widget.staffid,
-                                        selectedItem: 0,
-                                      )));
-                        },
-                        child: const Padding(
-                          padding: EdgeInsets.all(8),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              Icon(Icons.manage_history, color: Colors.white),
-                              SizedBox(
-                                width: 24,
-                              ),
-                              Text(
-                                'Incident Management',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w400),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => Assets(staffid: widget.staffid,
-                                       
-                                      )));
-                        },
-                        child: const Padding(
-                          padding: EdgeInsets.all(8),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              Icon(Icons.gps_fixed, color: Colors.white),
-                              SizedBox(
-                                width: 24,
-                              ),
-                              Text(
-                                'Asset Mapping',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w400),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const Settings()));
-                        },
-                        child: const Padding(
-                          padding: EdgeInsets.all(8),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              Icon(Icons.settings, color: Colors.white),
-                              SizedBox(
-                                width: 24,
-                              ),
-                              Text(
-                                'Settings',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w400),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      // TextButton(
-                      //   onPressed: () {
-                      //     Navigator.pushReplacement(
-                      //         context,
-                      //         MaterialPageRoute(
-                      //             builder: (_) => const MyWallet(
-                      //                   balance: 0.0,
-                      //                 )));
-                      //   },
-                      //   child: const Padding(
-                      //     padding: EdgeInsets.all(8),
-                      //     child: Row(
-                      //       mainAxisAlignment: MainAxisAlignment.start,
-                      //       children: [
-                      //         Icon(Icons.wallet, color: Colors.white),
-                      //         SizedBox(
-                      //           width: 24,
-                      //         ),
-                      //         Text(
-                      //           'MyWallet',
-                      //           style: TextStyle(
-                      //               color: Colors.white,
-                      //               fontSize: 20,
-                      //               fontWeight: FontWeight.w400),
-                      //         ),
-                      //       ],
-                      //     ),
-                      //   ),
-                      // ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const PrivacyPolicy()));
-                        },
-                        child: const Padding(
-                          padding: EdgeInsets.all(8),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              Icon(Icons.privacy_tip, color: Colors.white),
-                              SizedBox(
-                                width: 24,
-                              ),
-                              Text(
-                                'Privacy Policy',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w400),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          const store = FlutterSecureStorage();
-                          store.deleteAll();
-                          Navigator.pushReplacement(context,
-                              MaterialPageRoute(builder: (_) => const Login()));
-                        },
-                        child: const Padding(
-                          padding: EdgeInsets.all(8),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              Icon(Icons.logout, color: Colors.white),
-                              SizedBox(
-                                width: 24,
-                              ),
-                              Text(
-                                'Logout',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w400),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const Align(alignment: Alignment.bottomLeft, child: FootNote())
-          ],
+              Expanded(
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  children: [
+                    _buildDrawerItem(
+                      icon: Icons.home,
+                      title: 'Home',
+                      onTap: () => Navigator.pushReplacement(context,
+                          MaterialPageRoute(builder: (_) => const Home())),
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.settings,
+                      title: 'Settings',
+                      onTap: () => Navigator.pushReplacement(context,
+                          MaterialPageRoute(builder: (_) => const Settings())),
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.privacy_tip,
+                      title: 'Privacy Policy',
+                      onTap: () => Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const PrivacyPolicy())),
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.logout,
+                      title: 'Logout',
+                      onTap: () {
+                        const store = FlutterSecureStorage();
+                        store.deleteAll();
+                        Navigator.pushReplacement(context,
+                            MaterialPageRoute(builder: (_) => const Login()));
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child:
+                    Align(alignment: Alignment.bottomLeft, child: FootNote()),
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildDrawerItem(
+      {required IconData icon,
+      required String title,
+      required VoidCallback onTap}) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.white),
+      title: Text(
+        title,
+        style: TextStyle(color: Colors.white, fontSize: 16),
+      ),
+      onTap: onTap,
+      contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(30),
+      ),
+      tileColor: Colors.white.withOpacity(0.1),
+      hoverColor: Colors.white.withOpacity(0.2),
     );
   }
 }
