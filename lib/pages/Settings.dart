@@ -65,10 +65,12 @@ class _SettingsState extends State<Settings> {
 
       if (response.statusCode == 200) {
         var decoded = jsonDecode(response.body);
-        setState(() {
-          userDetails = decoded;
-          isLoadingDetails = false;
-        });
+        if (mounted) {
+          setState(() {
+            userDetails = decoded;
+            isLoadingDetails = false;
+          });
+        }
       } else {
         Navigator.pushReplacement(
             context, MaterialPageRoute(builder: (_) => const Login()));
