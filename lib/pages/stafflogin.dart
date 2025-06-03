@@ -182,16 +182,6 @@ class _StaffLoginState extends State<StaffLogin> {
                 ],
               ),
             ),
-            if (isLoading)
-              Container(
-                color: Colors.black.withOpacity(0.3),
-                child: const Center(
-                  child: CircularProgressIndicator(
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(Color(0xff0288D1)),
-                  ),
-                ),
-              ),
           ],
         ),
       ),
@@ -453,7 +443,7 @@ class _StaffLoginState extends State<StaffLogin> {
                                     headers: {
                                       'Content-Type': 'application/json'
                                     },
-                                    body: jsonEncode({'Email': email}),
+                                    body: jsonEncode({'email': email}),
                                   );
 
                                   final data = jsonDecode(response.body);
@@ -507,70 +497,6 @@ class _StaffLoginState extends State<StaffLogin> {
           ),
         ),
       ),
-    );
-  }
-}
-
-Future<Message> publicLogin(String phone, String password) async {
-  if (phone.isEmpty || password.isEmpty) {
-    return Message(
-      token: null,
-      success: null,
-      error: "Empty Field!!",
-    );
-  }
-
-  if (password.length < 6) {
-    return Message(
-      token: null,
-      success: null,
-      error: "Password is too short!",
-    );
-  }
-
-  try {
-    final response = await post(
-      Uri.parse("${getUrl()}publicusers/login"),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(<String, String>{'Phone': phone, 'Password': password}),
-    );
-
-    if (response.statusCode == 200 || response.statusCode == 203) {
-      return Message.fromJson(jsonDecode(response.body));
-    } else {
-      return Message(
-        token: null,
-        success: null,
-        error: "Server error! Contact administrator.",
-      );
-    }
-  } catch (e) {
-    return Message(
-      token: null,
-      success: null,
-      error: "Connection failed! Check your internet connection.!",
-    );
-  }
-}
-
-class Message {
-  var token;
-  var success;
-  var error;
-
-  Message({
-    required this.token,
-    required this.success,
-    required this.error,
-  });
-
-  factory Message.fromJson(Map<String, dynamic> json) {
-    return Message(
-      token: json['token'],
-      success: json['success'],
-      error: json['error'],
     );
   }
 }

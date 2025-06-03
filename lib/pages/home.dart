@@ -128,6 +128,7 @@ class _HomeState extends State<Home> {
         useMaterial3: true,
       ),
       home: Scaffold(
+        backgroundColor: Colors.grey[50],
         appBar: AppBar(
           title: const Text(
             "Home",
@@ -142,51 +143,174 @@ class _HomeState extends State<Home> {
           elevation: 0,
         ),
         drawer: Drawer(
-          child: StaffDrawer(
-            staffid: staffid,
-          ),
+          child: StaffDrawer(staffid: staffid),
         ),
-        body: Container(
-          color: Colors.grey[50],
-          child: Column(
-            children: <Widget>[
-              Container(
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  color: Color(0xff0288D1),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(24),
-                    bottomRight: Radius.circular(24),
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                  child: displayUserInfo(),
-                ),
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildSectionTitle("Services"),
-                        const SizedBox(height: 12),
-                        _buildServiceRow(),
-                        const SizedBox(height: 24),
-                        _buildSectionTitle("Meter Reading"),
-                        const SizedBox(height: 12),
-                        _buildMeterReadingRow(),
-                        const SizedBox(height: 24),
-                        _buildSectionTitle("Assigned Incidences"),
-                        const SizedBox(height: 12),
-                        _buildIncidencesRow(),
-                      ],
+        body: RefreshIndicator(
+          onRefresh: () => fetchStats(staffid, false),
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Color(0xff0288D1),
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(30),
+                      bottomRight: Radius.circular(30),
                     ),
                   ),
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
+                        child: _buildWelcomeCard(),
+                      ),
+                    ],
+                  ),
                 ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.all(20),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    _buildSectionTitle("Core Services"),
+                    const SizedBox(height: 15),
+                    _buildCoreServicesGrid(),
+                    const SizedBox(height: 25),
+                    _buildSectionTitle("Meter Reading"),
+                    const SizedBox(height: 15),
+                    _buildMeterManagementGrid(),
+                    const SizedBox(height: 25),
+                    _buildSectionTitle("Incidence Tracking"),
+                    const SizedBox(height: 15),
+                    _buildIncidenceCards(),
+                  ]),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWelcomeCard() {
+    return Card(
+      elevation: 0,
+      color: Colors.white.withOpacity(0),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Welcome back,",
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white.withOpacity(0.9),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    formattedDate,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withOpacity(0.9),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Role: $position',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withOpacity(0.9),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.person,
+                color: Colors.white,
+                size: 40,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickStats() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        children: [
+          _buildStatCard("Pending", pending, Icons.pending_actions),
+          const SizedBox(width: 15),
+          _buildStatCard("Completed", complete, Icons.task_alt),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard(String title, String value, IconData icon) {
+    return Expanded(
+      child: Card(
+        elevation: 0,
+        color: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        child: Padding(
+          padding: const EdgeInsets.all(15),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xff0288D1).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: const Color(0xff0288D1)),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.black54,
+                    ),
+                  ),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xff0288D1),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -206,78 +330,77 @@ class _HomeState extends State<Home> {
     );
   }
 
-  Widget _buildServiceRow() {
-    return Row(
+  Widget _buildCoreServicesGrid() {
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 3,
+      mainAxisSpacing: 15,
+      crossAxisSpacing: 8,
+      childAspectRatio: 0.8,
       children: [
-        Expanded(
-          child: _buildServiceCard(
-            'Mapping',
-            'assets/images/gpsicon.png',
-            () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (context) => Assets(staffid: staffid),
-            )),
-          ),
+        _buildServiceCard(
+          'Mapping',
+          Icons.map_outlined,
+          () => Navigator.of(context).push(MaterialPageRoute(
+            builder: (context) => Assets(staffid: staffid),
+          )),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildServiceCard(
-            'Navigation',
-            'assets/images/navigation.png',
-            () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (context) => AssetNavigation(staffid: staffid),
-            )),
-          ),
+        _buildServiceCard(
+          'Navigation',
+          Icons.navigation_outlined,
+          () => Navigator.of(context).push(MaterialPageRoute(
+            builder: (context) => AssetNavigation(staffid: staffid),
+          )),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildServiceCard(
-            'NRW',
-            'assets/images/nrw.png',
-            () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (context) => const NRW(),
-            )),
-          ),
+        _buildServiceCard(
+          'NRW',
+          Icons.water_drop_outlined,
+          () => Navigator.of(context).push(MaterialPageRoute(
+            builder: (context) => const NRW(),
+          )),
         ),
       ],
     );
   }
 
-  Widget _buildMeterReadingRow() {
-    return Row(
+  Widget _buildMeterManagementGrid() {
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 2,
+      mainAxisSpacing: 15,
+      crossAxisSpacing: 8,
+      childAspectRatio: 1.2,
       children: [
-        Expanded(
-          child: _buildServiceCard(
-            'Customer Meters',
-            'assets/images/customer-meter.png',
-            () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (context) => NavigateToAsset(
-                label: 'Customer Meters',
-                staffid: staffid,
-              ),
-            )),
-          ),
+        _buildServiceCard(
+          'Customer Meters',
+          Icons.person_outline,
+          () => Navigator.of(context).push(MaterialPageRoute(
+            builder: (context) => NavigateToAsset(
+              label: 'Customer Meters',
+              staffid: staffid,
+            ),
+          )),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildServiceCard(
-            'Master Meters',
-            'assets/images/master-meter.png',
-            () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (context) => const MasterMeters(),
-            )),
-          ),
+        _buildServiceCard(
+          'Master Meters',
+          Icons.dashboard_outlined,
+          () => Navigator.of(context).push(MaterialPageRoute(
+            builder: (context) => const MasterMeters(),
+          )),
         ),
       ],
     );
   }
 
-  Widget _buildIncidencesRow() {
+  Widget _buildIncidenceCards() {
     return Row(
       children: [
         Expanded(
           child: _buildServiceCard(
             'Pending',
-            'assets/images/pending.png',
+            Icons.pending_actions_outlined,
             () => Navigator.of(context).push(MaterialPageRoute(
               builder: (context) => IncidencesHome(
                 staffid: staffid,
@@ -287,11 +410,11 @@ class _HomeState extends State<Home> {
             count: pending,
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 15),
         Expanded(
           child: _buildServiceCard(
             'Completed',
-            'assets/images/complete.png',
+            Icons.task_alt_outlined,
             () => Navigator.of(context).push(MaterialPageRoute(
               builder: (context) => IncidencesHome(
                 staffid: staffid,
@@ -305,129 +428,62 @@ class _HomeState extends State<Home> {
     );
   }
 
-  Widget _buildServiceCard(String title, String image, VoidCallback onTap,
+  Widget _buildServiceCard(String title, IconData icon, VoidCallback onTap,
       {String? count}) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(15),
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(
+              color: const Color(0xff0288D1).withOpacity(0.1),
             ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset(
-              image,
-              width: 40,
-              height: 40,
-              color: const Color(0xff0288D1),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Color(0xff0288D1),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xff0288D1).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  color: const Color(0xff0288D1),
+                  size: 24,
+                ),
               ),
-              textAlign: TextAlign.center,
-            ),
-            if (count != null) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: 12),
               Text(
-                count,
+                title,
                 style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
                   color: Color(0xff0288D1),
                 ),
+                textAlign: TextAlign.center,
               ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Container displayUserInfo() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Welcome",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black54,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      name,
-                      style: const TextStyle(
-                        color: Color(0xff0288D1),
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      formattedDate,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.black54,
-                      ),
-                    ),
-                  ],
+              if (count != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  count,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xff0288D1),
+                  ),
                 ),
-              ),
-              Image.asset(
-                'assets/images/stat1.png',
-                width: 64,
-                height: 64,
-                color: Colors.white,
-              ),
+              ],
             ],
           ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Role: $position',
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.black54,
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

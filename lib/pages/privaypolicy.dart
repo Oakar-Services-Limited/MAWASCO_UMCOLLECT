@@ -3,6 +3,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:um_collect/components/MyDrawer.dart';
+import 'package:um_collect/components/StaffDrawer.dart';
 import 'package:um_collect/pages/home.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -41,7 +42,6 @@ class PrivacyPolicy extends StatelessWidget {
         backgroundColor: const Color(0xff0288D1),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      drawer: const MyDrawer(),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
