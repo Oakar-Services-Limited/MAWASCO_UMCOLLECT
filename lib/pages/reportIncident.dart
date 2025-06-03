@@ -41,7 +41,7 @@ class _ReportIncidentState extends State<ReportIncident> {
   String name = '';
   String reportertype = 'Public';
   String sewerincident = '';
-  String leaktype = '';
+  String incidenttype = '';
   String error = '';
   var isLoading;
   late File? _image;
@@ -305,6 +305,12 @@ class _ReportIncidentState extends State<ReportIncident> {
                           _buildLeakTypeSelector(),
                           const SizedBox(height: 24),
                         ],
+                        if (widget.incident == "Sewer Burst") ...[
+                          _buildSectionTitle('Burst Details'),
+                          const SizedBox(height: 12),
+                          _buildBurstTypeSelector(),
+                          const SizedBox(height: 24),
+                        ],
                         _buildSectionTitle('Additional Details'),
                         const SizedBox(height: 12),
                         _buildReporterInfoCard(),
@@ -531,7 +537,7 @@ class _ReportIncidentState extends State<ReportIncident> {
         child: MySelectInput(
           onSubmit: (value) {
             setState(() {
-              leaktype = value;
+              incidenttype = value;
             });
           },
           list: const [
@@ -540,7 +546,35 @@ class _ReportIncidentState extends State<ReportIncident> {
             "Burst",
           ],
           label: 'Select Type of Leak',
-          value: leaktype,
+          value: incidenttype,
+          labelFontSize: 18,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBurstTypeSelector() {
+    return Card(
+      elevation: 4,
+      shadowColor: Colors.black26,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: MySelectInput(
+          onSubmit: (value) {
+            setState(() {
+              incidenttype = value;
+            });
+          },
+          list: const [
+            "--Select--",
+            "Blockage",
+            "Burst",
+          ],
+          label: 'Select Type of Burst',
+          value: incidenttype,
           labelFontSize: 18,
         ),
       ),
@@ -649,7 +683,7 @@ class _ReportIncidentState extends State<ReportIncident> {
               widget.categoryId,
               long.toString(),
               lat.toString(),
-              leaktype);
+              incidenttype);
 
           setState(() {
             isLoading = null;
@@ -758,7 +792,7 @@ Future<Message> submitData(
   String categoryId,
   String longitude,
   String latitude,
-  String leaktype,
+  String incidenttype,
 ) async {
   if (myimage.isEmpty) {
     return Message(
@@ -770,14 +804,17 @@ Future<Message> submitData(
         token: null, success: null, error: "Category ID is missing!");
   }
 
-  if (incident == "Leakage" && (leaktype.isEmpty || leaktype == "--Select--")) {
+  if ((incident == "Leakage" || incident == "Sewer Burst") &&
+      (incidenttype.isEmpty || incidenttype == "--Select--")) {
     return Message(
-        token: null, success: null, error: "Please select the type of leak!");
+        token: null,
+        success: null,
+        error: "Please select the type of ${incident.toLowerCase()}!");
   }
 
   print("Category ID here: ${categoryId}");
   print("Incident: ${incident}");
-  print("Leak Type: ${leaktype}");
+  print("Leak Type: ${incidenttype}");
 
   print("Submitting data to server...");
 
@@ -791,7 +828,9 @@ Future<Message> submitData(
       'categoryId': categoryId,
       'longitude': longitude,
       'latitude': latitude,
-      'incidentType': incident == "Leakage" ? leaktype : null,
+      'incidentType': (incident == "Leakage" || incident == "Sewer Burst")
+          ? incidenttype
+          : null,
     };
 
     print("Request payload: $payload");
