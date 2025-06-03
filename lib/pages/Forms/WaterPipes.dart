@@ -405,7 +405,51 @@ Future<Message> submitData(
     String remarks,
     String staffid) async {
   try {
-    print("Coordinates here are now: " + coordinates.toString());
+    // Validate required fields
+    if (linename.isEmpty) {
+      return Message(
+          token: null, success: null, error: "Line Name is required");
+    }
+    if (lineType == "--Select--" || lineType.isEmpty) {
+      return Message(
+          token: null, success: null, error: "Line Type is required");
+    }
+    if (material.isEmpty) {
+      return Message(token: null, success: null, error: "Material is required");
+    }
+    if (function == "--Select--" || function.isEmpty) {
+      return Message(token: null, success: null, error: "Function is required");
+    }
+    if (dma == "--Select--" || dma.isEmpty) {
+      return Message(token: null, success: null, error: "DMA is required");
+    }
+    if (schemename == "--Select--" || schemename.isEmpty) {
+      return Message(
+          token: null, success: null, error: "Scheme Name is required");
+    }
+    if (zone == "--Select--" || zone.isEmpty) {
+      return Message(token: null, success: null, error: "Zone is required");
+    }
+    if (size == "--Select--" || size.isEmpty) {
+      return Message(token: null, success: null, error: "Size is required");
+    }
+    if (status == "--Select--" || status.isEmpty) {
+      return Message(token: null, success: null, error: "Status is required");
+    }
+
+    print("Submitting water pipe data...");
+    print("Coordinates: $coordinates");
+    print("Line Name: $linename");
+    print("Line Type: $lineType");
+    print("Material: $material");
+    print("Function: $function");
+    print("DMA: $dma");
+    print("Scheme Name: $schemename");
+    print("Zone: $zone");
+    print("Size: $size");
+    print("Status: $status");
+    print("Staff ID: $staffid");
+
     var response = await http.post(
       Uri.parse("${getUrl()}wt/water-pipes"),
       headers: <String, String>{
@@ -429,7 +473,6 @@ Future<Message> submitData(
       }),
     );
 
-    // Debug: Print response details
     print("Response status code: ${response.statusCode}");
     print("Response body: ${response.body}");
 
@@ -441,15 +484,17 @@ Future<Message> submitData(
         error: null,
       );
     } else {
-      // Try to parse error response, but handle non-JSON responses
       String errorMessage;
       try {
         var responseBody = jsonDecode(response.body);
-        errorMessage =
-            responseBody['error'] ?? "Server error! Contact administrator.";
+        errorMessage = responseBody['error'] ??
+            responseBody['message'] ??
+            "Server error (${response.statusCode})! Please check all required fields.";
+        print("Error details: $errorMessage");
       } catch (e) {
         errorMessage =
             "Server returned invalid response. Status: ${response.statusCode}";
+        print("Error parsing response: $e");
       }
       return Message(
         token: null,
