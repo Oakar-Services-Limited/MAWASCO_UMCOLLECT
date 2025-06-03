@@ -39,208 +39,306 @@ class _SettingsState extends State<Settings> {
   @override
   initState() {
     super.initState();
-    getToken();
+    getUserDetails();
   }
 
-  //Check for Login
-  getToken() async {
-    var token = await storage.read(key: "mwstaffjwt");
-    var decoded = parseJwt(token.toString());
-    if (decoded["error"] == "Invalid token") {
+  //Fetch user details from API
+  getUserDetails() async {
+    try {
+      var token = await storage.read(key: "mwstaffjwt");
+      if (token == null) {
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (_) => const Login()));
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse("${getUrl()}admin/mydetails"),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        var decoded = jsonDecode(response.body);
+        print("decoded: $decoded");
+        setState(() {
+          userDetails = decoded;
+        });
+      } else {
+        print(
+            "Failed to fetch user details. Status code: ${response.statusCode}");
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (_) => const Login()));
+      }
+    } catch (e) {
+      print("Error fetching user details: $e");
       Navigator.pushReplacement(
           context, MaterialPageRoute(builder: (_) => const Login()));
-    } else {
-      setState(() {
-        userDetails = decoded;
-      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        key: _scaffoldKey,
-        appBar: AppBar(
-          title: Row(
+      backgroundColor: Colors.grey[100],
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: const Color(0xff0288D1),
+        title: const Text(
+          "My Account",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const Home()),
+          ),
+        ),
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xff0288D1),
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(30),
+                  bottomRight: Radius.circular(30),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.2),
+                    spreadRadius: 5,
+                    blurRadius: 7,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  const CircleAvatar(
+                    radius: 50,
+                    backgroundColor: Colors.white,
+                    child: Icon(
+                      Icons.person,
+                      size: 50,
+                      color: Color(0xff0288D1),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    userDetails?["name"] ?? "",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    userDetails?["position"] ?? "",
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildInfoSection("Personal Information", [
+                    _buildInfoTile(
+                        Icons.email, "Email", userDetails?["email"] ?? ""),
+                    _buildInfoTile(
+                        Icons.phone, "Phone", userDetails?["phone"] ?? ""),
+                    _buildInfoTile(Icons.work, "Department",
+                        userDetails?["department"] ?? ""),
+                    _buildInfoTile(Icons.verified_user, "Role",
+                        userDetails?["role"] ?? ""),
+                    _buildInfoTile(Icons.admin_panel_settings, "Access Level",
+                        userDetails?["accessLevel"] ?? ""),
+                    _buildInfoTile(
+                      Icons.circle,
+                      "Status",
+                      userDetails?["status"] ?? "",
+                      statusColor: userDetails?["status"] == "Active"
+                          ? Colors.green
+                          : Colors.red,
+                    ),
+                  ]),
+                  const SizedBox(height: 24),
+                  _buildPasswordSection(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoSection(String title, List<Widget> children) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xff0288D1),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoTile(IconData icon, String label, String value,
+      {Color? statusColor}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        children: [
+          Icon(icon, color: statusColor ?? Colors.grey[600], size: 20),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Flexible(
-                flex: 1,
-                fit: FlexFit.tight,
-                child: Text(
-                  "My Account",
-                  style: TextStyle(color: Colors.white),
+              Text(
+                label,
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 14,
                 ),
               ),
-              GestureDetector(
-                onTap: () {
-                   Navigator.pushReplacement(context,
-                      MaterialPageRoute(builder: (_) => const Home()));
-                },
-                child: const Icon(Icons.arrow_back),
-              )
+              Text(
+                value,
+                style: TextStyle(
+                  color: statusColor ?? Colors.black87,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ],
           ),
-          backgroundColor: const Color(0xff0288D1),
-          iconTheme: const IconThemeData(color: Colors.white),
-        ),
-        drawer: const MyDrawer(),
-        body: Container(
-          width: MediaQuery.of(context).size.width,
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-          decoration: const BoxDecoration(color: Colors.white54),
-          child: Stack(children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(0, 0, 0, 24),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.fromLTRB(0, 10, 16, 10),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          "User Details",
-                          style: TextStyle(
-                              fontSize: 24,
-                              color: Colors.orange,
-                              fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 0, 16, 10),
-                      child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            "Name: ${userDetails != null ? userDetails["Name"] : ""}",
-                            style: const TextStyle(
-                                color: Color(0xff0288D1), fontSize: 16),
-                          )),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 0, 16, 10),
-                      child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            "Phone: ${userDetails != null ? userDetails["Phone"] : ""}",
-                            style: const TextStyle(
-                                color: Color(0xff0288D1), fontSize: 16),
-                          )),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 0, 16, 10),
-                      child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            "Email: ${userDetails != null ? userDetails["Email"] : ""}",
-                            style: const TextStyle(
-                                color: Color(0xff0288D1), fontSize: 16),
-                          )),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 0, 16, 10),
-                      child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            "Status: ${userDetails != null ? userDetails["Status"] : ""}",
-                            style: const TextStyle(
-                                color: Color(0xff0288D1), fontSize: 16),
-                          )),
-                    ),
-                    const SizedBox(
-                      height: 16,
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.fromLTRB(0, 0, 16, 0),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          "Change Password",
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.orange,
-                          ),
-                        ),
-                      ),
-                    ),
-                    MyTextInput(
-                      title: "Current Password",
-                      value: "",
-                      onSubmit: (v) {
-                        setState(() {
-                          oldPass = v;
-                        });
-                      },
-                      lines: 1,
-                      type: TextInputType.visiblePassword,
-                    ),
-                    MyTextInput(
-                      title: "New Password",
-                      value: "",
-                      onSubmit: (v) {
-                        setState(() {
-                          nePass = v;
-                        });
-                      },
-                      lines: 1,
-                      type: TextInputType.visiblePassword,
-                    ),
-                    MyTextInput(
-                      title: "Confirm Password",
-                      value: "",
-                      onSubmit: (v) {
-                        setState(() {
-                          cPass = v;
-                        });
-                      },
-                      lines: 1,
-                      type: TextInputType.visiblePassword,
-                    ),
-                    TextOakar(label: error, issuccessful: successful),
-                    const SizedBox(
-                      height: 16,
-                    ),
-                    SubmitButton(
-                      label: "Submit",
-                      onButtonPressed: () async {
-                        setState(() {
-                          isLoading = LoadingAnimationWidget.staggeredDotsWave(
-                            color: const Color(0xff0288D1),
-                            size: 100,
-                          );
-                        });
-                        var res = await changePass(
-                            oldPass, nePass, cPass, userDetails["UserID"]);
-                        setState(() {
-                          isLoading = null;
-                          if (res.error == null) {
-                            successful = true;
-                            error = res.success;
-                          } else {
-                            successful = false;
-                            error = res.error;
-                          }
-                        });
-                        if (res.error == null) {
-                          await storage.write(key: 'mwstaffjwt', value: "");
-                          Timer(const Duration(seconds: 1), () {
-                            Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) => const StaffLogin()));
-                          });
-                        }
-                      },
-                    ),
-                  ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPasswordSection() {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Change Password",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xff0288D1),
+              ),
+            ),
+            const SizedBox(height: 16),
+            MyTextInput(
+              title: "Current Password",
+              value: "",
+              onSubmit: (v) => setState(() => oldPass = v),
+              lines: 1,
+              type: TextInputType.visiblePassword,
+            ),
+            MyTextInput(
+              title: "New Password",
+              value: "",
+              onSubmit: (v) => setState(() => nePass = v),
+              lines: 1,
+              type: TextInputType.visiblePassword,
+            ),
+            MyTextInput(
+              title: "Confirm Password",
+              value: "",
+              onSubmit: (v) => setState(() => cPass = v),
+              lines: 1,
+              type: TextInputType.visiblePassword,
+            ),
+            if (error.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: TextOakar(label: error, issuccessful: successful),
+              ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _handlePasswordChange,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xff0288D1),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  isLoading != null ? "Updating..." : "Update Password",
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
-            Center(child: isLoading),
-          ]),
-        ));
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _handlePasswordChange() {
+    setState(() {
+      isLoading = LoadingAnimationWidget.staggeredDotsWave(
+        color: const Color(0xff0288D1),
+        size: 100,
+      );
+    });
+    changePass(oldPass, nePass, cPass, userDetails["id"]).then((res) {
+      setState(() {
+        isLoading = null;
+        if (res.error == null) {
+          successful = true;
+          error = res.success;
+        } else {
+          successful = false;
+          error = res.error;
+        }
+      });
+      if (res.error == null) {
+        storage.write(key: 'mwstaffjwt', value: "");
+        Timer(const Duration(seconds: 1), () {
+          Navigator.pushReplacement(
+              context, MaterialPageRoute(builder: (_) => const StaffLogin()));
+        });
+      }
+    });
   }
 }
 
