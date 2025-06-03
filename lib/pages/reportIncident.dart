@@ -42,6 +42,8 @@ class _ReportIncidentState extends State<ReportIncident> {
   String reportertype = 'Public';
   String sewerincident = '';
   String incidenttype = '';
+  String schemetype = '';
+  String pipesize = '';
   String error = '';
   var isLoading;
   late File? _image;
@@ -55,6 +57,48 @@ class _ReportIncidentState extends State<ReportIncident> {
   String myimage = '';
   StreamSubscription<Position>? positionStreamSubscription;
 
+  void _showMessage(String message, bool isError) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).clearSnackBars();
+    final snackBar = SnackBar(
+      content: Row(
+        children: [
+          Icon(
+            isError ? Icons.error_outline : Icons.check_circle_outline,
+            color: Colors.white,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+      backgroundColor: isError ? Colors.red : Colors.green,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      margin: const EdgeInsets.all(16),
+      duration: const Duration(seconds: 3),
+      action: SnackBarAction(
+        label: 'Dismiss',
+        textColor: Colors.white,
+        onPressed: () {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        },
+      ),
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
+
   getUserLocation() async {
     try {
       var token = await storage.read(key: "mwjwt");
@@ -63,8 +107,9 @@ class _ReportIncidentState extends State<ReportIncident> {
         var id = decoded["id"];
         setState(() {
           userid = id.toString();
+          reportertype = "Public";
         });
-        print("User ID set to: $userid");
+        print("Public User ID set to: $userid");
       } else {
         print("No JWT token found");
         // Try to get staff token as fallback
@@ -74,14 +119,23 @@ class _ReportIncidentState extends State<ReportIncident> {
           var id = decoded["id"];
           setState(() {
             userid = id.toString();
+            reportertype = "Staff";
           });
           print("Staff ID set to: $userid");
         } else {
           print("No staff token found either");
+          setState(() {
+            userid = '';
+            reportertype = "Public";
+          });
         }
       }
     } catch (e) {
       print("Error getting user ID: $e");
+      setState(() {
+        userid = '';
+        reportertype = "Public";
+      });
     }
 
     try {
@@ -293,22 +347,16 @@ class _ReportIncidentState extends State<ReportIncident> {
                           _buildImageCapture(),
                           const SizedBox(height: 24),
                         ],
-                        if (widget.incident == "Sewer Incident") ...[
+                        if (widget.incident == "Sewer Burst") ...[
                           _buildSectionTitle('Incident Details'),
                           const SizedBox(height: 12),
                           _buildSewerIncidentSelector(),
                           const SizedBox(height: 24),
                         ],
                         if (widget.incident == "Leakage") ...[
-                          _buildSectionTitle('Leak Details'),
+                          _buildSectionTitle('Incident Details'),
                           const SizedBox(height: 12),
                           _buildLeakTypeSelector(),
-                          const SizedBox(height: 24),
-                        ],
-                        if (widget.incident == "Sewer Burst") ...[
-                          _buildSectionTitle('Burst Details'),
-                          const SizedBox(height: 12),
-                          _buildBurstTypeSelector(),
                           const SizedBox(height: 24),
                         ],
                         _buildSectionTitle('Additional Details'),
@@ -505,20 +553,16 @@ class _ReportIncidentState extends State<ReportIncident> {
         child: MySelectInput(
           onSubmit: (value) {
             setState(() {
-              sewerincident = value;
+              incidenttype = value;
             });
           },
           list: const [
             "--Select--",
-            "Sewer Burst",
-            "Shifted Manhole Covers",
-            "Broken Manhole Cover",
-            "Silted Sewer Line",
-            "Silted Manhole",
-            "Sewer Overflow",
+            "Blockage",
+            "Burst",
           ],
-          label: 'Select Type',
-          value: sewerincident,
+          label: 'Select Type of Sewer Burst',
+          value: incidenttype,
           labelFontSize: 18,
         ),
       ),
@@ -553,7 +597,7 @@ class _ReportIncidentState extends State<ReportIncident> {
     );
   }
 
-  Widget _buildBurstTypeSelector() {
+  Widget _buildSchemeTypeSelector() {
     return Card(
       elevation: 4,
       shadowColor: Colors.black26,
@@ -565,16 +609,54 @@ class _ReportIncidentState extends State<ReportIncident> {
         child: MySelectInput(
           onSubmit: (value) {
             setState(() {
-              incidenttype = value;
+              schemetype = value;
             });
           },
           list: const [
             "--Select--",
-            "Blockage",
-            "Burst",
+            "Urban",
+            "Rural",
           ],
-          label: 'Select Type of Burst',
-          value: incidenttype,
+          label: 'Select Scheme',
+          value: schemetype,
+          labelFontSize: 18,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPipeSizeSelector() {
+    return Card(
+      elevation: 4,
+      shadowColor: Colors.black26,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: MySelectInput(
+          onSubmit: (value) {
+            setState(() {
+              pipesize = value;
+            });
+          },
+          list: const [
+            "--Select--",
+            "0.5",
+            "0.75",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "8",
+            "10",
+            "12",
+            "14",
+          ],
+          label: 'Select Pipe Size',
+          value: pipesize,
           labelFontSize: 18,
         ),
       ),
@@ -592,6 +674,50 @@ class _ReportIncidentState extends State<ReportIncident> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            if (widget.incident == "Leakage") ...[
+              MySelectInput(
+                onSubmit: (value) {
+                  setState(() {
+                    schemetype = value;
+                  });
+                },
+                list: const [
+                  "--Select--",
+                  "Urban",
+                  "Rural",
+                ],
+                label: 'Select Scheme',
+                value: schemetype,
+                labelFontSize: 18,
+              ),
+              const SizedBox(height: 16),
+              MySelectInput(
+                onSubmit: (value) {
+                  setState(() {
+                    pipesize = value;
+                  });
+                },
+                list: const [
+                  "--Select--",
+                  "0.5",
+                  "0.75",
+                  "1",
+                  "2",
+                  "3",
+                  "4",
+                  "5",
+                  "6",
+                  "8",
+                  "10",
+                  "12",
+                  "14",
+                ],
+                label: 'Select Pipe Size',
+                value: pipesize,
+                labelFontSize: 18,
+              ),
+              const SizedBox(height: 16),
+            ],
             MyTextInputII(
               hint: 'Describe the incident *',
               lines: 1,
@@ -636,23 +762,6 @@ class _ReportIncidentState extends State<ReportIncident> {
               mycolor: const Color(0xff0288D1),
               iconcolor: const Color(0xff0288D1),
             ),
-            // if (reportertype == "Public") ...[
-            //   const SizedBox(height: 16),
-            //   MyTextInputII(
-            //     hint: 'Your Phone Number',
-            //     lines: 1,
-            //     value: phone,
-            //     type: TextInputType.phone,
-            //     onSubmit: (value) {
-            //       setState(() {
-            //         phone = value;
-            //       });
-            //     },
-            //     customIcon: Icons.phone_rounded,
-            //     mycolor: const Color(0xff0288D1),
-            //     iconcolor: const Color(0xff0288D1),
-            //   ),
-            // ],
           ],
         ),
       ),
@@ -683,7 +792,10 @@ class _ReportIncidentState extends State<ReportIncident> {
               widget.categoryId,
               long.toString(),
               lat.toString(),
-              incidenttype);
+              incidenttype,
+              schemetype,
+              pipesize,
+              reportertype);
 
           setState(() {
             isLoading = null;
@@ -698,20 +810,8 @@ class _ReportIncidentState extends State<ReportIncident> {
 
           if (res.error == null) {
             // Show success snackbar
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  res.success ?? 'Report submitted successfully!',
-                  style: const TextStyle(color: Colors.white),
-                ),
-                backgroundColor: Colors.green,
-                duration: const Duration(seconds: 3),
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            );
+            _showMessage(
+                res.success ?? 'Report submitted successfully!', false);
 
             Timer(const Duration(seconds: 2), () {
               Navigator.pushReplacement(
@@ -721,20 +821,7 @@ class _ReportIncidentState extends State<ReportIncident> {
             });
           } else {
             // Show error snackbar
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  res.error ?? 'Failed to submit report',
-                  style: const TextStyle(color: Colors.white),
-                ),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 3),
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            );
+            _showMessage(res.error ?? 'Failed to submit report', true);
           }
         },
         style: ElevatedButton.styleFrom(
@@ -793,6 +880,9 @@ Future<Message> submitData(
   String longitude,
   String latitude,
   String incidenttype,
+  String schemetype,
+  String pipesize,
+  String reportertype,
 ) async {
   if (myimage.isEmpty) {
     return Message(
@@ -812,6 +902,17 @@ Future<Message> submitData(
         error: "Please select the type of ${incident.toLowerCase()}!");
   }
 
+  if (incident == "Leakage") {
+    if (schemetype.isEmpty || schemetype == "--Select--") {
+      return Message(
+          token: null, success: null, error: "Please select the scheme type!");
+    }
+    if (pipesize.isEmpty || pipesize == "--Select--") {
+      return Message(
+          token: null, success: null, error: "Please select the pipe size!");
+    }
+  }
+
   print("Category ID here: ${categoryId}");
   print("Incident: ${incident}");
   print("Leak Type: ${incidenttype}");
@@ -824,16 +925,23 @@ Future<Message> submitData(
       'image': myimage,
       'location': location,
       'route': route,
-      'userId': userId.isNotEmpty ? userId : null,
+      'userId': reportertype == "Staff" ? userId : null,
       'categoryId': categoryId,
       'longitude': longitude,
       'latitude': latitude,
       'incidentType': (incident == "Leakage" || incident == "Sewer Burst")
           ? incidenttype
           : null,
+      'schemeType': incident == "Leakage" ? schemetype : null,
+      'pipeSize': incident == "Leakage" ? pipesize : null,
+      'reporterType': reportertype,
     };
 
     print("Request payload: $payload");
+    print("Reporter Type: $reportertype");
+    if (reportertype == "Staff") {
+      print("Staff User ID being sent: $userId");
+    }
 
     final response = await post(
       Uri.parse("${getUrl()}om/reports"),
