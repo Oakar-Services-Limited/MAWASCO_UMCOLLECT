@@ -11,6 +11,7 @@ class MyTextInputII extends StatefulWidget {
   Color iconcolor;
   IconData customIcon;
   Function(String) onSubmit;
+  bool readOnly;
 
   MyTextInputII(
       {super.key,
@@ -21,7 +22,8 @@ class MyTextInputII extends StatefulWidget {
       required this.mycolor,
       required this.iconcolor,
       required this.customIcon,
-      required this.onSubmit});
+      required this.onSubmit,
+      this.readOnly = false});
 
   @override
   State<StatefulWidget> createState() => _MyTextInputIIState();
@@ -64,26 +66,30 @@ class _MyTextInputIIState extends State<MyTextInputII> {
           padding: const EdgeInsets.fromLTRB(0, 16, 0, 16),
           child: TextField(
             onChanged: (value) {
-              setState(() {
-                _controller.value = TextEditingValue(
-                  text: value,
-                  selection: TextSelection.fromPosition(
-                    TextPosition(offset: value.length),
-                  ),
-                );
-              });
-              widget.onSubmit(value);
+              if (!widget.readOnly) {
+                setState(() {
+                  _controller.value = TextEditingValue(
+                    text: value,
+                    selection: TextSelection.fromPosition(
+                      TextPosition(offset: value.length),
+                    ),
+                  );
+                });
+                widget.onSubmit(value);
+              }
             },
             keyboardType: widget.type,
             controller: _controller,
             maxLines: widget.lines,
+            readOnly: widget.readOnly,
             obscureText:
                 widget.type == TextInputType.visiblePassword ? true : false,
             enableSuggestions: false,
             autocorrect: false,
-            style:
-                TextStyle(color: widget.mycolor), // Set the text color to white
-
+            style: TextStyle(
+              color: widget.mycolor,
+              backgroundColor: widget.readOnly ? Colors.grey[100] : null,
+            ),
             decoration: InputDecoration(
                 hintText: widget.hint,
                 hintStyle: const TextStyle(
@@ -92,7 +98,8 @@ class _MyTextInputIIState extends State<MyTextInputII> {
                 contentPadding: const EdgeInsets.all(12),
                 border: const OutlineInputBorder(
                     borderSide: BorderSide(color: Color(0xff0288D1))),
-                filled: false,
+                filled: widget.readOnly,
+                fillColor: Colors.grey[100],
                 floatingLabelBehavior: FloatingLabelBehavior.auto,
                 prefixIcon: Icon(
                   widget.customIcon,

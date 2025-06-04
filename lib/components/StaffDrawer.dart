@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:um_collect/components/FootNote.dart';
+import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/pages/Assets.dart';
 import 'package:um_collect/pages/Settings.dart';
 import 'package:um_collect/pages/home.dart';
@@ -21,6 +22,36 @@ class StaffDrawer extends StatefulWidget {
 }
 
 class _StaffDrawerState extends State<StaffDrawer> {
+    final storage = const FlutterSecureStorage();
+
+  String staffid = '';
+
+  @override
+  void initState() {
+    getDefaultValues();
+    super.initState();
+  }
+
+  Future<void> getDefaultValues() async {
+    try {
+      var token = await storage.read(key: "mwstaffjwt");
+      var decoded = parseJwt(token.toString());
+      if (decoded["error"] == "Invalid token") {
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (_) => const Login()));
+      } else {
+        setState(() {
+          staffid = decoded["id"];
+     
+        });
+
+
+        await storage.write(key: 'staffid', value: staffid);
+
+      }
+    } catch (e) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     return Drawer(
@@ -69,14 +100,24 @@ class _StaffDrawerState extends State<StaffDrawer> {
                       onTap: () => Navigator.pushReplacement(context,
                           MaterialPageRoute(builder: (_) => const Home())),
                     ),
-
                     _buildDrawerItem(
                       icon: Icons.sync_problem,
                       title: 'Report Incidence',
-                      onTap: () => Navigator.pushReplacement(context,
-                          MaterialPageRoute(builder: (_) => const Incidences())),
+                      onTap: () => Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const Incidences())),
                     ),
-                  
+                    _buildDrawerItem(
+                      icon: Icons.sync_problem,
+                      title: 'Asset Navigation',
+                      onTap: () => Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => AssetNavigation(
+                                    staffid: staffid,
+                                  ))),
+                    ),
                     _buildDrawerItem(
                       icon: Icons.settings,
                       title: 'Settings',
