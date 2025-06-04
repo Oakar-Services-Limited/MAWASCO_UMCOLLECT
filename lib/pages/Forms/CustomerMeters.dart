@@ -664,13 +664,7 @@ Future<Message> submitData(
     );
   }
 
-  if (phone.isEmpty) {
-    return Message(
-      token: null,
-      success: null,
-      error: "Phone number must be filled!",
-    );
-  }
+
 
   try {
     http.Response response;

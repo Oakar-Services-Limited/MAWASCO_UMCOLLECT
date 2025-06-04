@@ -69,6 +69,14 @@ class _StaffDrawerState extends State<StaffDrawer> {
                       onTap: () => Navigator.pushReplacement(context,
                           MaterialPageRoute(builder: (_) => const Home())),
                     ),
+
+                    _buildDrawerItem(
+                      icon: Icons.sync_problem,
+                      title: 'Report Incidence',
+                      onTap: () => Navigator.pushReplacement(context,
+                          MaterialPageRoute(builder: (_) => const Incidences())),
+                    ),
+                  
                     _buildDrawerItem(
                       icon: Icons.settings,
                       title: 'Settings',

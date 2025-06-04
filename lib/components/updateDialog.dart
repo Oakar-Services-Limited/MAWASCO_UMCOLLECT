@@ -204,8 +204,15 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
 
   navigateToForm(
       BuildContext context, assetName, Map<String, dynamic> item) async {
-    await storage.write(key: 'editing', value: 'true');
-    await storage.write(key: "data", value: json.encode([item]));
+    // Only set editing to true if we have an item with an ID
+    if (item.isNotEmpty && item["id"] != null) {
+      await storage.write(key: 'editing', value: 'true');
+      await storage.write(key: "data", value: json.encode([item]));
+    } else {
+      // For new assets, set editing to false and clear any existing data
+      await storage.write(key: 'editing', value: 'false');
+      await storage.write(key: "data", value: '');
+    }
 
     switch (assetName) {
       case 'Customer Meters':
@@ -301,8 +308,8 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
           context,
           MaterialPageRoute(builder: (_) => const SewerTreatment()),
         );
-        break;  
-        
+        break;
+
       case 'Project (Points)':
         Navigator.pushReplacement(
           context,

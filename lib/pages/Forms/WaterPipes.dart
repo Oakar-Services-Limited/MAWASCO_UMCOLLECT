@@ -420,9 +420,7 @@ Future<Message> submitData(
     if (function == "--Select--" || function.isEmpty) {
       return Message(token: null, success: null, error: "Function is required");
     }
-    if (dma == "--Select--" || dma.isEmpty) {
-      return Message(token: null, success: null, error: "DMA is required");
-    }
+  
     if (schemename == "--Select--" || schemename.isEmpty) {
       return Message(
           token: null, success: null, error: "Scheme Name is required");

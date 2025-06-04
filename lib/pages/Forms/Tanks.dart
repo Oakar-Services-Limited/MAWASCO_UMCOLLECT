@@ -76,6 +76,8 @@ class _TanksState extends State<Tanks> {
         staffid = decoded["id"];
       });
 
+      print('editing is $editing');
+
       if (editing == 'true') {
         prefillForm(data);
       } else {}
@@ -411,48 +413,31 @@ Future<Message> submitData(
     String? update = await storage.read(key: "updateLocation");
 
     // Debug: Print the full URL and request body
-    String url = editing == 'true'
+    String url = editing == 'true' && tankID.isNotEmpty
         ? "${getUrl()}wt/tanks/$tankID"
         : "${getUrl()}wt/tanks";
     print("Submitting to URL: $url");
 
-    Map<String, dynamic> requestBody = editing == 'true'
-        ? {
-            'latitude': update != null ? lat : null,
-            'longitude': update != null ? long : null,
-            'name': name,
-            'zone': zone,
-            'elevation': elevation,
-            'area': area,
-            'location': location,
-            'inletPipe': inletpipe,
-            'outletPipe': outletpipe,
-            'material': material,
-            'capacity': capacity,
-            'status': status,
-            'remarks': remarks,
-            'userId': staffid
-          }
-        : {
-            'latitude': lat,
-            'longitude': long,
-            'name': name,
-            'zone': zone,
-            'elevation': elevation,
-            'area': area,
-            'location': location,
-            'inletPipe': inletpipe,
-            'outletPipe': outletpipe,
-            'material': material,
-            'capacity': capacity,
-            'status': status,
-            'remarks': remarks,
-            'userId': staffid
-          };
+    Map<String, dynamic> requestBody = {
+      'latitude': lat,
+      'longitude': long,
+      'name': name,
+      'zone': zone,
+      'elevation': elevation,
+      'area': area,
+      'location': location,
+      'inletPipe': inletpipe,
+      'outletPipe': outletpipe,
+      'material': material,
+      'capacity': capacity,
+      'status': status,
+      'remarks': remarks,
+      'userId': staffid
+    };
 
     print("Request body: ${jsonEncode(requestBody)}");
 
-    if (editing == 'true') {
+    if (editing == 'true' && tankID.isNotEmpty) {
       response = await http.put(
         Uri.parse(url),
         headers: <String, String>{
@@ -470,7 +455,6 @@ Future<Message> submitData(
       );
     }
 
-    // Debug: Print response details
     print("Response status code: ${response.statusCode}");
     print("Response body: ${response.body}");
 
@@ -482,7 +466,6 @@ Future<Message> submitData(
         error: null,
       );
     } else {
-      // Try to parse error response, but handle non-JSON responses
       String errorMessage;
       try {
         var responseBody = jsonDecode(response.body);

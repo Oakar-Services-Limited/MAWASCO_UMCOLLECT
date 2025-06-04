@@ -221,55 +221,17 @@ class _MasterMetersState extends State<MasterMeters> {
                       },
                       title: 'Route',
                     ),
-                    MySelectInput(
-                      onSubmit: (value) {
-                        setState(() {
-                          zone = value;
-                        });
-                      },
-                      list: const [
-                        "--Select--",
-                        "001 Gathugu",
-                        "002 Urban Institution",
-                        "003 Indian",
-                        "004 Industrial",
-                        "005 Karindundu",
-                        "006 Mathaithi",
-                        "007 Ragati",
-                        "008 Saigon 1",
-                        "009 Sofia",
-                        "010 Muthua",
-                        "011 Blue Valley",
-                        "012 83",
-                        "013 84",
-                        "014 85",
-                        "015 86",
-                        "016 87",
-                        "017 88",
-                        "018 Jambo-88",
-                        "019 89",
-                        "019 Tumutumu-87",
-                        "019 89",
-                        "020 90",
-                        "021 91",
-                        "022 92",
-                        "023 82(Inst.Rural)",
-                        "02492",
-                        "02493",
-                      ],
+                     MySelectInput(
+                      onSubmit: (value) => setState(() => zone = value),
+                      list: getZones(),
                       label: 'Zone',
                       value: zone,
                     ),
-                    MyTextInput(
-                      lines: 1,
+                     MySelectInput(
+                      onSubmit: (value) => setState(() => dma = value),
+                      list: getDMAs(),
+                      label: 'DMA',
                       value: dma,
-                      type: TextInputType.text,
-                      onSubmit: (value) {
-                        setState(() {
-                          dma = value;
-                        });
-                      },
-                      title: 'DMA',
                     ),
                     MyTextInput(
                       lines: 1,
