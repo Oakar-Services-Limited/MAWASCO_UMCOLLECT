@@ -73,21 +73,34 @@ class _CollectedItemState extends State<NewCallItem> {
                     padding: const EdgeInsets.all(5),
                     width: 60,
                     decoration: BoxDecoration(
-                        color: Colors.white70,
-                        borderRadius:
-                            const BorderRadius.all(Radius.circular(5)),
-                        border: Border.all(
-                            color: const Color(0xff0288D1), width: 1)),
-                    child: Align(
-                      alignment: Alignment.center,
-                      child: Text(
-                        (widget.item["report"]?["serialNo"] ?? widget.index + 1)
-                            .toString(),
-                        style: const TextStyle(
+                      color: Colors.white70,
+                      borderRadius: const BorderRadius.all(Radius.circular(5)),
+                      border:
+                          Border.all(color: const Color(0xff0288D1), width: 1),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          "SR No.",
+                          style: TextStyle(
+                            color: Color(0xff0288D1),
+                            fontSize: 8,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          (widget.item["report"]?["serialNo"] ??
+                                  widget.index + 1)
+                              .toString(),
+                          style: const TextStyle(
                             color: Color(0xff0288D1),
                             fontWeight: FontWeight.bold,
-                            fontSize: 24),
-                      ),
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(
