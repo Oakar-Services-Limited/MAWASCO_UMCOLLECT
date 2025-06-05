@@ -7,6 +7,7 @@ import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/pages/home.dart';
 import 'package:http/http.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class CompleteIncidences extends StatefulWidget {
   final String staffid;
@@ -42,22 +43,65 @@ class _CompleteIncidencesState extends State<CompleteIncidences> {
       );
     });
     try {
+      final storage = const FlutterSecureStorage();
+      final token = await storage.read(key: "mwstaffjwt");
+
+      if (token == null) {
+        throw Exception("No authentication token found");
+      }
+
+      final url =
+          "${getUrl()}om/assigned-reports?userId=${widget.staffid}&status=Resolved";
+      print("Fetching resolved incidents from URL: $url");
+
       final response = await get(
-        Uri.parse("${getUrl()}reports/assigned/${widget.staffid}/0"),
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
       );
+      print("Response status code: ${response.statusCode}");
+      print("Response body: ${response.body}");
 
-      var data = json.decode(response.body);
-
-      print("incidences: $data");
-
-      setState(() {
-        incireported = data["complete"];
-        isLoading = null;
-      });
+      if (response.statusCode == 200) {
+        var data = json.decode(response.body);
+        print("Decoded data: $data");
+        setState(() {
+          incireported = data["data"] ?? [];
+          isLoading = null;
+        });
+      } else {
+        print("Error response: ${response.body}");
+        setState(() {
+          incireported = [];
+          isLoading = null;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content:
+                  Text('Failed to fetch resolved incidents. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     } catch (e) {
+      print("Exception occurred: $e");
       setState(() {
+        incireported = [];
         isLoading = null;
       });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'An error occurred while fetching incidents. Please check your connection.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -92,6 +136,15 @@ class _CompleteIncidencesState extends State<CompleteIncidences> {
       key: _scaffoldKey,
       appBar: AppBar(
         actions: <Widget>[
+          IconButton(
+            icon: const Icon(
+              Icons.refresh,
+              color: Colors.white,
+            ),
+            onPressed: () {
+              fetchCompleteIncidencesdIncidences();
+            },
+          ),
           IconButton(
             icon: const Icon(
               Icons.arrow_back,
@@ -137,8 +190,26 @@ class _CompleteIncidencesState extends State<CompleteIncidences> {
 
   Widget _buildBody() {
     if (incireported.isEmpty && isLoading == null) {
-      return const Center(
-        child: Text('No client calls.'),
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.task_alt,
+              size: 64,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No completed incidents',
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       );
     } else {
       print("completed tasks: $incireported");

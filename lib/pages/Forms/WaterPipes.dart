@@ -35,7 +35,6 @@ class _WaterPipesState extends State<WaterPipes> {
   String linename = '';
   String material = '';
   String intake = '';
-  String lineType = '';
   String function = '';
   String dma = '';
   String route = '';
@@ -95,7 +94,6 @@ class _WaterPipesState extends State<WaterPipes> {
     setState(() {
       waterpipeID = data[0]["id"] ?? "";
       linename = data[0]["lineName"] ?? "";
-      lineType = data[0]["lineType"] ?? "";
       material = data[0]["material"] ?? "";
       intake = data[0]["intake"]?.toString() ?? "";
       function = data[0]["function"] ?? "";
@@ -181,21 +179,7 @@ class _WaterPipesState extends State<WaterPipes> {
                       },
                       title: 'Line Name',
                     ),
-                    MySelectInput(
-                      onSubmit: (value) {
-                        setState(() {
-                          lineType = value;
-                        });
-                      },
-                      list: const [
-                        "--Select--",
-                        "Feeders",
-                        "Sewer Lines",
-                        "Main Lines",
-                      ],
-                      label: 'Line Type',
-                      value: lineType,
-                    ),
+                
                     MyTextInput(
                       lines: 1,
                       value: '',
@@ -335,7 +319,6 @@ class _WaterPipesState extends State<WaterPipes> {
                           var res = await submitData(
                               widget.coordinates,
                               linename,
-                              lineType,
                               material,
                               intake,
                               function,
@@ -392,7 +375,6 @@ class _WaterPipesState extends State<WaterPipes> {
 Future<Message> submitData(
     List<Map<String, double>> coordinates,
     String linename,
-    String lineType,
     String material,
     String intake,
     String function,
@@ -410,10 +392,7 @@ Future<Message> submitData(
       return Message(
           token: null, success: null, error: "Line Name is required");
     }
-    if (lineType == "--Select--" || lineType.isEmpty) {
-      return Message(
-          token: null, success: null, error: "Line Type is required");
-    }
+
     if (material.isEmpty) {
       return Message(token: null, success: null, error: "Material is required");
     }
@@ -435,18 +414,7 @@ Future<Message> submitData(
       return Message(token: null, success: null, error: "Status is required");
     }
 
-    print("Submitting water pipe data...");
-    print("Coordinates: $coordinates");
-    print("Line Name: $linename");
-    print("Line Type: $lineType");
-    print("Material: $material");
-    print("Function: $function");
-    print("DMA: $dma");
-    print("Scheme Name: $schemename");
-    print("Zone: $zone");
-    print("Size: $size");
-    print("Status: $status");
-    print("Staff ID: $staffid");
+
 
     var response = await http.post(
       Uri.parse("${getUrl()}wt/water-pipes"),
@@ -455,7 +423,6 @@ Future<Message> submitData(
       },
       body: jsonEncode(<String, dynamic>{
         'LineName': linename,
-        'LineType': lineType,
         'Material': material,
         'Intake': intake,
         'Function': function,

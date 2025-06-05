@@ -347,13 +347,15 @@ class _ReportIncidentState extends State<ReportIncident> {
                           _buildImageCapture(),
                           const SizedBox(height: 24),
                         ],
-                        if (widget.incident == "Sewer Burst") ...[
+                        if (widget.incident == "Sewer Burst" &&
+                            reportertype == "Staff") ...[
                           _buildSectionTitle('Incident Details'),
                           const SizedBox(height: 12),
                           _buildSewerIncidentSelector(),
                           const SizedBox(height: 24),
                         ],
-                        if (widget.incident == "Leakage") ...[
+                        if (widget.incident == "Leakage" &&
+                            reportertype == "Staff") ...[
                           _buildSectionTitle('Incident Details'),
                           const SizedBox(height: 12),
                           _buildLeakTypeSelector(),
@@ -674,7 +676,55 @@ class _ReportIncidentState extends State<ReportIncident> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            if (widget.incident == "Leakage") ...[
+            if (reportertype != "Staff") ...[
+              MyTextInputII(
+                hint: 'Incident Type',
+                lines: 1,
+                value: widget.incident,
+                type: TextInputType.text,
+                onSubmit: (value) {
+                  setState(() {
+                    incidenttype = value;
+                  });
+                },
+                customIcon: Icons.warning_rounded,
+                mycolor: const Color(0xff0288D1),
+                iconcolor: const Color(0xff0288D1),
+                readOnly: true,
+              ),
+              const SizedBox(height: 16),
+              MyTextInputII(
+                hint: 'Your Name (Optional)',
+                lines: 1,
+                value: name,
+                type: TextInputType.text,
+                onSubmit: (value) {
+                  setState(() {
+                    name = value;
+                  });
+                },
+                customIcon: Icons.person_outline_rounded,
+                mycolor: const Color(0xff0288D1),
+                iconcolor: const Color(0xff0288D1),
+              ),
+              const SizedBox(height: 16),
+              MyTextInputII(
+                hint: 'Your Phone Number (Optional)',
+                lines: 1,
+                value: phone,
+                type: TextInputType.phone,
+                onSubmit: (value) {
+                  setState(() {
+                    phone = value;
+                  });
+                },
+                customIcon: Icons.phone_outlined,
+                mycolor: const Color(0xff0288D1),
+                iconcolor: const Color(0xff0288D1),
+              ),
+              const SizedBox(height: 16),
+            ],
+            if (widget.incident == "Leakage" && reportertype == "Staff") ...[
               MySelectInput(
                 onSubmit: (value) {
                   setState(() {
@@ -795,7 +845,9 @@ class _ReportIncidentState extends State<ReportIncident> {
               incidenttype,
               schemetype,
               pipesize,
-              reportertype);
+              reportertype,
+              name,
+              phone);
 
           setState(() {
             isLoading = null;
@@ -883,6 +935,8 @@ Future<Message> submitData(
   String schemetype,
   String pipesize,
   String reportertype,
+  String name,
+  String phone,
 ) async {
   if (myimage.isEmpty) {
     return Message(
@@ -894,7 +948,9 @@ Future<Message> submitData(
         token: null, success: null, error: "Category ID is missing!");
   }
 
-  if ((incident == "Leakage" || incident == "Sewer Burst") &&
+  // Only validate incident type selection for staff reporters
+  if (reportertype == "Staff" &&
+      (incident == "Leakage" || incident == "Sewer Burst") &&
       (incidenttype.isEmpty || incidenttype == "--Select--")) {
     return Message(
         token: null,
@@ -902,7 +958,7 @@ Future<Message> submitData(
         error: "Please select the type of ${incident.toLowerCase()}!");
   }
 
-  if (incident == "Leakage") {
+  if (incident == "Leakage" && reportertype == "Staff") {
     if (schemetype.isEmpty || schemetype == "--Select--") {
       return Message(
           token: null, success: null, error: "Please select the scheme type!");
@@ -929,18 +985,26 @@ Future<Message> submitData(
       'categoryId': categoryId,
       'longitude': longitude,
       'latitude': latitude,
-      'incidentType': (incident == "Leakage" || incident == "Sewer Burst")
-          ? incidenttype
-          : null,
-      'schemeType': incident == "Leakage" ? schemetype : null,
-      'pipeSize': incident == "Leakage" ? pipesize : null,
-      'reporterType': reportertype,
+      'incidentType': reportertype == "Staff"
+          ? (incident == "Leakage" || incident == "Sewer Burst")
+              ? incidenttype
+              : null
+          : incident,
+      'schemeType':
+          incident == "Leakage" && reportertype == "Staff" ? schemetype : null,
+      'pipeSize':
+          incident == "Leakage" && reportertype == "Staff" ? pipesize : null,
+      'reporterName': reportertype != "Staff" ? name : null,
+      'reporterPhone': reportertype != "Staff" ? phone : null,
     };
 
     print("Request payload: $payload");
     print("Reporter Type: $reportertype");
     if (reportertype == "Staff") {
       print("Staff User ID being sent: $userId");
+    } else {
+      print("Public User Name: $name");
+      print("Public User Phone: $phone");
     }
 
     final response = await post(
