@@ -81,7 +81,8 @@ class _CollectedItemState extends State<NewCallItem> {
                     child: Align(
                       alignment: Alignment.center,
                       child: Text(
-                        (widget.item["SerialNo"]).toString(),
+                        (widget.item["report"]?["serialNo"] ?? widget.index + 1)
+                            .toString(),
                         style: const TextStyle(
                             color: Color(0xff0288D1),
                             fontWeight: FontWeight.bold,
@@ -100,7 +101,7 @@ class _CollectedItemState extends State<NewCallItem> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          widget.item["Type"],
+                          widget.item["report"]?["incidentType"] ?? "Incident",
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -111,7 +112,8 @@ class _CollectedItemState extends State<NewCallItem> {
                           height: 4,
                         ),
                         Text(
-                          "${widget.item["Description"]}",
+                          widget.item["report"]?["description"] ??
+                              "No description available",
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -134,7 +136,7 @@ class _CollectedItemState extends State<NewCallItem> {
                       borderRadius:
                           BorderRadius.only(topRight: Radius.circular(5))),
                   child: Text(
-                    "${DateFormat('EEEE, MMMM d, y').format(parsePostgresTimestamp(widget.item["createdAt"]))} \n ${DateFormat('HH:mm').format(parsePostgresTimestamp(widget.item["createdAt"]))}",
+                    "${DateFormat('EEEE, MMMM d, y').format(parsePostgresTimestamp(widget.item["report"]?["createdAt"] ?? DateTime.now().toIso8601String()))} \n ${DateFormat('HH:mm').format(parsePostgresTimestamp(widget.item["report"]?["createdAt"] ?? DateTime.now().toIso8601String()))}",
                     style: const TextStyle(fontSize: 10, color: Colors.white),
                   ))),
         ],
