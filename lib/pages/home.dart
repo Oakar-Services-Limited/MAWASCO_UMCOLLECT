@@ -8,6 +8,7 @@ import 'package:um_collect/components/MyRowII.dart';
 import 'package:um_collect/pages/Forms/MasterMeters.dart';
 import 'package:um_collect/pages/Forms/Interventions.dart';
 import 'package:um_collect/pages/Forms/Washouts.dart';
+import 'package:um_collect/pages/MasterMeterReadings.dart';
 import 'package:um_collect/pages/NRW.dart';
 import 'package:um_collect/pages/navigatetoasset.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
@@ -387,7 +388,7 @@ class _HomeState extends State<Home> {
           'Master Meters',
           Icons.dashboard_outlined,
           () => Navigator.of(context).push(MaterialPageRoute(
-            builder: (context) => const MasterMeters(),
+            builder: (context) => const MasterMeterReadings(),
           )),
         ),
       ],
