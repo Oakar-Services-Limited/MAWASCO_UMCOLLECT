@@ -8,7 +8,7 @@ import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:intl/intl.dart';
 import 'package:location/location.dart';
 import 'package:um_collect/components/MyDrawer.dart';
-import 'package:um_collect/pages/filereport.dart';
+import 'package:um_collect/pages/FileReport.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:math' show cos, sqrt, asin;
 import 'dart:math' as math;
@@ -967,19 +967,17 @@ class _NavigateState extends State<Navigate> {
                                                       MaterialPageRoute(
                                                           builder: (_) =>
                                                               FileReport(
-                                                                  incidentid:
-                                                                      report[
-                                                                          "id"])));
+                                                                  item: widget.item)));
                                                 },
                                                 style: const ButtonStyle(
                                                     side:
-                                                        MaterialStatePropertyAll(
+                                                        WidgetStatePropertyAll(
                                                             BorderSide(
                                                                 color: Colors
                                                                     .orange,
                                                                 width: 1)),
                                                     backgroundColor:
-                                                        MaterialStatePropertyAll(
+                                                        WidgetStatePropertyAll(
                                                             Colors
                                                                 .transparent)),
                                                 child: const Text(

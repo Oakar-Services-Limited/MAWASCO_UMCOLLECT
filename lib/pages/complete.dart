@@ -38,7 +38,7 @@ class _CompleteIncidencesState extends State<CompleteIncidences> {
   Future<void> fetchCompleteIncidencesdIncidences() async {
     setState(() {
       isLoading = LoadingAnimationWidget.staggeredDotsWave(
-        color: const Color.fromARGB(255, 23, 117, 126),
+        color: const Color(0xff0288D1),
         size: 100,
       );
     });

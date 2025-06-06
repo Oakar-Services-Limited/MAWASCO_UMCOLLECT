@@ -12,8 +12,8 @@ import 'package:um_collect/pages/TextOakar.dart';
 import 'package:um_collect/pages/complete.dart';
 
 class FileReport extends StatefulWidget {
-  final String incidentid;
-  const FileReport({super.key, required this.incidentid});
+  final dynamic item;
+  const FileReport({super.key, required this.item});
 
   @override
   State<FileReport> createState() => _FileReportState();
@@ -49,15 +49,59 @@ class _FileReportState extends State<FileReport> {
     _scaffoldKey.currentState?.openDrawer();
   }
 
+  void _showMessage(String message, bool isError) {
+    if (!mounted) return;
+
+    print('Showing message: $message (isError: $isError)');
+
+    ScaffoldMessenger.of(context).clearSnackBars();
+    final snackBar = SnackBar(
+      content: Row(
+        children: [
+          Icon(
+            isError ? Icons.error_outline : Icons.check_circle_outline,
+            color: Colors.white,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+      backgroundColor: isError ? Colors.red : Colors.green,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      margin: const EdgeInsets.all(16),
+      duration: const Duration(seconds: 3),
+      action: SnackBarAction(
+        label: 'Dismiss',
+        textColor: Colors.white,
+        onPressed: () {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        },
+      ),
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
+
   @override
   void initState() {
     super.initState();
     _image = null;
-    print("FileReport initState - widget.incidentid: ${widget.incidentid}");
-    if (widget.incidentid.isEmpty) {
-      print("WARNING: Empty incident ID received in widget");
+    print("FileReport initState - widget.item: ${widget.item}");
+    if (widget.item == null) {
+      print("WARNING: Empty item received in widget");
     }
-    loadFileReport(widget.incidentid);
+    loadFileReport();
   }
 
   Future<String> convertFileToBase64(XFile file) async {
@@ -66,15 +110,13 @@ class _FileReportState extends State<FileReport> {
     return base64String;
   }
 
-  Future<void> loadFileReport(String id) async {
-    print("loadFileReport called with ID: $id");
-    print("ID length: ${id.length}");
-    print("ID is empty: ${id.isEmpty}");
+  Future<void> loadFileReport() async {
+    print("loadFileReport called with item: ${widget.item}");
 
-    if (id.isEmpty) {
-      print("ERROR: Empty ID passed to loadFileReport");
+    if (widget.item == null) {
+      print("ERROR: Empty item passed to loadFileReport");
       setState(() {
-        error = "Invalid Incident ID";
+        error = "Invalid Report Data";
         isLoading = null;
       });
       return;
@@ -88,66 +130,19 @@ class _FileReportState extends State<FileReport> {
     });
 
     try {
-      // Get the assigned report first
-      final assignedUrl = "${getUrl()}om/assigned-reports/$id";
-      print("Fetching assigned report from URL: $assignedUrl");
-
-      final assignedResponse = await get(
-        Uri.parse(assignedUrl),
-      );
-
-      print("Assigned report response status: ${assignedResponse.statusCode}");
-      print("Assigned report response body: ${assignedResponse.body}");
-
-      if (assignedResponse.statusCode != 200) {
-        throw Exception('Failed to load assigned report: ${assignedResponse.statusCode}');
-      }
-
-      var assignedData = json.decode(assignedResponse.body);
-      print("Decoded assigned data: $assignedData");
-
-      if (assignedData == null || assignedData.isEmpty) {
-        throw Exception('No assigned report data received');
-      }
-
-      // Get the main report details using the reportId from assigned report
-      final reportId = assignedData['reportId'];
-      if (reportId == null) {
-        throw Exception('No reportId found in assigned report');
-      }
-
-      final reportUrl = "${getUrl()}om/reports/$reportId";
-      print("Fetching main report from URL: $reportUrl");
-
-      final reportResponse = await get(
-        Uri.parse(reportUrl),
-      );
-
-      print("Main report response status: ${reportResponse.statusCode}");
-      print("Main report response body: ${reportResponse.body}");
-
-      if (reportResponse.statusCode != 200) {
-        throw Exception('Failed to load main report: ${reportResponse.statusCode}');
-      }
-
-      var reportData = json.decode(reportResponse.body);
-      print("Decoded report data: $reportData");
-
-      if (reportData == null || reportData.isEmpty) {
-        throw Exception('No report data received');
-      }
-
       setState(() {
-        userData = reportData;
-        type = reportData["Type"] ?? 'Unknown Type';
-        description = reportData["Description"] ?? 'No description available';
-        serial = reportData["SerialNo"]?.toString() ?? 'No serial number';
-        latitude = reportData["Latitude"] ?? '0';
-        longitude = reportData["Longitude"] ?? '0';
-        status = reportData["Status"] ?? '';
-        imageUrl = reportData["Image"] ?? '';
-        incidentId = id;
-        staffid = reportData["NRWUserID"] ?? '';
+        userData = widget.item;
+        type = widget.item["report"]["incidentType"] ?? 'Unknown Type';
+        description =
+            widget.item["report"]["description"] ?? 'No description available';
+        serial =
+            widget.item["report"]["serialNo"]?.toString() ?? 'No serial number';
+        latitude = widget.item["report"]["latitude"]?.toString() ?? '0';
+        longitude = widget.item["report"]["longitude"]?.toString() ?? '0';
+        status = widget.item["status"] ?? '';
+        imageUrl = widget.item["image"] ?? '';
+        incidentId = widget.item["id"] ?? '';
+        staffid = widget.item["admin"]?["id"] ?? '';
         isLoading = null;
       });
 
@@ -171,10 +166,9 @@ class _FileReportState extends State<FileReport> {
       );
 
       if (pickedFile != null) {
-        String base64Image = await convertFileToBase64(pickedFile);
         setState(() {
           _image = File(pickedFile.path);
-          repairedImage = base64Image;
+          repairedImage = pickedFile.path;
         });
       }
     } catch (e) {
@@ -193,10 +187,9 @@ class _FileReportState extends State<FileReport> {
       );
 
       if (pickedFile != null) {
-        String base64Image = await convertFileToBase64(pickedFile);
         setState(() {
           _image = File(pickedFile.path);
-          repairedImage = base64Image;
+          repairedImage = pickedFile.path;
         });
       }
     } catch (e) {
@@ -225,14 +218,14 @@ class _FileReportState extends State<FileReport> {
       key: _scaffoldKey,
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: const Color(0xff0288D1).withOpacity(0.95),
+        backgroundColor: const Color(0xff0288D1),
         leading: IconButton(
           icon:
               const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          userData.isNotEmpty ? userData["Type"] : "Reported Incident",
+          "File Report",
           style: const TextStyle(
             color: Colors.white,
             fontSize: 20,
@@ -324,14 +317,6 @@ class _FileReportState extends State<FileReport> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    "File Report",
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white.withOpacity(0.9),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
                   Text(
                     type,
                     style: const TextStyle(
@@ -619,16 +604,10 @@ class _FileReportState extends State<FileReport> {
 
           setState(() {
             isLoading = null;
-            if (res.error == null) {
-              successful = true;
-              error = res.success;
-            } else {
-              successful = false;
-              error = res.error;
-            }
           });
 
           if (res.error == null) {
+            _showMessage(res.success ?? "Report submitted successfully", false);
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
@@ -637,6 +616,8 @@ class _FileReportState extends State<FileReport> {
                 ),
               ),
             );
+          } else {
+            _showMessage(res.error ?? "Failed to submit report", true);
           }
         },
         style: ElevatedButton.styleFrom(
@@ -780,77 +761,79 @@ Future<Message> submitData(
   String resolvedTime = DateFormat('hh:mm a').format(now);
 
   try {
-    // First, update the assigned report
-    final assignedUrl = "${getUrl()}om-assigned-reports/update/$incidentId";
-    print("Updating assigned report at URL: $assignedUrl");
-    print("Incident ID being used: $incidentId");
+    const storage = FlutterSecureStorage();
+    final token = await storage.read(key: "mwstaffjwt");
 
-    final assignedData = {
-      'taskDescription': taskremark,
-      'image': repairedImage,
-      'resolvedDate': resolvedDate,
-      'resolvedTime': resolvedTime,
-    };
-    print("Assigned report data: $assignedData");
-
-    var assignedResponse = await put(
-      Uri.parse(assignedUrl),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(assignedData),
+    // Create multipart request
+    var request = MultipartRequest(
+      'PUT',
+      Uri.parse("${getUrl()}om/assigned-reports/$incidentId"),
     );
 
-    print("Assigned report response status: ${assignedResponse.statusCode}");
-    print("Assigned report response body: ${assignedResponse.body}");
+    // Add headers
+    request.headers.addAll({
+      'Authorization': 'Bearer $token',
+    });
 
-    if (assignedResponse.statusCode != 200 && assignedResponse.statusCode != 203) {
-      return Message(
-        token: null,
-        success: null,
-        error: "Failed to update assigned report: ${assignedResponse.body}",
-      );
+    // Add text fields
+    request.fields['taskRemark'] = taskremark;
+    request.fields['resolvedDate'] = resolvedDate;
+    request.fields['resolvedTime'] = resolvedTime;
+
+    // Add image file if it exists
+    if (repairedImage.isNotEmpty) {
+      var file = File(repairedImage);
+      if (await file.exists()) {
+        request.files.add(
+          await MultipartFile.fromPath(
+            'image',
+            file.path,
+          ),
+        );
+      }
     }
 
-    // Then, update the main report status
-    final reportUrl = "${getUrl()}om-reports/update/$incidentId";
-    print("Updating main report at URL: $reportUrl");
+    // Send the request
+    var streamedResponse = await request.send();
+    var response = await Response.fromStream(streamedResponse);
 
-    final reportData = {
-      'TaskImage': repairedImage,
-      'TaskRemark': taskremark,
-      'ResolvedDate': resolvedDate,
-      'ResolvedTime': resolvedTime,
-      'Status': 'Resolved',
-    };
-    print("Main report data: $reportData");
+    print("Response status code: ${response.statusCode}");
+    print("Response body: ${response.body}");
 
-    var reportResponse = await put(
-      Uri.parse(reportUrl),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(reportData),
-    );
-
-    print("Main report response status: ${reportResponse.statusCode}");
-    print("Main report response body: ${reportResponse.body}");
-
-    if (reportResponse.statusCode == 200 || reportResponse.statusCode == 203) {
-      return Message.fromJson(jsonDecode(reportResponse.body));
+    if (response.statusCode == 200 || response.statusCode == 203) {
+      return Message(
+        token: null,
+        success: "Report updated successfully",
+        error: null,
+      );
     } else {
+      // Try to parse the error message from the response
+      String errorMessage = "Server error (${response.statusCode})!";
+      try {
+        final errorData = jsonDecode(response.body);
+        if (errorData['error'] != null) {
+          errorMessage += " ${errorData['error']}";
+        } else if (errorData['message'] != null) {
+          errorMessage += " ${errorData['message']}";
+        } else {
+          errorMessage += " ${response.body}";
+        }
+      } catch (e) {
+        errorMessage += " ${response.body}";
+      }
+
       return Message(
         token: null,
         success: null,
-        error: "Server error: ${reportResponse.body}",
+        error: errorMessage,
       );
     }
   } catch (e) {
-    print("Error submitting report: $e");
+    print("Error submitting data: $e");
     return Message(
       token: null,
       success: null,
-      error: "Connection failed! Check your internet connection.",
+      error: "Connection failed! Check your internet connection. Error: $e",
     );
   }
 }
