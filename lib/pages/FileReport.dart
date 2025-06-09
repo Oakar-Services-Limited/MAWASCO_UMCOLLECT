@@ -10,6 +10,7 @@ import 'package:um_collect/components/MyDrawer.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/pages/TextOakar.dart';
 import 'package:um_collect/pages/complete.dart';
+import 'package:um_collect/components/MyTextInput.dart';
 
 class FileReport extends StatefulWidget {
   final dynamic item;
@@ -285,7 +286,17 @@ class _FileReportState extends State<FileReport> {
                     const SizedBox(height: 25),
                     _buildSectionTitle('Select Action Taken'),
                     const SizedBox(height: 15),
-                    _buildActionDropdown(),
+                    MyTextInput(
+                      lines: 3,
+                      value: taskremark,
+                      type: TextInputType.text,
+                      onSubmit: (value) {
+                        setState(() {
+                          taskremark = value;
+                        });
+                      },
+                      title: 'Describe the action taken',
+                    ),
                     if (error.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 15),
@@ -493,91 +504,6 @@ class _FileReportState extends State<FileReport> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildActionDropdown() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(
-          color: const Color(0xff0288D1).withOpacity(0.1),
-        ),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: taskremark.isEmpty ? null : taskremark,
-          hint: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              'Select action...',
-              style: TextStyle(
-                color: Color(0xff0288D1),
-                fontSize: 16,
-              ),
-            ),
-          ),
-          isExpanded: true,
-          icon: const Padding(
-            padding: EdgeInsets.only(right: 16),
-            child: Icon(
-              Icons.arrow_drop_down_rounded,
-              color: Color(0xff0288D1),
-              size: 30,
-            ),
-          ),
-          items: const [
-            DropdownMenuItem(
-              value: 'Illegal connection disconnected',
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: Text('Illegal connection disconnected'),
-              ),
-            ),
-            DropdownMenuItem(
-              value: 'Leakage repaired',
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: Text('Leakage repaired'),
-              ),
-            ),
-            DropdownMenuItem(
-              value: 'Vandalised cover/line repaired',
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: Text('Vandalised cover/line repaired'),
-              ),
-            ),
-            DropdownMenuItem(
-              value: 'Flashing Unit',
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: Text('Flashing Unit'),
-              ),
-            ),
-            DropdownMenuItem(
-              value: 'Rodding',
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: Text('Rodding'),
-              ),
-            ),
-            DropdownMenuItem(
-              value: 'Other',
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: Text('Other'),
-              ),
-            ),
-          ],
-          onChanged: (String? newValue) {
-            setState(() {
-              taskremark = newValue ?? '';
-            });
-          },
-        ),
       ),
     );
   }

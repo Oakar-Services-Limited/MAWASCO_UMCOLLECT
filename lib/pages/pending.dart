@@ -34,7 +34,7 @@ class _PendingIncidencesState extends State<PendingIncidences> {
     setState(() {
       isLoading = LoadingAnimationWidget.staggeredDotsWave(
         color: const Color(0xff0288D1),
-        size: 100,
+        size: 50,
       );
     });
 

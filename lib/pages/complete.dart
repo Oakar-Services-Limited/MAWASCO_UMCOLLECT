@@ -39,7 +39,7 @@ class _CompleteIncidencesState extends State<CompleteIncidences> {
     setState(() {
       isLoading = LoadingAnimationWidget.staggeredDotsWave(
         color: const Color(0xff0288D1),
-        size: 100,
+        size: 50,
       );
     });
     try {
