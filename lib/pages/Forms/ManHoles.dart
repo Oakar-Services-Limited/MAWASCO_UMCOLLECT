@@ -90,14 +90,22 @@ class _ManHolesState extends State<ManHoles> {
     });
   }
 
-  getLocation() async {
-    position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
+   getLocation() async {
+    LocationSettings locationSettings = LocationSettings(
+      accuracy: LocationAccuracy.bestForNavigation, // Highest possible
+      distanceFilter: 0, // Get all movements
+    );
 
-    setState(() {
-      long = position.longitude;
-      lat = position.latitude;
-      acc = position.accuracy;
+    Geolocator.getPositionStream(locationSettings: locationSettings)
+        .listen((Position position) {
+      print(position.latitude);
+      print(position.longitude);
+      setState(() {
+        long = position.longitude;
+        lat = position.latitude;
+        acc = position.accuracy;
+        position = position;
+      });
     });
   }
 

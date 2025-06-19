@@ -49,14 +49,9 @@ class _ReportIncidentState extends State<ReportIncident> {
   var isLoading;
   late File? _image;
   final imagePicker = ImagePicker();
-  bool servicestatus = false;
-  late LocationPermission permission;
-  bool haspermission = false;
-  late Position position;
   String userid = '';
   bool successful = false;
   String myimage = '';
-  StreamSubscription<Position>? positionStreamSubscription;
 
   void _showMessage(String message, bool isError) {
     if (!mounted) return;
@@ -100,7 +95,7 @@ class _ReportIncidentState extends State<ReportIncident> {
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 
-  getUserLocation() async {
+  Future<void> fetchStoredUserData() async {
     try {
       var token = await storage.read(key: "mwjwt");
       if (token != null) {
@@ -138,65 +133,28 @@ class _ReportIncidentState extends State<ReportIncident> {
         reportertype = "Public";
       });
     }
+  }
 
-    try {
-      LocationPermission perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.always ||
-          perm == LocationPermission.whileInUse) {
-        position = await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.high);
-        setState(() {
-          long = position.longitude;
-          lat = position.latitude;
-          acc = position.accuracy;
-        });
+  Future<void> getLocation() async {
+    LocationSettings locationSettings = const LocationSettings(
+      accuracy: LocationAccuracy.bestForNavigation,
+      distanceFilter: 0,
+    );
 
-        LocationSettings locationSettings = const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          distanceFilter: 1,
-        );
-
-        positionStreamSubscription =
-            Geolocator.getPositionStream(locationSettings: locationSettings)
-                .listen((Position position) {
-          setState(() {
-            long = position.longitude;
-            lat = position.latitude;
-            acc = position.accuracy;
-          });
-        });
-      } else {
-        promptUserForLocation();
-      }
-    } catch (e) {
-      print("Error getting location: $e");
-    }
+    Geolocator.getPositionStream(locationSettings: locationSettings)
+        .listen((Position position) {
+      setState(() {
+        long = position.longitude;
+        lat = position.latitude;
+        acc = position.accuracy;
+      });
+    });
   }
 
   Future<String> convertFileToBase64(XFile file) async {
     List<int> fileBytes = await file.readAsBytes();
     String base64String = base64Encode(fileBytes);
     return base64String;
-  }
-
-  promptUserForLocation() async {
-    servicestatus = await Geolocator.isLocationServiceEnabled();
-    if (servicestatus) {
-      permission = await Geolocator.checkPermission();
-
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          permission = await Geolocator.requestPermission();
-        } else if (permission == LocationPermission.deniedForever) {
-          permission = await Geolocator.requestPermission();
-        } else {
-          haspermission = true;
-        }
-      } else {
-        haspermission = true;
-      }
-    }
   }
 
   Future<void> takePhoto() async {
@@ -258,14 +216,9 @@ class _ReportIncidentState extends State<ReportIncident> {
     print("Incident: ${widget.incident}");
 
     _image = null;
-    getUserLocation();
+    fetchStoredUserData();
+    getLocation();
     getStaffUser();
-  }
-
-  @override
-  void dispose() {
-    positionStreamSubscription?.cancel();
-    super.dispose();
   }
 
   @override

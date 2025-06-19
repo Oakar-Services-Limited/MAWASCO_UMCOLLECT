@@ -8,7 +8,6 @@ import 'package:um_collect/components/MySelectInput.dart';
 import 'package:um_collect/components/MyTextInput.dart';
 import 'package:um_collect/components/StaffDrawer.dart';
 import 'package:um_collect/components/SubmitButton.dart';
-import 'package:um_collect/components/TextResponse.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/models/Map.dart';
 import 'package:um_collect/pages/Assets.dart';
@@ -93,13 +92,22 @@ class _WashoutsState extends State<Washouts> {
     });
   }
 
-  getLocation() async {
-    position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
-    setState(() {
-      long = position.longitude;
-      lat = position.latitude;
-      acc = position.accuracy;
+   getLocation() async {
+    LocationSettings locationSettings = LocationSettings(
+      accuracy: LocationAccuracy.bestForNavigation, // Highest possible
+      distanceFilter: 0, // Get all movements
+    );
+
+    Geolocator.getPositionStream(locationSettings: locationSettings)
+        .listen((Position position) {
+      print(position.latitude);
+      print(position.longitude);
+      setState(() {
+        long = position.longitude;
+        lat = position.latitude;
+        acc = position.accuracy;
+        position = position;
+      });
     });
   }
 
