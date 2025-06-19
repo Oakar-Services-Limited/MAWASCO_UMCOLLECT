@@ -105,12 +105,21 @@ class _CustomerMetersState extends State<CustomerMeters> {
   }
 
   getLocation() async {
-    position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
-    setState(() {
-      long = position.longitude;
-      lat = position.latitude;
-      acc = position.accuracy;
+    LocationSettings locationSettings = LocationSettings(
+      accuracy: LocationAccuracy.bestForNavigation, // Highest possible
+      distanceFilter: 0, // Get all movements
+    );
+
+    Geolocator.getPositionStream(locationSettings: locationSettings)
+        .listen((Position position) {
+      print(position.latitude);
+      print(position.longitude);
+      setState(() {
+        long = position.longitude;
+        lat = position.latitude;
+        acc = position.accuracy;
+        position = position;
+      });
     });
   }
 
@@ -663,8 +672,6 @@ Future<Message> submitData(
       error: "Name must be filled!",
     );
   }
-
-
 
   try {
     http.Response response;
