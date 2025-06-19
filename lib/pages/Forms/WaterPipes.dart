@@ -179,17 +179,62 @@ class _WaterPipesState extends State<WaterPipes> {
                       },
                       title: 'Line Name',
                     ),
-                
-                    MyTextInput(
-                      lines: 1,
-                      value: '',
-                      type: TextInputType.text,
+                    MySelectInput(
                       onSubmit: (value) {
                         setState(() {
                           material = value;
+                          // Reset size when material changes
+                          size = '';
                         });
                       },
-                      title: 'Material',
+                      list: const ["--Select--", "HDPE", "PVC", "GI"],
+                      label: 'Material',
+                      value: material,
+                    ),
+                    MySelectInput(
+                      onSubmit: (value) {
+                        setState(() {
+                          size = value;
+                        });
+                      },
+                      list: material == "HDPE" || material == "PVC"
+                          ? const [
+                              "--Select--",
+                              "20mm",
+                              "25mm",
+                              "32mm",
+                              "40mm",
+                              "50mm",
+                              "63mm",
+                              "75mm",
+                              "90mm",
+                              "110mm",
+                              "160mm",
+                              "225mm",
+                              "280mm",
+                              "315mm",
+                              "355mm"
+                            ]
+                          : material == "GI"
+                              ? const [
+                                  "--Select--",
+                                  "15mm",
+                                  "20mm",
+                                  "25mm",
+                                  "40mm",
+                                  "50mm",
+                                  "60mm",
+                                  "80mm",
+                                  "100mm",
+                                  "150mm",
+                                  "200mm",
+                                  "250mm",
+                                  "300mm",
+                                  "350mm"
+                                ]
+                              : const ["--Select--"],
+                      label: 'Size',
+                      value: size,
                     ),
                     MyTextInput(
                       lines: 1,
@@ -253,30 +298,6 @@ class _WaterPipesState extends State<WaterPipes> {
                       list: getZones(),
                       label: 'Zone',
                       value: zone,
-                    ),
-                    MySelectInput(
-                      onSubmit: (value) {
-                        setState(() {
-                          size = value;
-                        });
-                      },
-                      list: const [
-                        "--Select--",
-                        "0.5",
-                        "1",
-                        "0.75",
-                        "2",
-                        "3",
-                        "4",
-                        "5",
-                        "6",
-                        "8",
-                        "10",
-                        "12",
-                        "14",
-                      ],
-                      label: 'Size',
-                      value: size,
                     ),
                     MySelectInput(
                       onSubmit: (value) {
@@ -399,7 +420,7 @@ Future<Message> submitData(
     if (function == "--Select--" || function.isEmpty) {
       return Message(token: null, success: null, error: "Function is required");
     }
-  
+
     if (schemename == "--Select--" || schemename.isEmpty) {
       return Message(
           token: null, success: null, error: "Scheme Name is required");
@@ -413,8 +434,6 @@ Future<Message> submitData(
     if (status == "--Select--" || status.isEmpty) {
       return Message(token: null, success: null, error: "Status is required");
     }
-
-
 
     var response = await http.post(
       Uri.parse("${getUrl()}wt/water-pipes"),

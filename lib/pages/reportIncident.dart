@@ -44,6 +44,7 @@ class _ReportIncidentState extends State<ReportIncident> {
   String incidenttype = '';
   String schemetype = '';
   String pipesize = '';
+  String pipematerial = '';
   String error = '';
   var isLoading;
   late File? _image;
@@ -744,25 +745,60 @@ class _ReportIncidentState extends State<ReportIncident> {
               MySelectInput(
                 onSubmit: (value) {
                   setState(() {
+                    pipematerial = value;
+                    // Reset size when material changes
+                    pipesize = '';
+                  });
+                },
+                list: const ["--Select--", "HDPE", "PVC", "GI"],
+                label: 'Pipe Material',
+                value: pipematerial,
+                labelFontSize: 18,
+              ),
+              const SizedBox(height: 16),
+              MySelectInput(
+                onSubmit: (value) {
+                  setState(() {
                     pipesize = value;
                   });
                 },
-                list: const [
-                  "--Select--",
-                  "0.5",
-                  "0.75",
-                  "1",
-                  "2",
-                  "3",
-                  "4",
-                  "5",
-                  "6",
-                  "8",
-                  "10",
-                  "12",
-                  "14",
-                ],
-                label: 'Select Pipe Size',
+                list: pipematerial == "HDPE" || pipematerial == "PVC"
+                    ? const [
+                        "--Select--",
+                        "20mm",
+                        "25mm",
+                        "32mm",
+                        "40mm",
+                        "50mm",
+                        "63mm",
+                        "75mm",
+                        "90mm",
+                        "110mm",
+                        "160mm",
+                        "225mm",
+                        "280mm",
+                        "315mm",
+                        "355mm"
+                      ]
+                    : pipematerial == "GI"
+                        ? const [
+                            "--Select--",
+                            "15mm",
+                            "20mm",
+                            "25mm",
+                            "40mm",
+                            "50mm",
+                            "60mm",
+                            "80mm",
+                            "100mm",
+                            "150mm",
+                            "200mm",
+                            "250mm",
+                            "300mm",
+                            "350mm"
+                          ]
+                        : const ["--Select--"],
+                label: 'Pipe Size',
                 value: pipesize,
                 labelFontSize: 18,
               ),
@@ -847,7 +883,8 @@ class _ReportIncidentState extends State<ReportIncident> {
               pipesize,
               reportertype,
               name,
-              phone);
+              phone,
+              pipematerial);
 
           setState(() {
             isLoading = null;
@@ -937,6 +974,7 @@ Future<Message> submitData(
   String reportertype,
   String name,
   String phone,
+  String pipematerial,
 ) async {
   if (myimage.isEmpty) {
     return Message(
@@ -962,6 +1000,12 @@ Future<Message> submitData(
     if (schemetype.isEmpty || schemetype == "--Select--") {
       return Message(
           token: null, success: null, error: "Please select the scheme type!");
+    }
+    if (pipematerial.isEmpty || pipematerial == "--Select--") {
+      return Message(
+          token: null,
+          success: null,
+          error: "Please select the pipe material!");
     }
     if (pipesize.isEmpty || pipesize == "--Select--") {
       return Message(
@@ -994,6 +1038,9 @@ Future<Message> submitData(
           incident == "Leakage" && reportertype == "Staff" ? schemetype : null,
       'pipeSize':
           incident == "Leakage" && reportertype == "Staff" ? pipesize : null,
+      'pipeMaterial': incident == "Leakage" && reportertype == "Staff"
+          ? pipematerial
+          : null,
       'reporterName': reportertype != "Staff" ? name : null,
       'reporterPhone': reportertype != "Staff" ? phone : null,
     };

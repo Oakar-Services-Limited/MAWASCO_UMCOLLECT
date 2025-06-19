@@ -5,7 +5,6 @@ String getUrl() {
   // return "http://192.168.1.136:3003/api/";
   // return "http://192.168.1.6:3003/api/";
 
-
   return "https://api-utilitymanager.mawasco.co.ke/api/";
 }
 
@@ -95,6 +94,11 @@ List<String> getDMAs() {
     "Karembu",
     "Mukangu",
     "Ihwagi",
+    "Mbari ya Kaigi",
+    "Mbari ya Kanja",
+    "Cheru- rititi",
+    "Gitugu",
+    "Kaigi",
   ];
 }
 
