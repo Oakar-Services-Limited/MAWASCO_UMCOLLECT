@@ -285,7 +285,8 @@ class _StaffLoginState extends State<StaffLogin> {
       final response = await post(
         Uri.parse("${getUrl()}admin/login"),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'password': password}),
+        body: jsonEncode(
+            {'email': email, 'password': password, 'type': 'Mobile'}),
       );
 
       print('Response status code: ${response.statusCode}'); // Debug log
