@@ -385,6 +385,7 @@ class _CustomerMetersState extends State<CustomerMeters> {
                         "--Select--",
                         "Metered",
                         "Unmetered",
+                       
                       ],
                       label: 'Meter Status',
                       value: status,
@@ -400,6 +401,9 @@ class _CustomerMetersState extends State<CustomerMeters> {
                         "ACTIVE",
                         "INACTIVE",
                         "DISCONNECTED",
+                        "SEALED",
+                        "DORMANT",
+                        "CLOSED"
                       ],
                       label: 'Account Status',
                       value: accstatus,
