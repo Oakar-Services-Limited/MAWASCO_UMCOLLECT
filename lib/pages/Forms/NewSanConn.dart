@@ -487,9 +487,7 @@ class _NewSanConnState extends State<NewSanConn> {
                       list: const [
                         "--Select--",
                         "Active",
-                        "Dormant",
-                        "Dilapidated",
-                        "Abandoned"
+                        "Inactive",
                       ],
                       label: 'Status',
                       value: status,

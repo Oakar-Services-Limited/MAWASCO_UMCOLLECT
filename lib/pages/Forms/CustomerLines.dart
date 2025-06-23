@@ -232,10 +232,9 @@ class _CustomerLinesState extends State<CustomerLines> {
                       },
                       list: const [
                         "--Select--",
+                       "--Select--",
                         "Active",
-                        "Dormant",
-                        "Dilapidated",
-                        "Abandoned"
+                        "Inactive",
                       ],
                       label: 'Status',
                       value: status,

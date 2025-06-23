@@ -380,9 +380,7 @@ class _NewWaterConnState extends State<NewWaterConn> {
                       list: const [
                         "--Select--",
                         "Active",
-                        "Dormant",
-                        "Dilapidated",
-                        "Abandoned"
+                        "Inactive",
                       ],
                       label: 'Status',
                       value: status,

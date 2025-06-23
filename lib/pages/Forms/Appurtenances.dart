@@ -530,9 +530,7 @@ class _AppurtenancesState extends State<Appurtenances> {
                       list: const [
                         "--Select--",
                         "Active",
-                        "Dormant",
-                        "Dilapidated",
-                        "Abandoned"
+                        "Inactive",
                       ],
                       label: 'Status',
                       value: status,

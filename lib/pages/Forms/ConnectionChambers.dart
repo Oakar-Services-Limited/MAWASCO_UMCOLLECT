@@ -497,7 +497,7 @@ class _ConnectionChambersState extends State<ConnectionChambers> {
                       list: const [
                         "--Select--",
                         "Active",
-                        "Dormant",
+                        "Inactive",
                       ],
                       label: 'Status',
                       value: status,

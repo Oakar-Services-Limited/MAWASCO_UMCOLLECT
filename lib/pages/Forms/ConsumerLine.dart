@@ -358,9 +358,7 @@ class _ConsumerLinesState extends State<ConsumerLines> {
                       list: const [
                         "--Select--",
                         "Active",
-                        "Dormant",
-                        "Dilapidated",
-                        "Abandoned"
+                        "Inactive",
                       ],
                       label: 'Status',
                       value: status,

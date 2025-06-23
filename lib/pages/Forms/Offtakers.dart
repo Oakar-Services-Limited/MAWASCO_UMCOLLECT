@@ -484,9 +484,7 @@ class _OfftakesState extends State<Offtakes> {
                       list: const [
                         "--Select--",
                         "Active",
-                        "Dormant",
-                        "Dilapidated",
-                        "Abandoned"
+                        "Inactive",
                       ],
                       label: 'Status',
                       value: status,

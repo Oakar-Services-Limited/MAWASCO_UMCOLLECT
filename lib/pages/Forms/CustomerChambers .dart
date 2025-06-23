@@ -487,11 +487,9 @@ class _CustomerChambersState extends State<CustomerChambers> {
                         });
                       },
                       list: const [
-                        "--Select--",
+                         "--Select--",
                         "Active",
-                        "Dormant",
-                        "Dilapidated",
-                        "Abandoned"
+                        "Inactive",
                       ],
                       label: 'Status',
                       value: status,
