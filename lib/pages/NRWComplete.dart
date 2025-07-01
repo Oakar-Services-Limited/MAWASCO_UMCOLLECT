@@ -43,7 +43,7 @@ class _NRWCompleteState extends State<NRWComplete> {
     });
     try {
       final response = await get(
-        Uri.parse("${getUrl()}nrw_leakages/assigned/${widget.staffid}/0"),
+        Uri.parse("${getUrl()}nrw_leakages/Inprogress/${widget.staffid}/0"),
       );
 
       var data = json.decode(response.body);

@@ -47,7 +47,7 @@ class _PendingIncidencesState extends State<PendingIncidences> {
       }
 
       final url =
-          "${getUrl()}om/assigned-reports?userId=${widget.staffid}&status=Assigned";
+          "${getUrl()}om/assigned-reports?userId=${widget.staffid}&status=Inprogress";
       print("Fetching assigned incidents from URL: $url");
 
       final response = await get(
