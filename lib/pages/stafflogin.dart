@@ -516,7 +516,7 @@ class _StaffLoginState extends State<StaffLogin> {
   void _showUpgradeDialog() {
     showDialog(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: true,
       builder: (BuildContext context) {
         return AlertDialog(
           shape:
