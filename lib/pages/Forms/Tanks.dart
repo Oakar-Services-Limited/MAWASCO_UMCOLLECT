@@ -47,6 +47,7 @@ class _TanksState extends State<Tanks> {
   String status = '';
   String remarks = '';
   String user = '';
+  String role = '';
 
   dynamic data;
 
@@ -74,6 +75,7 @@ class _TanksState extends State<Tanks> {
       setState(() {
         user = decoded["name"];
         staffid = decoded["id"];
+        role = decoded["role"] ?? '';
       });
 
       print('editing is $editing');
@@ -319,6 +321,12 @@ class _TanksState extends State<Tanks> {
                       child: SubmitButton(
                         label: "Submit",
                         onButtonPressed: () async {
+                          if (editing == 'true' && role != 'Super Admin') {
+                            _showSnackBar(
+                                'Updating asset restricted to Super Admins only',
+                                false);
+                            return;
+                          }
                           setState(() {
                             isLoading =
                                 LoadingAnimationWidget.staggeredDotsWave(
@@ -353,7 +361,6 @@ class _TanksState extends State<Tanks> {
                             }
                           });
                           if (res.error == null) {
-                            // PROCEED TO NEXT PAGE
                             Timer(const Duration(seconds: 2), () {
                               Navigator.pushReplacement(
                                   context,
