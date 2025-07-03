@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../Components/Utils.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class StaffLogin extends StatefulWidget {
   const StaffLogin({super.key});
@@ -285,14 +286,25 @@ class _StaffLoginState extends State<StaffLogin> {
       final response = await post(
         Uri.parse("${getUrl()}admin/login"),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(
-            {'email': email, 'password': password, 'type': 'Mobile'}),
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+          'type': 'Mobile',
+          'appVersion': '0.0.0'
+        }),
       );
 
       print('Response status code: ${response.statusCode}'); // Debug log
       print('Response body: ${response.body}'); // Debug log
 
       final data = jsonDecode(response.body);
+
+      // Defensive: Always check for version error first
+      if (data['error'] ==
+          "You are using an old version of the app, update it on playstore") {
+        _showUpgradeDialog();
+        return;
+      }
 
       if (response.statusCode == 200 || response.statusCode == 203) {
         if (data['error'] == null) {
@@ -498,6 +510,53 @@ class _StaffLoginState extends State<StaffLogin> {
           ),
         ),
       ),
+    );
+  }
+
+  void _showUpgradeDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Icon(Icons.system_update, color: Color(0xff0288D1), size: 32),
+              SizedBox(width: 10),
+              Text("New Upgrades Detected",
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Text(
+            "Click below to upgrade your app before you continue.",
+            style: TextStyle(fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+              style: TextButton.styleFrom(
+                backgroundColor: Color(0xff0288D1),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () async {
+                const url =
+                    "https://play.google.com/store/apps/details?id=ke.co.osl.um_collector&pcampaignid=web_share";
+                final uri = Uri.parse(url);
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri);
+                }
+              },
+              child: Text(
+                "Upgrade Now",
+                style:
+                    TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
