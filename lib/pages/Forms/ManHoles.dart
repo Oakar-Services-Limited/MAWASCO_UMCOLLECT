@@ -42,6 +42,7 @@ class _ManHolesState extends State<ManHoles> {
   String route = '';
   String remarks = '';
   String user = '';
+  String role = '';
   dynamic data;
 
   var isLoading;
@@ -66,6 +67,7 @@ class _ManHolesState extends State<ManHoles> {
       setState(() {
         user = decoded["name"];
         staffid = decoded["id"];
+        role = decoded["role"] ?? '';
       });
 
       if (editing == 'true') {
@@ -90,7 +92,7 @@ class _ManHolesState extends State<ManHoles> {
     });
   }
 
-   getLocation() async {
+  getLocation() async {
     LocationSettings locationSettings = LocationSettings(
       accuracy: LocationAccuracy.bestForNavigation, // Highest possible
       distanceFilter: 0, // Get all movements
@@ -267,6 +269,13 @@ class _ManHolesState extends State<ManHoles> {
                       child: SubmitButton(
                         label: "Submit",
                         onButtonPressed: () async {
+                          // Restrict editing to Super Admins only
+                          if (editing == 'true' && role != 'Super Admin') {
+                            _showSnackBar(
+                                'Updating asset restricted to Super Admins only',
+                                false);
+                            return;
+                          }
                           setState(() {
                             isLoading =
                                 LoadingAnimationWidget.staggeredDotsWave(

@@ -54,9 +54,8 @@ class _CustomerMetersState extends State<CustomerMeters> {
   String user = '';
   String userid = '';
   String id = '';
+  String role = '';
   dynamic data;
-
-  var isLoading;
 
   // Add missing variables from CustomerMeters1
   String name = '';
@@ -74,6 +73,8 @@ class _CustomerMetersState extends State<CustomerMeters> {
   String dma = '';
   String location = '';
   String parcelno = '';
+
+  var isLoading;
 
   Future<String> convertFileToBase64(XFile file) async {
     List<int> fileBytes = await file.readAsBytes();
@@ -130,6 +131,7 @@ class _CustomerMetersState extends State<CustomerMeters> {
       print('decoded is $decoded');
       setState(() {
         userid = decoded["id"];
+        role = decoded["role"] ?? '';
       });
       if (widget.customerMeter.isNotEmpty) {
         prefillForm(widget.customerMeter);
@@ -385,7 +387,6 @@ class _CustomerMetersState extends State<CustomerMeters> {
                         "--Select--",
                         "Metered",
                         "Unmetered",
-                       
                       ],
                       label: 'Meter Status',
                       value: status,
@@ -526,6 +527,13 @@ class _CustomerMetersState extends State<CustomerMeters> {
                       child: SubmitButton(
                         label: "Submit",
                         onButtonPressed: () async {
+                          // Restrict editing to Super Admins only
+                          if (id != '' && role != 'Super Admin') {
+                            _showSnackBar(
+                                'Updating asset restricted to Super Admins only',
+                                false);
+                            return;
+                          }
                           setState(() {
                             isLoading =
                                 LoadingAnimationWidget.staggeredDotsWave(

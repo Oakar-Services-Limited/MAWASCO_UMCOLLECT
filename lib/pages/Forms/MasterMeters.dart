@@ -46,6 +46,7 @@ class _MasterMetersState extends State<MasterMeters> {
   String location = '';
   String remarks = '';
   String user = '';
+  String role = '';
   dynamic data;
   var isLoading;
 
@@ -71,6 +72,7 @@ class _MasterMetersState extends State<MasterMeters> {
       setState(() {
         user = decoded["name"];
         staffid = decoded["id"];
+        role = decoded["role"] ?? '';
       });
 
       print("Set staffid to: $staffid");
@@ -229,13 +231,13 @@ class _MasterMetersState extends State<MasterMeters> {
                       },
                       title: 'Route',
                     ),
-                     MySelectInput(
+                    MySelectInput(
                       onSubmit: (value) => setState(() => zone = value),
                       list: getZones(),
                       label: 'Zone',
                       value: zone,
                     ),
-                     MySelectInput(
+                    MySelectInput(
                       onSubmit: (value) => setState(() => dma = value),
                       list: getDMAs(),
                       label: 'DMA',
@@ -282,6 +284,13 @@ class _MasterMetersState extends State<MasterMeters> {
                       child: SubmitButton(
                         label: "Submit",
                         onButtonPressed: () async {
+                          // Restrict editing to Super Admins only
+                          if (editing == 'true' && role != 'Super Admin') {
+                            _showSnackBar(
+                                'Updating asset restricted to Super Admins only',
+                                false);
+                            return;
+                          }
                           setState(() {
                             isLoading =
                                 LoadingAnimationWidget.staggeredDotsWave(

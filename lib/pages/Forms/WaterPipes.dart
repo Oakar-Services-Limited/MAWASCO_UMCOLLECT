@@ -45,6 +45,7 @@ class _WaterPipesState extends State<WaterPipes> {
   String remarks = '';
   String user = '';
   String staffid = '';
+  String role = '';
 
   dynamic data;
 
@@ -79,6 +80,7 @@ class _WaterPipesState extends State<WaterPipes> {
       setState(() {
         user = decoded["name"];
         staffid = decoded["id"];
+        role = decoded["role"] ?? '';
       });
 
       if (editing == 'true') {
@@ -332,6 +334,13 @@ class _WaterPipesState extends State<WaterPipes> {
                       child: SubmitButton(
                         label: "Submit",
                         onButtonPressed: () async {
+                          // Restrict editing to Super Admins only
+                          if (editing == 'true' && role != 'Super Admin') {
+                            _showSnackBar(
+                                'Updating asset restricted to Super Admins only',
+                                false);
+                            return;
+                          }
                           setState(() {
                             isLoading =
                                 LoadingAnimationWidget.staggeredDotsWave(

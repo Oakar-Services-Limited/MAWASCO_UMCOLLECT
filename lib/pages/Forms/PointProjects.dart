@@ -8,7 +8,6 @@ import 'package:um_collect/components/MySelectInput.dart';
 import 'package:um_collect/components/MyTextInput.dart';
 import 'package:um_collect/components/StaffDrawer.dart';
 import 'package:um_collect/components/SubmitButton.dart';
-import 'package:um_collect/components/TextResponse.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/models/Map.dart';
 import 'package:um_collect/pages/Assets.dart';
@@ -41,6 +40,7 @@ class _PointProjectsState extends State<PointProjects> {
   String route = '';
   String phone = '';
   String user = '';
+  String role = '';
   dynamic data;
 
   var isLoading;
@@ -73,6 +73,7 @@ class _PointProjectsState extends State<PointProjects> {
       setState(() {
         user = decoded["name"];
         staffid = decoded["id"];
+        role = decoded["role"] ?? '';
       });
 
       print("Set staffid to: $staffid");
@@ -261,6 +262,13 @@ class _PointProjectsState extends State<PointProjects> {
                       child: SubmitButton(
                         label: "Submit",
                         onButtonPressed: () async {
+                          // Restrict editing to Super Admins only
+                          if (editing == 'true' && role != 'Super Admin') {
+                            _showSnackBar(
+                                'Updating asset restricted to Super Admins only',
+                                false);
+                            return;
+                          }
                           // Validate required fields
                           if (name.isEmpty ||
                               zone == '--Select--' ||

@@ -44,6 +44,7 @@ class _LineProjectsState extends State<LineProjects> {
   String route = '';
   String size = '';
   String user = '';
+  String role = '';
 
   var isLoading;
 
@@ -58,6 +59,7 @@ class _LineProjectsState extends State<LineProjects> {
     setState(() {
       user = decoded["name"];
       staffid = decoded["id"];
+      role = decoded["role"] ?? '';
     });
   }
 
@@ -334,6 +336,13 @@ class _LineProjectsState extends State<LineProjects> {
                       child: SubmitButton(
                         label: "Submit",
                         onButtonPressed: () async {
+                          // Restrict editing to Super Admins only
+                          if (editing == 'true' && role != 'Super Admin') {
+                            _showSnackBar(
+                                'Updating asset restricted to Super Admins only',
+                                false);
+                            return;
+                          }
                           // Validate required fields
                           if (linename.isEmpty ||
                               material.isEmpty ||

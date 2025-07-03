@@ -43,6 +43,7 @@ class _WashoutsState extends State<Washouts> {
   String location = '';
   String remarks = '';
   String user = '';
+  String role = '';
   dynamic data;
 
   var isLoading;
@@ -67,6 +68,7 @@ class _WashoutsState extends State<Washouts> {
       setState(() {
         user = decoded["name"];
         staffid = decoded["id"];
+        role = decoded["role"] ?? '';
       });
 
       if (editing == 'true') {
@@ -92,7 +94,7 @@ class _WashoutsState extends State<Washouts> {
     });
   }
 
-   getLocation() async {
+  getLocation() async {
     LocationSettings locationSettings = LocationSettings(
       accuracy: LocationAccuracy.bestForNavigation, // Highest possible
       distanceFilter: 0, // Get all movements
@@ -277,6 +279,13 @@ class _WashoutsState extends State<Washouts> {
                       child: SubmitButton(
                         label: "Submit",
                         onButtonPressed: () async {
+                          // Restrict editing to Super Admins only
+                          if (editing == 'true' && role != 'Super Admin') {
+                            _showSnackBar(
+                                'Updating asset restricted to Super Admins only',
+                                false);
+                            return;
+                          }
                           setState(() {
                             isLoading =
                                 LoadingAnimationWidget.staggeredDotsWave(

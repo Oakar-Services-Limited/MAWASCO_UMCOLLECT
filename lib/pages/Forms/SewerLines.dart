@@ -8,7 +8,6 @@ import 'package:um_collect/components/MyDrawer.dart';
 import 'package:um_collect/components/MySelectInput.dart';
 import 'package:um_collect/components/MyTextInput.dart';
 import 'package:um_collect/components/SubmitButton.dart';
-import 'package:um_collect/components/TextResponse.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/pages/Assets.dart';
 import 'package:geolocator/geolocator.dart';
@@ -41,6 +40,8 @@ class _SewerLinesState extends State<SewerLines> {
   String status = '';
   String remarks = '';
   String user = '';
+  String? editing = 'false';
+  String role = '';
 
   var isLoading;
 
@@ -55,6 +56,7 @@ class _SewerLinesState extends State<SewerLines> {
     setState(() {
       user = decoded["name"];
       staffid = decoded["id"];
+      role = decoded["role"] ?? '';
     });
   }
 
@@ -250,6 +252,13 @@ class _SewerLinesState extends State<SewerLines> {
                       child: SubmitButton(
                         label: "Submit",
                         onButtonPressed: () async {
+                          // Restrict editing to Super Admins only
+                          if (editing == 'true' && role != 'Super Admin') {
+                            _showSnackBar(
+                                'Updating asset restricted to Super Admins only',
+                                false);
+                            return;
+                          }
                           setState(() {
                             isLoading =
                                 LoadingAnimationWidget.staggeredDotsWave(

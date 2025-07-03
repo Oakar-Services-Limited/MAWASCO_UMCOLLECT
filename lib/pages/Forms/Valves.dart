@@ -47,6 +47,7 @@ class _ValvesState extends State<Valves> {
   String location = '';
   String remarks = '';
   String user = '';
+  String role = '';
   dynamic data;
 
   var isLoading;
@@ -71,6 +72,7 @@ class _ValvesState extends State<Valves> {
       setState(() {
         user = decoded["name"];
         staffid = decoded["id"];
+        role = decoded["role"] ?? '';
       });
 
       if (editing == 'true') {
@@ -98,7 +100,7 @@ class _ValvesState extends State<Valves> {
     });
   }
 
-    getLocation() async {
+  getLocation() async {
     LocationSettings locationSettings = LocationSettings(
       accuracy: LocationAccuracy.bestForNavigation, // Highest possible
       distanceFilter: 0, // Get all movements
@@ -308,6 +310,13 @@ class _ValvesState extends State<Valves> {
                       child: SubmitButton(
                         label: "Submit",
                         onButtonPressed: () async {
+                          // Restrict editing to Super Admins only
+                          if (editing == 'true' && role != 'Super Admin') {
+                            _showSnackBar(
+                                'Updating asset restricted to Super Admins only',
+                                false);
+                            return;
+                          }
                           setState(() {
                             isLoading =
                                 LoadingAnimationWidget.staggeredDotsWave(
