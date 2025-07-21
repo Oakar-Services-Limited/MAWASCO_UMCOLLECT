@@ -187,17 +187,13 @@ class _LineProjectsState extends State<LineProjects> {
                       label: 'Type',
                       value: type,
                     ),
-                    MyTextInput(
-                      lines: 1,
-                      value: '',
-                      type: TextInputType.text,
-                      onSubmit: (value) {
-                        setState(() {
-                          dma = value;
-                        });
-                      },
-                      title: 'DMA',
+                     MySelectInput(
+                      onSubmit: (value) => setState(() => dma = value),
+                      list: getDMAs(),
+                      label: 'DMA',
+                      value: dma,
                     ),
+                   
                     MySelectInput(
                       onSubmit: (value) {
                         setState(() {
@@ -212,100 +208,21 @@ class _LineProjectsState extends State<LineProjects> {
                       label: 'Scheme Name',
                       value: schemename,
                     ),
-                    MySelectInput(
-                      onSubmit: (value) {
-                        setState(() {
-                          zone = value;
-                        });
-                      },
-                      list: const [
-                        "--Select--",
-                        "001_Kirigiti_Thathini",
-                        "002_IndianBazaar_Kangoya",
-                        "003_Bureria_Ndumberi",
-                        "004_Kiambu_Town(MainStagetoRiverside)",
-                        "005_Kiambu_Town(NdumberiStagetoDCOffice)",
-                        "006_Riabai_Ruthiruini",
-                        "007_Karunga_KKTowers",
-                        "008_Kihingo",
-                        "009_Mugumo_Kamiti_KiuKenda",
-                        "010_Kiamumbi",
-                        "011-Thindigua"
-                      ],
+                      MySelectInput(
+                      onSubmit: (value) => setState(() => zone = value),
+                      list: getZones(),
                       label: 'Zone',
                       value: zone,
                     ),
-                    MySelectInput(
-                      onSubmit: (value) {
-                        setState(() {
-                          subzone = value;
-                        });
-                      },
-                      list: const [
-                        "--Select--",
-                        "011-1 Kiamumb",
-                        "009-6 makaja",
-                        "001-7 Project",
-                        "009- Kamiti B",
-                        "009-7 Gachiru",
-                        "009-3 Samaki",
-                        "007-2 640",
-                        "006-5 Vee",
-                        "006-6 Ndichu",
-                        "006-4 Kairo",
-                        "001-4 Kimana",
-                        "001-3 Watetu",
-                        "005-3 K.K",
-                        "003-23 Nyautu",
-                        "005-2 D.C",
-                        "004-2 P E F A",
-                        "005-1 Hospital",
-                        "003-25 Njunu",
-                        "004-1 Posta",
-                        "002-8 Ngegu",
-                        "003-21 Barua",
-                        "009-1 Kamiti C",
-                        "010-1 Thindigu",
-                        "009-4 Kiu-Rive",
-                        "007-1 Rock-line",
-                        "009-5 Kiu Kend",
-                        "008-2 Lower Ki",
-                        "008-1 Upper Ki",
-                        "001-1 Kiambu H",
-                        "008-4 Gichocho",
-                        "006-7 Ruthiru-i",
-                        "006-2 Bara-Bar",
-                        "006-3 Wamuthe",
-                        "006-1 Shopping",
-                        "001-5 Thathi-in",
-                        "001-2 Kamanda",
-                        "002-4 Edden V",
-                        "002-1 Route 41",
-                        "002- 412-Umon",
-                        "002- Karambai",
-                        "003-24 Gatiti B",
-                        "004-3 River Sid",
-                        "003-16 karunga",
-                        "003-2 Ndumbe",
-                        "002-6 Lower Ka",
-                        "003-22 Gachie",
-                        "002-2 Kanjata",
-                        "003-13 Kabae",
-                        "003-7 gatitu",
-                        "003-3 Allan",
-                        "003-6 kiriguini",
-                        "003-14 DEB",
-                        "003-9 Ngaita",
-                        "002-3 Upper Ka",
-                        "003-11 tingang",
-                        "003-1 Mburaria",
-                        "003-10 Kagong",
-                        "003-15 Tumbur",
-                        "003-19 Kamuny"
-                      ],
-                      label: 'Sub Zone',
+
+                      MySelectInput(
+                      onSubmit: (value) => setState(() => subzone = value),
+                      list: getSubZones(),
+                      label: 'Subzone',
                       value: subzone,
                     ),
+                   
+                 
                     MyTextInput(
                       lines: 1,
                       value: '',
