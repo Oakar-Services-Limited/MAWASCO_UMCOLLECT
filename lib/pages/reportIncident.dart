@@ -994,8 +994,8 @@ Future<Message> submitData(
       'pipeMaterial': incident == "Leakage" && reportertype == "Staff"
           ? pipematerial
           : null,
-      'reporterName': reportertype != "Staff" ? name : null,
-      'reporterPhone': reportertype != "Staff" ? phone : null,
+      'reporterName': name,
+      'reporterPhone': phone,
     };
 
     print("Request payload: $payload");
