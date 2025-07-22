@@ -97,6 +97,29 @@ class _ReportIncidentState extends State<ReportIncident> {
 
   Future<void> fetchStoredUserData() async {
     try {
+      // First check for staff token (priority for staff users)
+      var staffToken = await storage.read(key: "mwstaffjwt");
+      if (staffToken != null) {
+        var decoded = parseJwt(staffToken.toString());
+        var id = decoded["id"];
+        print("Full decoded JWT: $decoded");
+        setState(() {
+          userid = id.toString();
+          reportertype = "Staff";
+          // Get staff name and phone from JWT
+          phone = decoded["Phone"] ??
+              decoded["phone"] ??
+              decoded["PhoneNumber"] ??
+              decoded["phoneNumber"] ??
+              "";
+          name = decoded["name"] ?? decoded["Name"] ?? "";
+        });
+        print("Staff ID set to: $userid");
+        print("Staff Name: $name, Phone: $phone");
+        return; // Exit early if staff token found
+      }
+
+      // If no staff token, check for public user token
       var token = await storage.read(key: "mwjwt");
       if (token != null) {
         var decoded = parseJwt(token.toString());
@@ -108,23 +131,10 @@ class _ReportIncidentState extends State<ReportIncident> {
         print("Public User ID set to: $userid");
       } else {
         print("No JWT token found");
-        // Try to get staff token as fallback
-        var staffToken = await storage.read(key: "mwstaffjwt");
-        if (staffToken != null) {
-          var decoded = parseJwt(staffToken.toString());
-          var id = decoded["id"];
-          setState(() {
-            userid = id.toString();
-            reportertype = "Staff";
-          });
-          print("Staff ID set to: $userid");
-        } else {
-          print("No staff token found either");
-          setState(() {
-            userid = '';
-            reportertype = "Public";
-          });
-        }
+        setState(() {
+          userid = '';
+          reportertype = "Public";
+        });
       }
     } catch (e) {
       print("Error getting user ID: $e");
@@ -193,22 +203,6 @@ class _ReportIncidentState extends State<ReportIncident> {
     }
   }
 
-  Future<void> getStaffUser() async {
-    try {
-      var token = await storage.read(key: "mwstaffjwt");
-      var decoded = parseJwt(token.toString());
-
-      if (decoded["error"] == "Invalid token") {
-      } else {
-        setState(() {
-          phone = decoded["Phone"];
-          name = decoded["name"];
-          reportertype = "Staff";
-        });
-      }
-    } catch (e) {}
-  }
-
   @override
   void initState() {
     super.initState();
@@ -216,9 +210,8 @@ class _ReportIncidentState extends State<ReportIncident> {
     print("Incident: ${widget.incident}");
 
     _image = null;
-    fetchStoredUserData();
     getLocation();
-    getStaffUser();
+    fetchStoredUserData();
   }
 
   @override
@@ -1000,6 +993,8 @@ Future<Message> submitData(
 
     print("Request payload: $payload");
     print("Reporter Type: $reportertype");
+    print("Name being sent: '$name'");
+    print("Phone being sent: '$phone'");
     if (reportertype == "Staff") {
       print("Staff User ID being sent: $userId");
     } else {
