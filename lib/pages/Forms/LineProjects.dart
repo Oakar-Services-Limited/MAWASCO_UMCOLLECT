@@ -40,7 +40,6 @@ class _LineProjectsState extends State<LineProjects> {
   String dma = '';
   String schemename = '';
   String zone = '';
-  String subzone = '';
   String route = '';
   String size = '';
   String user = '';
@@ -215,14 +214,7 @@ class _LineProjectsState extends State<LineProjects> {
                       value: zone,
                     ),
 
-                      MySelectInput(
-                      onSubmit: (value) => setState(() => subzone = value),
-                      list: getSubZones(),
-                      label: 'Subzone',
-                      value: subzone,
-                    ),
-                   
-                 
+                    
                     MyTextInput(
                       lines: 1,
                       value: '',
