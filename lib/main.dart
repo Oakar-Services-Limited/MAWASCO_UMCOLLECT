@@ -11,6 +11,7 @@ import 'package:um_collect/pages/login.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 Future<void> main() async {
+  //TEST
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
