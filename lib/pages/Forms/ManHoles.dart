@@ -47,10 +47,6 @@ class _ManHolesState extends State<ManHoles> {
 
   var isLoading;
 
-  void _openDrawer() {
-    _scaffoldKey.currentState?.openDrawer();
-  }
-
   @override
   void initState() {
     fetchStoredData();
@@ -206,7 +202,7 @@ class _ManHolesState extends State<ManHoles> {
                     MyTextInput(
                       lines: 1,
                       value: depth,
-                      type: TextInputType.number,
+                      type: TextInputType.numberWithOptions(decimal: true),
                       onSubmit: (value) {
                         setState(() {
                           depth = value;

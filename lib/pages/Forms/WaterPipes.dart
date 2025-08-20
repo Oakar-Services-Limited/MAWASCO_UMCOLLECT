@@ -241,7 +241,7 @@ class _WaterPipesState extends State<WaterPipes> {
                     MyTextInput(
                       lines: 1,
                       value: '',
-                      type: TextInputType.number,
+                      type: TextInputType.numberWithOptions(decimal: true),
                       onSubmit: (value) {
                         setState(() {
                           intake = value;
