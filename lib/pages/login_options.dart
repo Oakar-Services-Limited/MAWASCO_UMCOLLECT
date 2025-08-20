@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:um_collect/pages/publiclogin.dart';
-import 'package:um_collect/pages/stafflogin.dart';
 
 class LoginOption extends StatelessWidget {
   final String title;
@@ -50,19 +47,19 @@ class LoginOption extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       description,
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: Colors.black54,
-                      ),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontSize: 14,
+                            color: Colors.black54,
+                          ),
                     ),
                   ],
                 ),

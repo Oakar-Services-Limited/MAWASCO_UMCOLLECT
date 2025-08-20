@@ -8,11 +8,33 @@ import 'dart:async';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:um_collect/pages/login.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+// Background message handler
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  print('Background message received: ${message.data}');
+
+  // For background notifications, you can show system notification here
+  // This will be handled by the system when app is in background
+}
 
 Future<void> main() async {
-  //TEST
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase
+  try {
+    await Firebase.initializeApp();
+    print('Firebase initialized successfully');
+  } catch (e) {
+    print('Firebase initialization failed: $e');
+    // Continue without Firebase for now
+  }
+
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -36,6 +58,14 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+
+  // Global key for showing notifications from anywhere
+  static final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey =
+      GlobalKey<ScaffoldMessengerState>();
+
+  // Local notifications plugin
+  final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
 
   @override
   void initState() {
@@ -63,6 +93,7 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
 
     _controller.forward();
     _initializeApp();
+    _setupNotifications();
   }
 
   Future<void> _initializeApp() async {
@@ -105,18 +136,308 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
     }
   }
 
+  Future<void> _setupNotifications() async {
+    try {
+      // Request notification permissions
+      FirebaseMessaging messaging = FirebaseMessaging.instance;
+      NotificationSettings settings = await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+        provisional: false,
+      );
+      print('User granted permission: ${settings.authorizationStatus}');
+
+      // Get FCM token (will be registered after login)
+      String? token = await messaging.getToken();
+      if (token != null) {
+        print('FCM Token: $token');
+        // Token will be registered after user logs in
+      }
+
+      // Set up background message handler
+      FirebaseMessaging.onBackgroundMessage(
+          _firebaseMessagingBackgroundHandler);
+
+      // Set up foreground message handling
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        print('FOREGROUND MESSAGE RECEIVED');
+        print('Foreground Message Data: ${message.data}');
+
+        // Show system notification even when app is in foreground
+        if (message.data.isNotEmpty) {
+          _showSystemNotification(message);
+        }
+
+        // Handle navigation based on target
+        _handleNotificationNavigation(message.data);
+      });
+
+      // Handle when app is opened from terminated state
+      FirebaseMessaging.instance
+          .getInitialMessage()
+          .then((RemoteMessage? message) {
+        if (message != null) {
+          print('App opened from terminated state with message:');
+          print('Initial Message Data: ${message.data}');
+          _handleNotificationNavigation(message.data);
+        }
+      });
+
+      // Handle when app is opened from background state
+      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+        print('App opened from background state with message:');
+        print('Message Data: ${message.data}');
+        _handleNotificationNavigation(message.data);
+      });
+
+      // Initialize local notifications
+      await _flutterLocalNotificationsPlugin.initialize(
+        const InitializationSettings(
+          android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        ),
+        onDidReceiveNotificationResponse: (NotificationResponse response) {
+          // Handle notification tap
+          if (response.payload != null) {
+            try {
+              final data = json.decode(response.payload!);
+              _handleNotificationNavigation(data);
+            } catch (e) {
+              print('❌ Error parsing notification payload: $e');
+            }
+          }
+        },
+      );
+
+      // Token refresh listener
+      FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+        print('FCM Token refreshed: $newToken');
+        // Token will be re-registered after user logs in again
+      });
+    } catch (e) {
+      print('Error setting up notifications: $e');
+    }
+  }
+
+  Future<void> _sendTokenToBackend(String token) async {
+    try {
+      // Get the stored user ID from secure storage
+      final userId = await storage.read(key: "mwstaffjwt");
+      String? actualUserId;
+
+      if (userId != null) {
+        try {
+          final decoded = parseJwt(userId);
+          actualUserId =
+              decoded["id"]?.toString() ?? decoded["userId"]?.toString();
+        } catch (e) {
+          print('Error parsing JWT: $e');
+        }
+      }
+
+      // Only send token if we have a valid userId
+      if (actualUserId != null && actualUserId.isNotEmpty) {
+        final response = await http.post(
+          Uri.parse("${getUrl()}fcm-tokens/create"),
+          headers: <String, String>{
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+          body: jsonEncode({
+            'fcmToken': token,
+            'userId': actualUserId,
+            'deviceInfo': 'MAWASCO UM Collector App',
+          }),
+        );
+        print('Token sent to backend, status: ${response.statusCode}');
+      } else {
+        print('Skipping FCM token registration: User not logged in yet');
+      }
+    } catch (e) {
+      print('Error sending token to backend: $e');
+    }
+  }
+
+  void _showLocalNotification(
+      String title, String body, Map<String, dynamic> data) {
+    // Create a simple in-app notification using SnackBar
+    try {
+      // Use a more reliable way to show the notification
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        try {
+          // Check if we have a valid context and can show notifications
+          if (mounted && context.mounted) {
+            // Try to show SnackBar first
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Text(body),
+                  ],
+                ),
+                backgroundColor: const Color(0xff0288D1),
+                duration: const Duration(seconds: 5),
+                action: SnackBarAction(
+                  label: 'View',
+                  textColor: Colors.white,
+                  onPressed: () {
+                    // Handle notification tap
+                    _handleNotificationNavigation(data);
+                  },
+                ),
+              ),
+            );
+            print('✅ SnackBar notification shown successfully');
+          } else {
+            print('⚠️ Context not available, will show alert dialog instead');
+            // Fallback to alert dialog if context is not available
+            _showSimpleAlert(data);
+          }
+        } catch (e) {
+          print('❌ Error showing SnackBar: $e');
+          // Fallback to alert dialog
+          _showSimpleAlert(data);
+        }
+      });
+
+      // Also print to console for debugging
+      print('🎯 Attempting to show notification: $title - $body');
+    } catch (e) {
+      print('❌ Error in _showLocalNotification: $e');
+      // Final fallback
+      _showSimpleAlert(data);
+    }
+  }
+
+  void _showSystemNotification(RemoteMessage message) {
+    try {
+      // Create a system notification that matches the FCM message
+      const AndroidNotificationDetails androidPlatformChannelSpecifics =
+          AndroidNotificationDetails(
+        'incidents',
+        'Incident Notifications',
+        channelDescription: 'Notifications for new incidents assigned',
+        importance: Importance.high,
+        priority: Priority.high,
+        color: Color(0xff0288D1),
+        icon: '@mipmap/ic_launcher',
+      );
+
+      const NotificationDetails platformChannelSpecifics =
+          NotificationDetails(android: androidPlatformChannelSpecifics);
+
+      _flutterLocalNotificationsPlugin.show(
+        0, // notification id
+        message.data['incidentType'] ?? 'New Incident',
+        message.data['location'] ?? 'Location not specified',
+        platformChannelSpecifics,
+        payload: json.encode(message.data),
+      );
+
+      print('✅ System notification shown successfully');
+      print(
+          '📱 Notification: ${message.data['incidentType']} - ${message.data['location']}');
+    } catch (e) {
+      print('❌ Error showing system notification: $e');
+      // Fallback to simple alert if system notification fails
+      _showSimpleAlert(message.data);
+    }
+  }
+
+  void _showSimpleAlert(Map<String, dynamic> data) {
+    try {
+      // Use a more reliable way to show the dialog
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        try {
+          if (mounted && context.mounted) {
+            showDialog(
+              context: context,
+              barrierDismissible: false, // User must tap a button
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: Row(
+                    children: [
+                      Icon(Icons.warning, color: Colors.orange),
+                      SizedBox(width: 8),
+                      Text('🚨 New Incident Assigned'),
+                    ],
+                  ),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Type: ${data['incidentType'] ?? 'Unknown'}',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 8),
+                      Text('Location: ${data['location'] ?? 'Unknown'}'),
+                      SizedBox(height: 4),
+                      Text('ID: ${data['incidentId'] ?? 'Unknown'}'),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: Text('Close'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        _handleNotificationNavigation(data);
+                      },
+                      child: Text('View Details'),
+                    ),
+                  ],
+                );
+              },
+            );
+            print('✅ Alert dialog shown successfully');
+          } else {
+            print('⚠️ Cannot show alert dialog - context not available');
+          }
+        } catch (e) {
+          print('❌ Error showing alert dialog: $e');
+        }
+      });
+    } catch (e) {
+      print('❌ Error in _showSimpleAlert: $e');
+    }
+  }
+
+  void _handleNotificationNavigation(Map<String, dynamic> data) {
+    final target = (data['target'] ?? '').toString().toUpperCase().trim();
+    print('Target value: $target');
+
+    if (target == 'INCIDENT') {
+      // Handle incident notification
+      print('Incident notification received: ${data['incidentId']}');
+      // You can navigate to a specific page here if needed
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'UM Collect',
+      scaffoldMessengerKey: _scaffoldMessengerKey,
       theme: ThemeData(
         primaryColor: const Color(0xff0288D1),
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xff0288D1),
           brightness: Brightness.light,
         ),
-        textTheme: GoogleFonts.poppinsTextTheme(),
+        textTheme:
+            Theme.of(context).textTheme, // Use default Flutter text theme
         useMaterial3: true,
       ),
       home: Scaffold(
@@ -166,12 +487,15 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
                               Text(
                                 "Mathira Water and Sanitation Company",
                                 textAlign: TextAlign.center,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 28,
-                                  color: const Color(0xff0288D1),
-                                  fontWeight: FontWeight.bold,
-                                  height: 1.3,
-                                ),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineMedium
+                                    ?.copyWith(
+                                      fontSize: 28,
+                                      color: const Color(0xff0288D1),
+                                      fontWeight: FontWeight.bold,
+                                      height: 1.3,
+                                    ),
                               ),
                               const SizedBox(height: 16),
                               Container(
@@ -186,11 +510,14 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
                                 ),
                                 child: Text(
                                   "UM Collect",
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w600,
-                                    color: const Color(0xff0288D1),
-                                  ),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineMedium
+                                      ?.copyWith(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xff0288D1),
+                                      ),
                                 ),
                               ),
                               if (!permission) ...[
@@ -251,11 +578,11 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
                   children: [
                     Text(
                       "Powered by Oakar Services",
-                      style: GoogleFonts.poppins(
-                        color: Colors.grey[700],
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.grey[700],
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                     ),
                   ],
                 ),

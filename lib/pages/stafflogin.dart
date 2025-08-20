@@ -1,6 +1,6 @@
 // ignore_for_file: file_names, prefer_typing_uninitialized_variables
 
-import 'package:http/http.dart';
+import 'package:http/http.dart' as http;
 import 'package:um_collect/pages/home.dart';
 
 import 'dart:async';
@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../Components/Utils.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class StaffLogin extends StatefulWidget {
   const StaffLogin({super.key});
@@ -283,7 +284,7 @@ class _StaffLoginState extends State<StaffLogin> {
     print('Making API request to: ${getUrl()}admin/login'); // Debug log
 
     try {
-      final response = await post(
+      final response = await http.post(
         Uri.parse("${getUrl()}admin/login"),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
@@ -310,6 +311,9 @@ class _StaffLoginState extends State<StaffLogin> {
         if (data['error'] == null) {
           await storage.write(key: 'mwstaffjwt', value: data['token']);
           await storage.write(key: 'isstaff', value: 'true');
+
+          // Register FCM token after successful login
+          await _registerFCMToken();
 
           if (mounted) {
             _showMessage('Login successful!', false);
@@ -338,6 +342,56 @@ class _StaffLoginState extends State<StaffLogin> {
       if (mounted) {
         setState(() => isLoading = false);
       }
+    }
+  }
+
+  Future<void> _registerFCMToken() async {
+    try {
+      // Get FCM token
+      String? token = await FirebaseMessaging.instance.getToken();
+      if (token != null) {
+        print('FCM Token: $token');
+
+        // Get the stored user ID from JWT
+        final jwtToken = await storage.read(key: 'mwstaffjwt');
+        String? actualUserId;
+
+        if (jwtToken != null) {
+          try {
+            // Simple JWT parsing to get userId
+            final parts = jwtToken.split('.');
+            if (parts.length == 3) {
+              final payload = parts[1];
+              final normalized = base64Url.normalize(payload);
+              final resp = utf8.decode(base64Url.decode(normalized));
+              final payloadMap = json.decode(resp);
+              actualUserId = payloadMap['id']?.toString() ??
+                  payloadMap['userId']?.toString();
+            }
+          } catch (e) {
+            print('Error parsing JWT: $e');
+          }
+        }
+
+        if (actualUserId != null && actualUserId.isNotEmpty) {
+          final response = await http.post(
+            Uri.parse("${getUrl()}fcm-tokens/create"),
+            headers: <String, String>{
+              'Content-Type': 'application/json; charset=UTF-8',
+            },
+            body: jsonEncode({
+              'fcmToken': token,
+              'userId': actualUserId,
+              'deviceInfo': 'MAWASCO UM Collector App',
+            }),
+          );
+          print('FCM Token registered, status: ${response.statusCode}');
+        } else {
+          print('Could not extract userId from JWT');
+        }
+      }
+    } catch (e) {
+      print('Error registering FCM token: $e');
     }
   }
 
@@ -450,7 +504,7 @@ class _StaffLoginState extends State<StaffLogin> {
                                 setState(() => isLoading = true);
 
                                 try {
-                                  final response = await post(
+                                  final response = await http.post(
                                     Uri.parse(
                                         "${getUrl()}admin/forgot-password"),
                                     headers: {

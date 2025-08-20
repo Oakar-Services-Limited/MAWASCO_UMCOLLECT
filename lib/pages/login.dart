@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:um_collect/pages/publiclogin.dart';
 import 'package:um_collect/pages/stafflogin.dart';
 import 'package:um_collect/pages/login_options.dart';
@@ -48,16 +47,16 @@ class _LoginState extends State<Login> {
                     const SizedBox(height: 24),
                     Text(
                       "Welcome to UM Collect",
-                      style: GoogleFonts.poppins(
+                      style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xff0288D1),
+                        color: Color(0xff0288D1),
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       "Choose how you'd like to proceed",
-                      style: GoogleFonts.poppins(
+                      style: const TextStyle(
                         fontSize: 16,
                         color: Colors.black54,
                       ),
