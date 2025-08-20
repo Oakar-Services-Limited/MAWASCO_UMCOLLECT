@@ -328,7 +328,7 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
         importance: Importance.high,
         priority: Priority.high,
         color: Color(0xff0288D1),
-        icon: '@mipmap/ic_launcher',
+        icon: '@drawable/logo',
       );
 
       const NotificationDetails platformChannelSpecifics =
@@ -336,8 +336,8 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
 
       _flutterLocalNotificationsPlugin.show(
         0, // notification id
-        message.data['incidentType'] ?? 'New Incident',
-        message.data['location'] ?? 'Location not specified',
+        '🚨 New Incident Assigned',
+        'Type: ${message.data['incidentType']} | Location: ${message.data['location']}',
         platformChannelSpecifics,
         payload: json.encode(message.data),
       );
