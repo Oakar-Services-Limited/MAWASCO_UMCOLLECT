@@ -580,7 +580,10 @@ class _StaffLoginState extends State<StaffLogin> {
               Icon(Icons.system_update, color: Color(0xff0288D1), size: 32),
               SizedBox(width: 10),
               Text("New Upgrades Detected",
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xff0288D1),
+                      fontSize: 14)),
             ],
           ),
           content: Text(
