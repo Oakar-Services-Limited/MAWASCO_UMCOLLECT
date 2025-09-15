@@ -288,7 +288,7 @@ class _MyWalletState extends State<MyWallet> {
                       title: 'Enter Amount to Upload',
                       lines: 1,
                       value: amount,
-                      type: TextInputType.number,
+                      type: TextInputType.numberWithOptions(decimal: true),
                       onSubmit: (value) => setState(() => amount = value),
                     ),
                     TextOakar(label: error, issuccessful: successful),

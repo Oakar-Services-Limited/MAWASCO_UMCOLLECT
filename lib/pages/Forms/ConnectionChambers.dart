@@ -408,7 +408,7 @@ class _ConnectionChambersState extends State<ConnectionChambers> {
                     MyTextInput(
                       lines: 1,
                       value: year,
-                      type: TextInputType.number,
+                      type: TextInputType.numberWithOptions(decimal: true),
                       onSubmit: (value) {
                         setState(() {
                           year = value;
@@ -419,7 +419,7 @@ class _ConnectionChambersState extends State<ConnectionChambers> {
                     MyTextInput(
                       lines: 1,
                       value: noOfConnections,
-                      type: TextInputType.number,
+                      type: TextInputType.numberWithOptions(decimal: true),
                       onSubmit: (value) {
                         setState(() {
                           noOfConnections = value;

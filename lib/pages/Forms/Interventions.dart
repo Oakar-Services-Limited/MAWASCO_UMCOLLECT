@@ -225,7 +225,7 @@ class _InterventionsState extends State<Interventions> {
                       },
                       title: 'Staff Name',
                     ),
-                       MySelectInput(
+                    MySelectInput(
                       onSubmit: (value) => setState(() => dma = value),
                       list: getDMAs(),
                       label: 'DMA Name',
@@ -247,7 +247,7 @@ class _InterventionsState extends State<Interventions> {
                     MyTextInput(
                       lines: 1,
                       value: account,
-                      type: TextInputType.number,
+                      type: TextInputType.numberWithOptions(decimal: true),
                       onSubmit: (value) {
                         setState(() {
                           account = value;
@@ -418,7 +418,8 @@ class _InterventionsState extends State<Interventions> {
                         ? MyTextInput(
                             lines: 1,
                             value: highflow,
-                            type: TextInputType.number,
+                            type:
+                                TextInputType.numberWithOptions(decimal: true),
                             onSubmit: (value) {
                               setState(() {
                                 highflow = value;
@@ -433,7 +434,8 @@ class _InterventionsState extends State<Interventions> {
                         ? MyTextInput(
                             lines: 1,
                             value: lowflow,
-                            type: TextInputType.number,
+                            type:
+                                TextInputType.numberWithOptions(decimal: true),
                             onSubmit: (value) {
                               setState(() {
                                 lowflow = value;
@@ -481,7 +483,8 @@ class _InterventionsState extends State<Interventions> {
                         ? MyTextInput(
                             lines: 1,
                             value: oldreadings,
-                            type: TextInputType.number,
+                            type:
+                                TextInputType.numberWithOptions(decimal: true),
                             onSubmit: (value) {
                               setState(() {
                                 oldreadings = value;
@@ -537,7 +540,8 @@ class _InterventionsState extends State<Interventions> {
                         ? MyTextInput(
                             lines: 1,
                             value: newreadings,
-                            type: TextInputType.number,
+                            type:
+                                TextInputType.numberWithOptions(decimal: true),
                             onSubmit: (value) {
                               setState(() {
                                 newreadings = value;
@@ -566,7 +570,7 @@ class _InterventionsState extends State<Interventions> {
                     MyTextInput(
                       lines: 1,
                       value: readings,
-                      type: TextInputType.number,
+                      type: TextInputType.numberWithOptions(decimal: true),
                       onSubmit: (value) {
                         setState(() {
                           readings = value;

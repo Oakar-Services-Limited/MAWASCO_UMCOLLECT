@@ -513,7 +513,7 @@ class _AppurtenancesState extends State<Appurtenances> {
                     MyTextInput(
                       lines: 1,
                       value: year,
-                      type: TextInputType.number,
+                      type: TextInputType.numberWithOptions(decimal: true),
                       onSubmit: (value) {
                         setState(() {
                           year = value;

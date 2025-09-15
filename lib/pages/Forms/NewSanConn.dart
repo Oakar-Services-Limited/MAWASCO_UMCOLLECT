@@ -434,7 +434,7 @@ class _NewSanConnState extends State<NewSanConn> {
                     MyTextInput(
                       lines: 1,
                       value: year,
-                      type: TextInputType.number,
+                      type: TextInputType.numberWithOptions(decimal: true),
                       onSubmit: (value) {
                         setState(() {
                           year = value;
@@ -445,7 +445,7 @@ class _NewSanConnState extends State<NewSanConn> {
                     MyTextInput(
                       lines: 1,
                       value: pipediameter,
-                      type: TextInputType.number,
+                      type: TextInputType.numberWithOptions(decimal: true),
                       onSubmit: (value) {
                         setState(() {
                           pipediameter = value;

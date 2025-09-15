@@ -232,7 +232,7 @@ class _CustomerLinesState extends State<CustomerLines> {
                       },
                       list: const [
                         "--Select--",
-                       "--Select--",
+                        "--Select--",
                         "Active",
                         "Inactive",
                       ],
@@ -253,7 +253,7 @@ class _CustomerLinesState extends State<CustomerLines> {
                     MyTextInput(
                       lines: 1,
                       value: yearLaid,
-                      type: TextInputType.number,
+                      type: TextInputType.numberWithOptions(decimal: true),
                       onSubmit: (value) {
                         setState(() {
                           yearLaid = value;

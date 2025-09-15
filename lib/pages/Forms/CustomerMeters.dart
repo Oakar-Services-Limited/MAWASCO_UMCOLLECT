@@ -343,7 +343,7 @@ class _CustomerMetersState extends State<CustomerMeters> {
                     MyTextInput(
                       lines: 1,
                       value: accnum,
-                      type: TextInputType.number,
+                      type: TextInputType.numberWithOptions(decimal: true),
                       onSubmit: (value) {
                         setState(() {
                           accnum = value;

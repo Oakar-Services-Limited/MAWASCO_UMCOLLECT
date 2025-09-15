@@ -214,7 +214,7 @@ class _TanksState extends State<Tanks> {
                     MyTextInput(
                       lines: 1,
                       value: elevation,
-                      type: TextInputType.number,
+                      type: TextInputType.numberWithOptions(decimal: true),
                       onSubmit: (value) {
                         setState(() {
                           elevation = value;

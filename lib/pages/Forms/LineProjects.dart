@@ -163,7 +163,7 @@ class _LineProjectsState extends State<LineProjects> {
                     MyTextInput(
                       lines: 1,
                       value: '',
-                      type: TextInputType.number,
+                      type: TextInputType.numberWithOptions(decimal: true),
                       onSubmit: (value) {
                         setState(() {
                           intake = value;
@@ -186,13 +186,12 @@ class _LineProjectsState extends State<LineProjects> {
                       label: 'Type',
                       value: type,
                     ),
-                     MySelectInput(
+                    MySelectInput(
                       onSubmit: (value) => setState(() => dma = value),
                       list: getDMAs(),
                       label: 'DMA',
                       value: dma,
                     ),
-                   
                     MySelectInput(
                       onSubmit: (value) {
                         setState(() {
@@ -207,14 +206,12 @@ class _LineProjectsState extends State<LineProjects> {
                       label: 'Scheme Name',
                       value: schemename,
                     ),
-                      MySelectInput(
+                    MySelectInput(
                       onSubmit: (value) => setState(() => zone = value),
                       list: getZones(),
                       label: 'Zone',
                       value: zone,
                     ),
-
-                    
                     MyTextInput(
                       lines: 1,
                       value: '',

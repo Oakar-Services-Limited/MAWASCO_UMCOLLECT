@@ -313,7 +313,7 @@ class _NewWaterConnState extends State<NewWaterConn> {
                     MyTextInput(
                       lines: 1,
                       value: accnum,
-                      type: TextInputType.number,
+                      type: TextInputType.numberWithOptions(decimal: true),
                       onSubmit: (value) {
                         setState(() {
                           accnum = value;

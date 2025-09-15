@@ -196,7 +196,7 @@ class _PumpingStationsState extends State<PumpingStations> {
                     MyTextInput(
                       lines: 1,
                       value: depth,
-                      type: TextInputType.number,
+                      type: TextInputType.numberWithOptions(decimal: true),
                       onSubmit: (value) {
                         setState(() {
                           depth = value;
@@ -383,7 +383,8 @@ Future<Message> submitData(
       final responseData = jsonDecode(response.body);
       return Message(
         token: responseData['data']?['id'],
-        success: responseData['message'] ?? "PumpingStations saved successfully",
+        success:
+            responseData['message'] ?? "PumpingStations saved successfully",
         error: null,
       );
     } else {

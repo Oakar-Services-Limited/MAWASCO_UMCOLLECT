@@ -246,7 +246,7 @@ class _PointProjectsState extends State<PointProjects> {
                     MyTextInput(
                       lines: 1,
                       value: '',
-                      type: TextInputType.number,
+                      type: TextInputType.numberWithOptions(decimal: true),
                       onSubmit: (value) {
                         setState(() {
                           phone = value;

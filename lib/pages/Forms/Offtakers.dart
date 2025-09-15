@@ -390,7 +390,7 @@ class _OfftakesState extends State<Offtakes> {
                     MyTextInput(
                       lines: 1,
                       value: accountnum,
-                      type: TextInputType.number,
+                      type: TextInputType.numberWithOptions(decimal: true),
                       onSubmit: (value) {
                         setState(() {
                           accountnum = value;
@@ -438,7 +438,7 @@ class _OfftakesState extends State<Offtakes> {
                     MyTextInput(
                       lines: 1,
                       value: year,
-                      type: TextInputType.number,
+                      type: TextInputType.numberWithOptions(decimal: true),
                       onSubmit: (value) {
                         setState(() {
                           year = value;

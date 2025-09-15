@@ -409,7 +409,7 @@ class _CustomerChambersState extends State<CustomerChambers> {
                     MyTextInput(
                       lines: 1,
                       value: year,
-                      type: TextInputType.number,
+                      type: TextInputType.numberWithOptions(decimal: true),
                       onSubmit: (value) {
                         setState(() {
                           year = value;
@@ -487,7 +487,7 @@ class _CustomerChambersState extends State<CustomerChambers> {
                         });
                       },
                       list: const [
-                         "--Select--",
+                        "--Select--",
                         "Active",
                         "Inactive",
                       ],

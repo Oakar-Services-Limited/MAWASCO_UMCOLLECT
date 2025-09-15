@@ -196,7 +196,7 @@ class _GritChambersState extends State<GritChambers> {
                     MyTextInput(
                       lines: 1,
                       value: depth,
-                      type: TextInputType.number,
+                      type: TextInputType.numberWithOptions(decimal: true),
                       onSubmit: (value) {
                         setState(() {
                           depth = value;

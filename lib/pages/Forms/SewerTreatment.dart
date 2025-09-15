@@ -196,7 +196,7 @@ class _SewerTreatmentState extends State<SewerTreatment> {
                     MyTextInput(
                       lines: 1,
                       value: depth,
-                      type: TextInputType.number,
+                      type: TextInputType.numberWithOptions(decimal: true),
                       onSubmit: (value) {
                         setState(() {
                           depth = value;
@@ -383,7 +383,8 @@ Future<Message> submitData(
       final responseData = jsonDecode(response.body);
       return Message(
         token: responseData['data']?['id'],
-        success: responseData['message'] ?? "Sewer Treatment saved successfully",
+        success:
+            responseData['message'] ?? "Sewer Treatment saved successfully",
         error: null,
       );
     } else {

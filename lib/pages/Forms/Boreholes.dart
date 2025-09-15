@@ -404,7 +404,7 @@ class _BoreholesState extends State<Boreholes> {
                     MyTextInput(
                       lines: 1,
                       value: outputyield,
-                      type: TextInputType.number,
+                      type: TextInputType.numberWithOptions(decimal: true),
                       onSubmit: (value) {
                         setState(() {
                           outputyield = value;
@@ -415,7 +415,7 @@ class _BoreholesState extends State<Boreholes> {
                     MyTextInput(
                       lines: 1,
                       value: year,
-                      type: TextInputType.number,
+                      type: TextInputType.numberWithOptions(decimal: true),
                       onSubmit: (value) {
                         setState(() {
                           year = value;
