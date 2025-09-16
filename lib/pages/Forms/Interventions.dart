@@ -799,10 +799,22 @@ class _InterventionsState extends State<Interventions> {
                             isLoading = null;
                             if (res.error == null) {
                               error = res.success;
-                              Navigator.pushReplacement(
+                              ScaffoldMessenger.of(context).clearSnackBars();
+                              final snackBar = SnackBar(
+                                content: Text(
+                                    res.success ?? "Submission Successful"),
+                                backgroundColor: Colors.green,
+                                duration: const Duration(seconds: 2),
+                              );
+                              ScaffoldMessenger.of(context)
+                                  .showSnackBar(snackBar);
+                              Future.delayed(const Duration(seconds: 2), () {
+                                Navigator.pushReplacement(
                                   context,
                                   MaterialPageRoute(
-                                      builder: (_) => const NRW()));
+                                      builder: (_) => const NRW()),
+                                );
+                              });
                             } else {
                               error = res.error ?? "An unknown error occurred";
                             }
