@@ -31,6 +31,24 @@ class _CollectedItemState extends State<NewCallItem> {
         .toLocal(); // Parse timestamp and convert to local time
   }
 
+  String _getFormattedDateTime() {
+    // Use the direct createdAt field since that's where the date is stored
+    final createdAt = widget.item["createdAt"];
+
+    if (createdAt != null && createdAt.toString().isNotEmpty) {
+      try {
+        final dateTime = parsePostgresTimestamp(createdAt);
+        return "${DateFormat('EEEE, MMMM d, y').format(dateTime)} \n ${DateFormat('HH:mm').format(dateTime)}";
+      } catch (e) {
+        // If parsing fails, show "Date not available"
+        return "Date not available";
+      }
+    } else {
+      // If no createdAt data, show "Date not available"
+      return "Date not available";
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -149,7 +167,7 @@ class _CollectedItemState extends State<NewCallItem> {
                       borderRadius:
                           BorderRadius.only(topRight: Radius.circular(5))),
                   child: Text(
-                    "${DateFormat('EEEE, MMMM d, y').format(parsePostgresTimestamp(widget.item["report"]?["createdAt"] ?? DateTime.now().toIso8601String()))} \n ${DateFormat('HH:mm').format(parsePostgresTimestamp(widget.item["report"]?["createdAt"] ?? DateTime.now().toIso8601String()))}",
+                    _getFormattedDateTime(),
                     style: const TextStyle(fontSize: 10, color: Colors.white),
                   ))),
         ],
