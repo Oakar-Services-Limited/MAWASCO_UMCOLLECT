@@ -65,6 +65,8 @@ class _IncidencesState extends State<Incidences> {
       print("Response INCIDECES: ${response.body}");
       print("Response INCIDECES: ${response.statusCode}");
 
+      if (!mounted) return; // Check if widget is still mounted
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success']) {
@@ -87,6 +89,7 @@ class _IncidencesState extends State<Incidences> {
         });
       }
     } catch (e) {
+      if (!mounted) return; // Check if widget is still mounted
       setState(() {
         error = 'Connection error: $e';
         isLoading = false;
@@ -99,6 +102,8 @@ class _IncidencesState extends State<Incidences> {
     var id = await storage.read(key: "staffid");
 
     print("staff is $staff");
+
+    if (!mounted) return; // Check if widget is still mounted
 
     setState(() {
       isstaff = staff;
@@ -264,8 +269,7 @@ class _IncidencesState extends State<Incidences> {
                                         .replaceAll(' ', '');
                                     // final imagePath =
                                     //     'assets/images/$imageName.png';
-                                    print(
-                                        "Image name: $imageName,");
+                                    print("Image name: $imageName,");
                                     return IRItem(
                                       incident: category.name,
                                       asset: 'assets/images/$imageName.png',

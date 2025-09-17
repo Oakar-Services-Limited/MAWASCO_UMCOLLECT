@@ -6,11 +6,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:um_collect/components/MySelectInput.dart';
 import 'package:um_collect/components/MyTextInputII.dart';
 import 'package:um_collect/components/MyDrawer.dart';
-import 'package:um_collect/components/SubmitButton.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/models/Map.dart';
-import 'package:um_collect/pages/TextOakar.dart';
 import 'package:um_collect/pages/incidences.dart';
+import 'package:um_collect/pages/TextOakar.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart';
@@ -45,55 +44,13 @@ class _ReportIncidentState extends State<ReportIncident> {
   String schemetype = '';
   String pipesize = '';
   String pipematerial = '';
-  String error = '';
   var isLoading;
   late File? _image;
   final imagePicker = ImagePicker();
   String userid = '';
-  bool successful = false;
   String myimage = '';
-
-  void _showMessage(String message, bool isError) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).clearSnackBars();
-    final snackBar = SnackBar(
-      content: Row(
-        children: [
-          Icon(
-            isError ? Icons.error_outline : Icons.check_circle_outline,
-            color: Colors.white,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              message,
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ],
-      ),
-      backgroundColor: isError ? Colors.red : Colors.green,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      margin: const EdgeInsets.all(16),
-      duration: const Duration(seconds: 3),
-      action: SnackBarAction(
-        label: 'Dismiss',
-        textColor: Colors.white,
-        onPressed: () {
-          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        },
-      ),
-    );
-
-    ScaffoldMessenger.of(context).showSnackBar(snackBar);
-  }
+  String error = '';
+  bool successful = false;
 
   Future<void> fetchStoredUserData() async {
     try {
@@ -103,17 +60,19 @@ class _ReportIncidentState extends State<ReportIncident> {
         var decoded = parseJwt(staffToken.toString());
         var id = decoded["id"];
         print("Full decoded JWT: $decoded");
-        setState(() {
-          userid = id.toString();
-          reportertype = "Staff";
-          // Get staff name and phone from JWT
-          phone = decoded["Phone"] ??
-              decoded["phone"] ??
-              decoded["PhoneNumber"] ??
-              decoded["phoneNumber"] ??
-              "";
-          name = decoded["name"] ?? decoded["Name"] ?? "";
-        });
+        if (mounted) {
+          setState(() {
+            userid = id.toString();
+            reportertype = "Staff";
+            // Get staff name and phone from JWT
+            phone = decoded["Phone"] ??
+                decoded["phone"] ??
+                decoded["PhoneNumber"] ??
+                decoded["phoneNumber"] ??
+                "";
+            name = decoded["name"] ?? decoded["Name"] ?? "";
+          });
+        }
         print("Staff ID set to: $userid");
         print("Staff Name: $name, Phone: $phone");
         return; // Exit early if staff token found
@@ -124,26 +83,34 @@ class _ReportIncidentState extends State<ReportIncident> {
       if (token != null) {
         var decoded = parseJwt(token.toString());
         var id = decoded["id"];
-        setState(() {
-          userid = id.toString();
-          reportertype = "Public";
-        });
+        if (mounted) {
+          setState(() {
+            userid = id.toString();
+            reportertype = "Public";
+          });
+        }
         print("Public User ID set to: $userid");
       } else {
         print("No JWT token found");
+        if (mounted) {
+          setState(() {
+            userid = '';
+            reportertype = "Public";
+          });
+        }
+      }
+    } catch (e) {
+      print("Error getting user ID: $e");
+      if (mounted) {
         setState(() {
           userid = '';
           reportertype = "Public";
         });
       }
-    } catch (e) {
-      print("Error getting user ID: $e");
-      setState(() {
-        userid = '';
-        reportertype = "Public";
-      });
     }
   }
+
+  StreamSubscription<Position>? _locationSubscription;
 
   Future<void> getLocation() async {
     LocationSettings locationSettings = const LocationSettings(
@@ -151,13 +118,16 @@ class _ReportIncidentState extends State<ReportIncident> {
       distanceFilter: 0,
     );
 
-    Geolocator.getPositionStream(locationSettings: locationSettings)
-        .listen((Position position) {
-      setState(() {
-        long = position.longitude;
-        lat = position.latitude;
-        acc = position.accuracy;
-      });
+    _locationSubscription =
+        Geolocator.getPositionStream(locationSettings: locationSettings)
+            .listen((Position position) {
+      if (mounted) {
+        setState(() {
+          long = position.longitude;
+          lat = position.latitude;
+          acc = position.accuracy;
+        });
+      }
     });
   }
 
@@ -212,6 +182,12 @@ class _ReportIncidentState extends State<ReportIncident> {
     _image = null;
     getLocation();
     fetchStoredUserData();
+  }
+
+  @override
+  void dispose() {
+    _locationSubscription?.cancel();
+    super.dispose();
   }
 
   @override
@@ -546,72 +522,6 @@ class _ReportIncidentState extends State<ReportIncident> {
     );
   }
 
-  Widget _buildSchemeTypeSelector() {
-    return Card(
-      elevation: 4,
-      shadowColor: Colors.black26,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: MySelectInput(
-          onSubmit: (value) {
-            setState(() {
-              schemetype = value;
-            });
-          },
-          list: const [
-            "--Select--",
-            "Urban",
-            "Rural",
-          ],
-          label: 'Select Scheme',
-          value: schemetype,
-          labelFontSize: 18,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPipeSizeSelector() {
-    return Card(
-      elevation: 4,
-      shadowColor: Colors.black26,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: MySelectInput(
-          onSubmit: (value) {
-            setState(() {
-              pipesize = value;
-            });
-          },
-          list: const [
-            "--Select--",
-            "0.5",
-            "0.75",
-            "1",
-            "2",
-            "3",
-            "4",
-            "5",
-            "6",
-            "8",
-            "10",
-            "12",
-            "14",
-          ],
-          label: 'Select Pipe Size',
-          value: pipesize,
-          labelFontSize: 18,
-        ),
-      ),
-    );
-  }
-
   Widget _buildReporterInfoCard() {
     return Card(
       elevation: 4,
@@ -844,19 +754,14 @@ class _ReportIncidentState extends State<ReportIncident> {
           });
 
           if (res.error == null) {
-            // Show success snackbar
-            _showMessage(
-                res.success ?? 'Report submitted successfully!', false);
-
             Timer(const Duration(seconds: 2), () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const Incidences()),
-              );
+              if (mounted) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const Incidences()),
+                );
+              }
             });
-          } else {
-            // Show error snackbar
-            _showMessage(res.error ?? 'Failed to submit report', true);
           }
         },
         style: ElevatedButton.styleFrom(
