@@ -15,7 +15,7 @@ if (localPropertiesFile.exists()) {
 
 def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
 if (flutterVersionCode == null) {
-    flutterVersionCode = '52'
+    flutterVersionCode = '53'
 }
 
 def flutterVersionName = localProperties.getProperty('flutter.versionName')
@@ -25,7 +25,7 @@ if (flutterVersionName == null) {
 
 android {
     namespace "ke.co.osl.um_collector"
-    compileSdkVersion 35
+    compileSdkVersion 36
     ndkVersion = "25.1.8937393"
 
     compileOptions {
@@ -46,7 +46,7 @@ android {
         applicationId "ke.co.osl.um_collector"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
-        minSdkVersion 23
+        minSdkVersion flutter.minSdkVersion
         targetSdkVersion 35
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName

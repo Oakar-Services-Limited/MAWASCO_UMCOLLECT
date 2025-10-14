@@ -827,7 +827,7 @@ Future<Message> submitData(
   String phone,
   String pipematerial,
 ) async {
-  if (myimage.isEmpty) {
+  if (myimage.isEmpty && incident != "Supply Fail") {
     return Message(
         token: null, success: null, error: "Take Photo of $incident!");
   }
