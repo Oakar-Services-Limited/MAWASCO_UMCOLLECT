@@ -207,7 +207,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
       List<dynamic> points = [];
 
       // Use a different API key that has Directions API enabled
-      String apiKey = 'AIzaSyAuvt2CB5r1jLoA5k00VnDkJmrAM3cL52g';
+      String apiKey = 'AIzaSyBqx0f1yaQY_3bgy4-pGwkHF8QmRy94dTE';
 
       // First try to get directions using the Directions API directly
       String directionsUrl =
@@ -318,7 +318,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
       double originLng = curLocation.longitude;
       double destinationLat = dst.latitude;
       double destinationLng = dst.longitude;
-      String apiKey = 'AIzaSyAuvt2CB5r1jLoA5k00VnDkJmrAM3cL52g';
+      String apiKey = 'AIzaSyBqx0f1yaQY_3bgy4-pGwkHF8QmRy94dTE';
 
       String url =
           'https://maps.googleapis.com/maps/api/directions/json?origin=$originLat,$originLng&destination=$destinationLat,$destinationLng&key=$apiKey&steps=true';
@@ -867,9 +867,8 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                             CrossAxisAlignment
                                                                 .start,
                                                         children: [
-                                                         
-                                                                  widget.label ==
-                                                                      "Customer Meters"
+                                                          widget.label ==
+                                                                  "Customer Meters"
                                                               ? Text(
                                                                   'Customer Name: ${selected["name"]}',
                                                                   style: const TextStyle(
@@ -881,8 +880,9 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                                           FontWeight
                                                                               .w600),
                                                                 )
-                                                                :  widget.label ==
-                                                                      "Incidences" ? Text(
+                                                              : widget.label ==
+                                                                      "Incidences"
+                                                                  ? Text(
                                                                       'Incident Serial: ${selected["serialNo"]}',
                                                                       style: const TextStyle(
                                                                           color: Colors
@@ -892,20 +892,8 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                                           fontWeight:
                                                                               FontWeight.w600),
                                                                     )
-                                                              : widget.label ==
-                                                                      "Water Connection"
-                                                                  ? Text(
-                                                                      'AccountNo: ${selected["AccountNo"]}',
-                                                                      style: const TextStyle(
-                                                                          color: Colors
-                                                                              .grey,
-                                                                          fontSize:
-                                                                              16,
-                                                                          fontWeight:
-                                                                              FontWeight.w600),
-                                                                    )
                                                                   : widget.label ==
-                                                                          "Sanitation Connection"
+                                                                          "Water Connection"
                                                                       ? Text(
                                                                           'AccountNo: ${selected["AccountNo"]}',
                                                                           style: const TextStyle(
@@ -913,43 +901,49 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                                               fontSize: 16,
                                                                               fontWeight: FontWeight.w600),
                                                                         )
-                                                                      : Row(
-                                                                          children: [
-                                                                            Container(
-                                                                              padding: const EdgeInsets.all(12),
-                                                                              decoration: BoxDecoration(
-                                                                                color: const Color(0xff0288D1).withOpacity(0.1),
-                                                                                borderRadius: BorderRadius.circular(8),
-                                                                              ),
-                                                                              child: const Icon(
-                                                                                Icons.edit_location_alt,
-                                                                                color: Color(0xff0288D1),
-                                                                              ),
-                                                                            ),
-                                                                            const SizedBox(width: 8),
-                                                                            Expanded(
-                                                                              child: Column(
-                                                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                                                children: [
-                                                                                  Text(
-                                                                                    widget.label.toString(),
-                                                                                    style: const TextStyle(color: Color(0xff0288D1), fontSize: 18, fontWeight: FontWeight.bold),
+                                                                      : widget.label ==
+                                                                              "Sanitation Connection"
+                                                                          ? Text(
+                                                                              'AccountNo: ${selected["AccountNo"]}',
+                                                                              style: const TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w600),
+                                                                            )
+                                                                          : Row(
+                                                                              children: [
+                                                                                Container(
+                                                                                  padding: const EdgeInsets.all(12),
+                                                                                  decoration: BoxDecoration(
+                                                                                    color: const Color(0xff0288D1).withOpacity(0.1),
+                                                                                    borderRadius: BorderRadius.circular(8),
                                                                                   ),
-                                                                                  const SizedBox(height: 4),
-                                                                                  Text(
-                                                                                    'ObjectID: ${selected["ObjectID"]}',
-                                                                                    style: const TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w600),
+                                                                                  child: const Icon(
+                                                                                    Icons.edit_location_alt,
+                                                                                    color: Color(0xff0288D1),
                                                                                   ),
-                                                                                ],
-                                                                              ),
+                                                                                ),
+                                                                                const SizedBox(width: 8),
+                                                                                Expanded(
+                                                                                  child: Column(
+                                                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                                                    children: [
+                                                                                      Text(
+                                                                                        widget.label.toString(),
+                                                                                        style: const TextStyle(color: Color(0xff0288D1), fontSize: 18, fontWeight: FontWeight.bold),
+                                                                                      ),
+                                                                                      const SizedBox(height: 4),
+                                                                                      Text(
+                                                                                        'ObjectID: ${selected["ObjectID"]}',
+                                                                                        style: const TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w600),
+                                                                                      ),
+                                                                                    ],
+                                                                                  ),
+                                                                                ),
+                                                                                const Icon(
+                                                                                  Icons.arrow_forward_ios,
+                                                                                  color: Color(0xff0288D1),
+                                                                                  size: 20,
+                                                                                ),
+                                                                              ],
                                                                             ),
-                                                                            const Icon(
-                                                                              Icons.arrow_forward_ios,
-                                                                              color: Color(0xff0288D1),
-                                                                              size: 20,
-                                                                            ),
-                                                                          ],
-                                                                        ),
                                                           const SizedBox(
                                                             height: 4,
                                                           ),
@@ -966,17 +960,19 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                                           FontWeight
                                                                               .w600),
                                                                 )
-                                                              
-                                                                  : widget.label ==
-                                                                          "Water Connection"
-                                                                      ? Text(
-                                                                          'MeterSerial: ${selected["MeterSerial"]}',
-                                                                          style: const TextStyle(
-                                                                              color: Colors.grey,
-                                                                              fontSize: 16,
-                                                                              fontWeight: FontWeight.w600),
-                                                                        )
-                                                                      : const SizedBox(),
+                                                              : widget.label ==
+                                                                      "Water Connection"
+                                                                  ? Text(
+                                                                      'MeterSerial: ${selected["MeterSerial"]}',
+                                                                      style: const TextStyle(
+                                                                          color: Colors
+                                                                              .grey,
+                                                                          fontSize:
+                                                                              16,
+                                                                          fontWeight:
+                                                                              FontWeight.w600),
+                                                                    )
+                                                                  : const SizedBox(),
                                                         ],
                                                       ),
                                                     )),
@@ -1176,7 +1172,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                               onPressed: () async {
                                                 if (choice != null) {
                                                   await launchUrl(Uri.parse(
-                                                      'google.navigation:q=${destination.latitude}, ${destination.longitude}&key=AIzaSyAuvt2CB5r1jLoA5k00VnDkJmrAM3cL52g'));
+                                                      'google.navigation:q=${destination.latitude}, ${destination.longitude}&key=AIzaSyBqx0f1yaQY_3bgy4-pGwkHF8QmRy94dTE'));
                                                 } else {
                                                   _showSnackbar(
                                                       context,

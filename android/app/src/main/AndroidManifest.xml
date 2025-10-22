@@ -11,7 +11,7 @@
         android:icon="@drawable/logo">
 
              <meta-data android:name="com.google.android.geo.API_KEY"
-               android:value="AIzaSyAuvt2CB5r1jLoA5k00VnDkJmrAM3cL52g"/>
+               android:value="AIzaSyBqx0f1yaQY_3bgy4-pGwkHF8QmRy94dTE"/>
 
         <activity
             android:name=".MainActivity"

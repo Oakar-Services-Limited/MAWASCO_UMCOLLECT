@@ -175,7 +175,7 @@ class _NavigateNRWState extends State<NavigateNRW> {
       List<LatLng> polylineCoordinates = [];
       List<dynamic> points = [];
       PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
-        googleApiKey: 'AIzaSyAuvt2CB5r1jLoA5k00VnDkJmrAM3cL52g',
+        googleApiKey: 'AIzaSyBqx0f1yaQY_3bgy4-pGwkHF8QmRy94dTE',
         request: PolylineRequest(
           origin: PointLatLng(curLocation.latitude, curLocation.longitude),
           destination: PointLatLng(dst.latitude, dst.longitude),
@@ -217,7 +217,7 @@ class _NavigateNRWState extends State<NavigateNRW> {
       double originLng = curLocation.longitude; // Origin longitude
       double destinationLat = dst.latitude; // Destination latitude
       double destinationLng = dst.longitude; // Destination longitude
-      String apiKey = 'AIzaSyAuvt2CB5r1jLoA5k00VnDkJmrAM3cL52g';
+      String apiKey = 'AIzaSyBqx0f1yaQY_3bgy4-pGwkHF8QmRy94dTE';
 
       String url =
           'https://maps.googleapis.com/maps/api/directions/json?origin=$originLat,$originLng&destination=$destinationLat,$destinationLng&key=$apiKey&steps=true';
@@ -791,7 +791,7 @@ class _NavigateNRWState extends State<NavigateNRW> {
                                             child: TextButton(
                                                 onPressed: () async {
                                                   await launchUrl(Uri.parse(
-                                                      'google.navigation:q=${widget.item["Latitude"]}, ${widget.item["Longitude"]}&key=AIzaSyAuvt2CB5r1jLoA5k00VnDkJmrAM3cL52g'));
+                                                      'google.navigation:q=${widget.item["Latitude"]}, ${widget.item["Longitude"]}&key=AIzaSyBqx0f1yaQY_3bgy4-pGwkHF8QmRy94dTE'));
                                                 },
                                                 style: const ButtonStyle(
                                                     side:

@@ -186,7 +186,7 @@ class _RoutingState extends State<Routing> {
       GoogleMaps.LatLng start, GoogleMaps.LatLng end, double heading) async {
     try {
       String apiKey =
-          'AIzaSyAuvt2CB5r1jLoA5k00VnDkJmrAM3cL52g'; // Replace with your Google Maps API key
+          'AIzaSyBqx0f1yaQY_3bgy4-pGwkHF8QmRy94dTE'; // Replace with your Google Maps API key
       String origin = '${start.latitude},${start.longitude}';
       String destination = '${end.latitude},${end.longitude}';
       String apiUrl =

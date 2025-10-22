@@ -205,7 +205,7 @@ class _NavigateState extends State<Navigate> {
       List<dynamic> points = [];
 
       // Use a different API key that has Directions API enabled
-      String apiKey = 'AIzaSyAuvt2CB5r1jLoA5k00VnDkJmrAM3cL52g';
+      String apiKey = 'AIzaSyBqx0f1yaQY_3bgy4-pGwkHF8QmRy94dTE';
 
       // First try to get directions using the Directions API directly
       String directionsUrl =
@@ -333,7 +333,7 @@ class _NavigateState extends State<Navigate> {
       double originLng = curLocation.longitude; // Origin longitude
       double destinationLat = dst.latitude; // Destination latitude
       double destinationLng = dst.longitude; // Destination longitude
-      String apiKey = 'AIzaSyAuvt2CB5r1jLoA5k00VnDkJmrAM3cL52g';
+      String apiKey = 'AIzaSyBqx0f1yaQY_3bgy4-pGwkHF8QmRy94dTE';
 
       String url =
           'https://maps.googleapis.com/maps/api/directions/json?origin=$originLat,$originLng&destination=$destinationLat,$destinationLng&key=$apiKey&steps=true';
@@ -910,7 +910,7 @@ class _NavigateState extends State<Navigate> {
                                             child: TextButton(
                                                 onPressed: () async {
                                                   await launchUrl(Uri.parse(
-                                                      'google.navigation:q=${report["latitude"]}, ${report["longitude"]}&key=AIzaSyAuvt2CB5r1jLoA5k00VnDkJmrAM3cL52g'));
+                                                      'google.navigation:q=${report["latitude"]}, ${report["longitude"]}&key=AIzaSyBqx0f1yaQY_3bgy4-pGwkHF8QmRy94dTE'));
                                                 },
                                                 style: const ButtonStyle(
                                                     side:
@@ -967,7 +967,8 @@ class _NavigateState extends State<Navigate> {
                                                       MaterialPageRoute(
                                                           builder: (_) =>
                                                               FileReport(
-                                                                  item: widget.item)));
+                                                                  item: widget
+                                                                      .item)));
                                                 },
                                                 style: const ButtonStyle(
                                                     side:
