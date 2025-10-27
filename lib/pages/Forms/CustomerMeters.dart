@@ -33,6 +33,7 @@ class _CustomerMetersState extends State<CustomerMeters> {
 
   var long = 36.0, lat = -2.0, acc = 100.0;
   String error = '';
+  String accountNumberError = '';
   String? editing = 'false';
   String staffid = '';
   String accnum = '';
@@ -343,14 +344,35 @@ class _CustomerMetersState extends State<CustomerMeters> {
                     MyTextInput(
                       lines: 1,
                       value: accnum,
-                      type: TextInputType.numberWithOptions(decimal: true),
+                      type: TextInputType.number,
+                      maxLength: 5,
                       onSubmit: (value) {
                         setState(() {
                           accnum = value;
+                          // Validate account number
+                          if (value.isEmpty) {
+                            accountNumberError = '';
+                          } else if (value.length < 5) {
+                            accountNumberError =
+                                'Enter ${5 - value.length} more digit(s)';
+                          } else {
+                            accountNumberError = '';
+                          }
                         });
                       },
                       title: 'Account Number',
                     ),
+                    if (accountNumberError.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8, top: 4),
+                        child: Text(
+                          accountNumberError,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
                     MyTextInput(
                       lines: 1,
                       value: meterserial,
@@ -431,7 +453,7 @@ class _CustomerMetersState extends State<CustomerMeters> {
                         "Honey Well",
                         "Diehl",
                         "Lianli",
-                        "Eister-Kent",
+                        "Elstar Kent",
                         "Wesan-Wottman",
                         "Janz",
                         "Other"
@@ -571,6 +593,7 @@ class _CustomerMetersState extends State<CustomerMeters> {
                             isLoading = null;
                             if (res.success != null) {
                               error = "";
+                              accountNumberError = "";
                               _showSnackBar(res.success, true);
                             } else {
                               error = res.error ?? "Unknown error occurred";
@@ -658,6 +681,16 @@ Future<Message> submitData(
       token: null,
       success: null,
       error: "Account number must be filled!",
+    );
+  }
+
+  // Validate 5-digit constraint
+  if (accountnumber.length != 5 ||
+      !RegExp(r'^[0-9]{5}$').hasMatch(accountnumber)) {
+    return Message(
+      token: null,
+      success: null,
+      error: "Account number must be exactly 5 digits",
     );
   }
 

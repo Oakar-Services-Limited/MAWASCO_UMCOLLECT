@@ -8,6 +8,7 @@ class MyTextInput extends StatefulWidget {
   final int lines;
   final TextInputType type;
   final Function(dynamic) onSubmit;
+  final int? maxLength;
 
   const MyTextInput(
       {super.key,
@@ -15,7 +16,8 @@ class MyTextInput extends StatefulWidget {
       required this.lines,
       required this.value,
       required this.type,
-      required this.onSubmit});
+      required this.onSubmit,
+      this.maxLength});
 
   @override
   State<StatefulWidget> createState() => _MyTextInputState();
@@ -34,7 +36,7 @@ class _MyTextInputState extends State<MyTextInput> {
   @override
   void didUpdateWidget(covariant MyTextInput oldWidget) {
     super.didUpdateWidget(oldWidget);
-   
+
     if (widget.value != oldWidget.value) {
       _controller.text = widget.value;
     }
@@ -69,6 +71,7 @@ class _MyTextInputState extends State<MyTextInput> {
                   : null,
               controller: _controller,
               maxLines: widget.lines,
+              maxLength: widget.maxLength,
               style: const TextStyle(color: Color(0xff0288D1)),
               cursorColor: const Color(0xff0288D1),
               obscureText: widget.type == TextInputType.visiblePassword

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:um_collect/components/FootNote.dart';
 import 'package:um_collect/pages/incidences.dart';
 import 'package:um_collect/pages/privaypolicy.dart';
-import 'package:um_collect/pages/stafflogin.dart';
 
 class MyDrawer extends StatefulWidget {
   const MyDrawer({super.key});
@@ -141,35 +140,7 @@ class _MyDrawerState extends State<MyDrawer> {
                         //     ),
                         //   ),
                         // ),
-                        TextButton(
-                          onPressed: () {
-                            // const store = FlutterSecureStorage();
-                            // store.deleteAll();
-                            Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) => const StaffLogin()));
-                          },
-                          child: const Padding(
-                            padding: EdgeInsets.all(8),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                Icon(Icons.logout, color: Colors.white),
-                                SizedBox(
-                                  width: 24,
-                                ),
-                                Text(
-                                  'Staff Login',
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w400),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                        
                       ],
                     ),
                   ),

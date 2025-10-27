@@ -75,23 +75,25 @@ class _IncidencesState extends State<Incidences> {
                 .map((category) => Category.fromJson(category))
                 .toList();
             isLoading = false;
+            error = null;
           });
         } else {
           setState(() {
-            error = 'Failed to load categories';
+            error = 'Unable to load incidents. Please try again.';
             isLoading = false;
           });
         }
       } else {
         setState(() {
-          error = 'Failed to load categories';
+          error = 'Unable to load incidents. Please try again.';
           isLoading = false;
         });
       }
     } catch (e) {
       if (!mounted) return; // Check if widget is still mounted
       setState(() {
-        error = 'Connection error: $e';
+        error =
+            'Error loading incidences. Please check your internet connection.';
         isLoading = false;
       });
     }
@@ -224,33 +226,51 @@ class _IncidencesState extends State<Incidences> {
                             )
                           : error != null
                               ? Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Icon(
-                                        Icons.error_outline,
-                                        color: Colors.red,
-                                        size: 48,
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        error!,
-                                        textAlign: TextAlign.center,
-                                        style: const TextStyle(
-                                          color: Colors.red,
-                                          fontSize: 16,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(24.0),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(
+                                          Icons.wifi_off_rounded,
+                                          color: Colors.grey,
+                                          size: 64,
                                         ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      ElevatedButton(
-                                        onPressed: fetchCategories,
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor:
-                                              const Color(0xff0288D1),
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          error!,
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                            color: Colors.grey,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w500,
+                                          ),
                                         ),
-                                        child: const Text('Retry'),
-                                      ),
-                                    ],
+                                        const SizedBox(height: 24),
+                                        ElevatedButton.icon(
+                                          onPressed: fetchCategories,
+                                          icon: const Icon(
+                                            Icons.refresh_rounded,
+                                            color: Colors.white,
+                                          ),
+                                          label: const Text(
+                                            'Retry',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor:
+                                                const Color(0xff0288D1),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 32,
+                                              vertical: 12,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 )
                               : GridView.builder(

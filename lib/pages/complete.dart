@@ -88,7 +88,7 @@ class _CompleteIncidencesState extends State<CompleteIncidences> {
         }
       }
     } catch (e) {
-      print("Exception occurred: $e");
+      debugPrint("Exception occurred: $e");
       setState(() {
         incireported = [];
         isLoading = null;
