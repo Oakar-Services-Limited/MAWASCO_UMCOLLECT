@@ -62,7 +62,15 @@ class _HomeState extends State<Home> {
   Future<void> getDefaultValues() async {
     try {
       var token = await storage.read(key: "mwstaffjwt");
-      var decoded = parseJwt(token.toString());
+
+      // Check if token is null or empty
+      if (token == null || token.isEmpty) {
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (_) => const Login()));
+        return;
+      }
+
+      var decoded = parseJwt(token);
       formattedDate = DateFormat('MMMM dd, yyyy').format(DateTime.now());
       print("decoded: $decoded");
       if (decoded["error"] == "Invalid token") {
@@ -87,6 +95,8 @@ class _HomeState extends State<Home> {
 
   Future<void> fetchStats(String id, bool isnew) async {
     try {
+      if (!mounted) return;
+
       setState(() {
         isnew
             ? isLoading = LoadingAnimationWidget.horizontalRotatingDots(
@@ -95,27 +105,75 @@ class _HomeState extends State<Home> {
               )
             : null;
       });
-      final response = await get(
-        Uri.parse("${getUrl()}reports/assigned/$id/0"),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
+
+      final storage = const FlutterSecureStorage();
+      final token = await storage.read(key: "mwstaffjwt");
+
+      if (token == null) {
+        if (!mounted) return;
+        setState(() {
+          pending = '0';
+          complete = '0';
+          isLoading = null;
+        });
+        return;
+      }
+
+      // Fetch pending count
+      final pendingResponse = await get(
+        Uri.parse(
+            "${getUrl()}om/assigned-reports?userId=$id&status=Inprogress"),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
         },
       );
 
-      if (response.statusCode == 200 || response.statusCode == 203) {
-        var data = json.decode(response.body);
-        print("reports stats: $data");
+      if (!mounted) return;
 
+      // Fetch resolved count
+      final resolvedResponse = await get(
+        Uri.parse("${getUrl()}om/assigned-reports?userId=$id&status=Resolved"),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (!mounted) return;
+
+      if (pendingResponse.statusCode == 200 &&
+          resolvedResponse.statusCode == 200) {
+        var pendingData = json.decode(pendingResponse.body);
+        var resolvedData = json.decode(resolvedResponse.body);
+
+        print("reports stats pending: ${pendingData['data']?.length ?? 0}");
+        print("reports stats resolved: ${resolvedData['data']?.length ?? 0}");
+
+        if (!mounted) return;
         setState(() {
-          pending = data['countP'];
-          complete = data['countR'];
+          pending = (pendingData['data']?.length ?? 0).toString();
+          complete = (resolvedData['data']?.length ?? 0).toString();
           isLoading = null;
         });
       } else {
-        print("reports stats: ${response.statusCode}");
+        print(
+            "reports stats: pending=${pendingResponse.statusCode}, resolved=${resolvedResponse.statusCode}");
+        if (!mounted) return;
+        setState(() {
+          pending = '0';
+          complete = '0';
+          isLoading = null;
+        });
       }
     } catch (e) {
       print("reports stats error: $e");
+      if (!mounted) return;
+      setState(() {
+        pending = '0';
+        complete = '0';
+        isLoading = null;
+      });
     }
   }
 
@@ -449,6 +507,17 @@ class _HomeState extends State<Home> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              if (count != null) ...[
+                Text(
+                  count,
+                  style: const TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xff0288D1),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -471,17 +540,6 @@ class _HomeState extends State<Home> {
                 ),
                 textAlign: TextAlign.center,
               ),
-              if (count != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  count,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xff0288D1),
-                  ),
-                ),
-              ],
             ],
           ),
         ),

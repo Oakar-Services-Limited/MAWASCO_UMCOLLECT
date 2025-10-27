@@ -111,7 +111,19 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
     setState(() => isLoading = true);
     try {
       var token = await storage.read(key: "mwstaffjwt");
-      var decoded = parseJwt(token.toString());
+
+      // Check if token is null or empty
+      if (token == null || token.isEmpty) {
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const Login()),
+          );
+        }
+        return;
+      }
+
+      var decoded = parseJwt(token);
 
       if (mounted) {
         Navigator.pushReplacement(
@@ -120,6 +132,14 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
               builder: (_) => decoded["error"] == "Invalid token"
                   ? const Login()
                   : const Home()),
+        );
+      }
+    } catch (e) {
+      print("Error parsing token: $e");
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const Login()),
         );
       }
     } finally {
