@@ -39,6 +39,7 @@ class _MasterMetersState extends State<MasterMeters> {
   String dma = '';
   String cover = '';
   String status = '';
+  String category = '';
   String size = '';
   String name = '';
   String zone = '';
@@ -69,6 +70,7 @@ class _MasterMetersState extends State<MasterMeters> {
 
       print("Decoded token: $decoded");
 
+      if (!mounted) return;
       setState(() {
         user = decoded["name"];
         staffid = decoded["id"];
@@ -89,8 +91,10 @@ class _MasterMetersState extends State<MasterMeters> {
     var fetchedData = await storage.read(key: "data");
     data = json.decode(fetchedData!);
 
+    if (!mounted) return;
     setState(() {
       masterMeterID = data[0]["id"]?.toString() ?? "";
+      category = data[0]["category"]?.toString() ?? "";
       name = data[0]["name"]?.toString() ?? "";
       size = data[0]["size"]?.toString() ?? "";
       route = data[0]["route"]?.toString() ?? "";
@@ -113,6 +117,7 @@ class _MasterMetersState extends State<MasterMeters> {
         .listen((Position position) {
       print(position.latitude);
       print(position.longitude);
+      if (!mounted) return;
       setState(() {
         long = position.longitude;
         lat = position.latitude;
@@ -209,6 +214,17 @@ class _MasterMetersState extends State<MasterMeters> {
                       },
                       title: 'Name',
                     ),
+                    MySelectInput(
+                      onSubmit: (value) => setState(() => category = value),
+                      list: const [
+                        "--Select--",
+                        "Production Meter",
+                        "Zonal Meter",
+                        "DMA Meter"
+                      ],
+                      label: 'Category',
+                      value: category,
+                    ),
                     MyTextInput(
                       lines: 1,
                       value: size,
@@ -301,6 +317,7 @@ class _MasterMetersState extends State<MasterMeters> {
                               lat.toString(),
                               long.toString(),
                               name,
+                              category,
                               size,
                               route,
                               zone,
@@ -311,6 +328,7 @@ class _MasterMetersState extends State<MasterMeters> {
                               staffid,
                               editing);
 
+                          if (!mounted) return;
                           setState(() {
                             isLoading = null;
                             if (res.error == null) {
@@ -324,6 +342,7 @@ class _MasterMetersState extends State<MasterMeters> {
                           if (res.error == null) {
                             // PROCEED TO NEXT PAGE
                             Timer(const Duration(seconds: 2), () {
+                              if (!mounted) return;
                               Navigator.pushReplacement(
                                   context,
                                   MaterialPageRoute(
@@ -357,6 +376,7 @@ Future<Message> submitData(
     String lat,
     String long,
     String name,
+    String category,
     String size,
     String route,
     String zone,
@@ -377,6 +397,7 @@ Future<Message> submitData(
         },
         body: jsonEncode(<String, dynamic>{
           'name': name,
+          'category': category,
           'size': size,
           'route': route,
           'zone': zone,
@@ -395,6 +416,7 @@ Future<Message> submitData(
         },
         body: jsonEncode(<String, dynamic>{
           'name': name,
+          'category': category,
           'size': size,
           'route': route,
           'zone': zone,
