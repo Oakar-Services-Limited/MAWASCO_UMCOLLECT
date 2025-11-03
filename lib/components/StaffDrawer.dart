@@ -9,6 +9,7 @@ import 'package:um_collect/pages/Settings.dart';
 import 'package:um_collect/pages/home.dart';
 import 'package:um_collect/pages/incidences.dart';
 import 'package:um_collect/pages/incidences_home.dart';
+import 'package:um_collect/pages/incidenceslist.dart';
 import 'package:um_collect/pages/login.dart';
 import 'package:um_collect/pages/assetnavigation.dart';
 import 'package:um_collect/pages/privaypolicy.dart';
@@ -22,7 +23,7 @@ class StaffDrawer extends StatefulWidget {
 }
 
 class _StaffDrawerState extends State<StaffDrawer> {
-    final storage = const FlutterSecureStorage();
+  final storage = const FlutterSecureStorage();
 
   String staffid = '';
 
@@ -42,12 +43,9 @@ class _StaffDrawerState extends State<StaffDrawer> {
       } else {
         setState(() {
           staffid = decoded["id"];
-     
         });
 
-
         await storage.write(key: 'staffid', value: staffid);
-
       }
     } catch (e) {}
   }
@@ -109,7 +107,18 @@ class _StaffDrawerState extends State<StaffDrawer> {
                               builder: (_) => const Incidences())),
                     ),
                     _buildDrawerItem(
-                      icon: Icons.sync_problem,
+                      icon: Icons.report_problem,
+                      title: 'MyReported Incidents',
+                      onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => IncidencesList(
+                                    staffid:
+                                        staffid.isNotEmpty ? staffid : null,
+                                  ))),
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.navigation,
                       title: 'Asset Navigation',
                       onTap: () => Navigator.pushReplacement(
                           context,

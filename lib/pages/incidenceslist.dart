@@ -1,16 +1,17 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:um_collect/components/MyDrawer.dart';
 import 'package:um_collect/components/MyReportedItem.dart';
+import 'package:um_collect/components/StaffDrawer.dart';
 import 'package:um_collect/components/Utils.dart';
-import 'package:um_collect/pages/incidences.dart';
 import 'package:http/http.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 class IncidencesList extends StatefulWidget {
+  final String? staffid;
   const IncidencesList({
     super.key,
+    this.staffid,
   });
 
   @override
@@ -25,14 +26,45 @@ class _IncidencesListState extends State<IncidencesList> {
   var isLoading;
   int currentPage = 1;
   final int itemsPerPage = 5;
+  String user = '';
+  String id = '';
+  String userId = '';
 
-  void _openDrawer() {
-    _scaffoldKey.currentState?.openDrawer();
+  Future<void> getUserDetails() async {
+    try {
+      // First check for staff token
+      var staffToken = await storage.read(key: "mwstaffjwt");
+      if (staffToken != null) {
+        var decoded = parseJwt(staffToken.toString());
+        if (!mounted) return;
+        setState(() {
+          userId = decoded["id"]?.toString() ?? '';
+          user = decoded["name"] ?? '';
+          id = decoded["id"]?.toString() ?? '';
+        });
+        return;
+      }
+
+      // If no staff token, check for public user token
+      var publicToken = await storage.read(key: "mwjwt");
+      if (publicToken != null) {
+        var decoded = parseJwt(publicToken.toString());
+        if (!mounted) return;
+        setState(() {
+          userId = decoded["id"]?.toString() ?? '';
+          id = decoded["id"]?.toString() ?? '';
+        });
+      }
+    } catch (e) {
+      print("Error getting user ID: $e");
+    }
   }
 
   @override
   void initState() {
-    fetchReportedIncidences();
+    getUserDetails().then((_) {
+      fetchReportedIncidences();
+    });
     super.initState();
   }
 
@@ -42,10 +74,19 @@ class _IncidencesListState extends State<IncidencesList> {
   }
 
   Future<void> fetchReportedIncidences() async {
-    var token = await storage.read(key: "mwjwt");
-    var decoded = parseJwt(token.toString());
-    var userid = decoded["id"];
+    // Use staffid if provided, otherwise use userId from token
+    String userIdentifier = widget.staffid ?? userId;
 
+    if (userIdentifier.isEmpty) {
+      print("No user ID available to fetch incidents");
+      if (!mounted) return;
+      setState(() {
+        isLoading = null;
+      });
+      return;
+    }
+
+    if (!mounted) return;
     setState(() {
       isLoading = LoadingAnimationWidget.staggeredDotsWave(
         color: const Color(0xff0288D1),
@@ -54,23 +95,85 @@ class _IncidencesListState extends State<IncidencesList> {
     });
 
     try {
-      final response = await get(
-        Uri.parse("${getUrl()}reports/reported/$userid/0"),
-      );
+      // Get auth token for authenticated requests
+      var staffToken = await storage.read(key: "mwstaffjwt");
+      var publicToken = await storage.read(key: "mwjwt");
+      var authToken = staffToken ?? publicToken;
 
-      List responseList = json.decode(response.body);
+      // Use the correct endpoint: /om/reports with userId query parameter
+      String url = "${getUrl()}om/reports?userId=$userIdentifier";
+      print("Fetching reported incidents from: $url");
+      print("User ID being used: $userIdentifier");
+
+      Map<String, String> headers = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add auth header if token exists
+      if (authToken != null) {
+        headers['Authorization'] = 'Bearer $authToken';
+      }
+
+      final response = await get(Uri.parse(url), headers: headers);
+
+      print("Response status: ${response.statusCode}");
+      print("Response body length: ${response.body.length}");
+      if (response.body.length < 500) {
+        print("Response body: ${response.body}");
+      }
+
+      if (response.statusCode == 200) {
+        var decoded = json.decode(response.body);
+
+        // Handle different response formats
+        List responseList;
+        if (decoded is List) {
+          responseList = decoded;
+        } else if (decoded is Map) {
+          if (decoded.containsKey('data') && decoded['data'] is List) {
+            responseList = decoded['data'];
+          } else if (decoded.containsKey('reports') &&
+              decoded['reports'] is List) {
+            responseList = decoded['reports'];
+          } else if (decoded.containsKey('results') &&
+              decoded['results'] is List) {
+            responseList = decoded['results'];
+          } else {
+            responseList = [];
+          }
+        } else {
+          responseList = [];
+        }
+
+        if (!mounted) return;
+        setState(() {
+          incidentLst = responseList;
+          isLoading = null;
+        });
+        print(
+            "Loaded ${responseList.length} incidents for user: $userIdentifier");
+      } else {
+        print("Failed to fetch incidents. Status: ${response.statusCode}");
+        print("Response: ${response.body}");
+        if (!mounted) return;
+        setState(() {
+          incidentLst = [];
+          isLoading = null;
+        });
+      }
+    } catch (e, stackTrace) {
+      print("Error fetching reported incidents: $e");
+      print("Stack trace: $stackTrace");
+      if (!mounted) return;
       setState(() {
-        incidentLst = responseList;
-        isLoading = null;
-      });
-    } catch (e) {
-      setState(() {
+        incidentLst = [];
         isLoading = null;
       });
     }
   }
 
   List<dynamic> get paginatedIncidents {
+    if (incidentLst.isEmpty) return [];
     final startIndex = (currentPage - 1) * itemsPerPage;
     final endIndex = startIndex + itemsPerPage;
     return incidentLst.sublist(
@@ -103,12 +206,20 @@ class _IncidencesListState extends State<IncidencesList> {
         actions: <Widget>[
           IconButton(
             icon: const Icon(
+              Icons.refresh,
+              color: Colors.white,
+            ),
+            onPressed: () {
+              fetchReportedIncidences();
+            },
+          ),
+          IconButton(
+            icon: const Icon(
               Icons.arrow_back,
               color: Colors.white,
             ),
             onPressed: () {
-              Navigator.pushReplacement(context,
-                  MaterialPageRoute(builder: (_) => const Incidences()));
+              Navigator.pop(context);
             },
           ),
         ],
@@ -119,7 +230,9 @@ class _IncidencesListState extends State<IncidencesList> {
         backgroundColor: const Color(0xff0288D1),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      drawer: const MyDrawer(),
+      drawer: widget.staffid != null
+          ? StaffDrawer(staffid: widget.staffid!)
+          : StaffDrawer(staffid: userId.isNotEmpty ? userId : ''),
       body: Container(
         width: MediaQuery.of(context).size.width,
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
@@ -144,9 +257,19 @@ class _IncidencesListState extends State<IncidencesList> {
   }
 
   Widget _buildBody() {
-    if (incidentLst.isEmpty && isLoading == null) {
+    if (isLoading != null) {
+      return const SizedBox.shrink();
+    }
+
+    if (incidentLst.isEmpty) {
       return const Center(
-        child: Text('No client calls.'),
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Text(
+            'No reported incidents found.',
+            style: TextStyle(fontSize: 16),
+          ),
+        ),
       );
     } else {
       return ListView.builder(

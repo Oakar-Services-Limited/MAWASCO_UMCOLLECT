@@ -26,16 +26,41 @@ class _CollectedItemState extends State<MyReportedItem> {
   }
 
   DateTime parsePostgresTimestamp(String timestamp) {
-    return DateTime.parse(timestamp)
-        .toLocal(); // Parse timestamp and convert to local time
+    return DateTime.parse(timestamp).toLocal();
+  }
+
+  String _getFormattedDateTime() {
+    final createdAt = widget.item["createdAt"] ?? widget.item["CreatedAt"];
+    if (createdAt == null) return "Date not available";
+    try {
+      final dateTime = parsePostgresTimestamp(createdAt.toString());
+      return "${DateFormat('EEEE, MMMM d, y').format(dateTime)} \n ${DateFormat('HH:mm').format(dateTime)}";
+    } catch (e) {
+      return "Date not available";
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final String fullImageUrl = widget.item["Image"] != null &&
-            widget.item["Image"]!.toString().isNotEmpty
-        ? "${getUrl()}uploads/${widget.item["Image"]!.toString().replaceAll("uploads/", "")}"
+    final imageField = widget.item["Image"] ?? widget.item["image"];
+    final String fullImageUrl = (imageField != null &&
+            imageField.toString().isNotEmpty)
+        ? "${getUrl()}uploads/${imageField.toString().replaceAll("uploads/", "")}"
         : '';
+
+    final incidentType = widget.item["Type"] ??
+        widget.item["incidentType"] ??
+        widget.item["type"] ??
+        "Incident";
+    final description = widget.item["Description"] ??
+        widget.item["description"] ??
+        "No description available";
+    final status = widget.item["Status"] ?? widget.item["status"] ?? "Received";
+    final serialNo = widget.item["SerialNo"] ??
+        widget.item["serialNo"] ??
+        widget.item["id"] ??
+        (widget.index + 1);
+
     return GestureDetector(
       onTap: () {
         if (fullImageUrl.isNotEmpty) {
@@ -93,20 +118,32 @@ class _CollectedItemState extends State<MyReportedItem> {
                     padding: const EdgeInsets.all(5),
                     width: 60,
                     decoration: BoxDecoration(
-                        color: Colors.white70,
-                        borderRadius:
-                            const BorderRadius.all(Radius.circular(5)),
-                        border: Border.all(
-                            color: const Color(0xff0288D1), width: 1)),
-                    child: Align(
-                      alignment: Alignment.center,
-                      child: Text(
-                        (widget.item["SerialNo"]).toString(),
-                        style: const TextStyle(
+                      color: const Color(0xffE3F2FD), // Light blue
+                      borderRadius: const BorderRadius.all(Radius.circular(5)),
+                      border:
+                          Border.all(color: const Color(0xff0288D1), width: 1),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          "SR No.",
+                          style: TextStyle(
+                            color: Color(0xff0288D1),
+                            fontSize: 8,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          serialNo.toString(),
+                          style: const TextStyle(
                             color: Color(0xff0288D1),
                             fontWeight: FontWeight.bold,
-                            fontSize: 24),
-                      ),
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(
@@ -120,7 +157,7 @@ class _CollectedItemState extends State<MyReportedItem> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          widget.item["Type"],
+                          incidentType,
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -131,27 +168,11 @@ class _CollectedItemState extends State<MyReportedItem> {
                           height: 4,
                         ),
                         Text(
-                          "${widget.item["Description"]}",
+                          description,
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                             color: Color(0xff0288D1),
-                          ),
-                        ),
-                        const SizedBox(
-                          height: 4,
-                        ),
-                        Card(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
-                            child: Text(
-                              "Status: ${widget.item["TaskRemark"] == null ? "Pending" : "Resolved"}",
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xff0288D1),
-                              ),
-                            ),
                           ),
                         ),
                       ],
@@ -163,16 +184,36 @@ class _CollectedItemState extends State<MyReportedItem> {
           ),
           Align(
               alignment: Alignment.topRight,
-              child: Container(
-                  padding: const EdgeInsets.fromLTRB(12, 2, 12, 2),
-                  decoration: const BoxDecoration(
-                      color: Colors.orange,
-                      borderRadius:
-                          BorderRadius.only(topRight: Radius.circular(5))),
-                  child: Text(
-                    "${DateFormat('EEEE, MMMM d, y').format(parsePostgresTimestamp(widget.item["createdAt"]))} \n ${DateFormat('HH:mm').format(parsePostgresTimestamp(widget.item["createdAt"]))}",
-                    style: const TextStyle(fontSize: 10, color: Colors.white),
-                  ))),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                      padding: const EdgeInsets.fromLTRB(12, 2, 12, 2),
+                      decoration: const BoxDecoration(
+                          color: Colors.orange,
+                          borderRadius:
+                              BorderRadius.only(topRight: Radius.circular(5))),
+                      child: Text(
+                        _getFormattedDateTime(),
+                        style:
+                            const TextStyle(fontSize: 10, color: Colors.white),
+                      )),
+                  const SizedBox(height: 2),
+                  Container(
+                      padding: const EdgeInsets.fromLTRB(12, 2, 12, 2),
+                      decoration: BoxDecoration(
+                          color:
+                              status == "Resolved" ? Colors.green : Colors.red,
+                          borderRadius: BorderRadius.only(
+                              bottomRight: Radius.circular(5))),
+                      child: Text(
+                        status,
+                        style:
+                            const TextStyle(fontSize: 10, color: Colors.white),
+                      )),
+                ],
+              )),
         ],
       ),
     );
