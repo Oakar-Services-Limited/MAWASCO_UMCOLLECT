@@ -44,6 +44,7 @@ class _ReportIncidentState extends State<ReportIncident> {
   String schemetype = '';
   String pipesize = '';
   String pipematerial = '';
+  String priority = '';
   var isLoading;
   late File? _image;
   final imagePicker = ImagePicker();
@@ -704,6 +705,18 @@ class _ReportIncidentState extends State<ReportIncident> {
               mycolor: const Color(0xff0288D1),
               iconcolor: const Color(0xff0288D1),
             ),
+            const SizedBox(height: 16),
+            MySelectInput(
+              onSubmit: (value) {
+                setState(() {
+                  priority = value;
+                });
+              },
+              list: const ["--Select Priority--", "Low", "Medium", "High"],
+              label: 'How urgent is the incident?',
+              value: priority,
+              labelFontSize: 18,
+            ),
           ],
         ),
       ),
@@ -740,7 +753,8 @@ class _ReportIncidentState extends State<ReportIncident> {
               reportertype,
               name,
               phone,
-              pipematerial);
+              pipematerial,
+              priority);
 
           setState(() {
             isLoading = null;
@@ -826,6 +840,7 @@ Future<Message> submitData(
   String name,
   String phone,
   String pipematerial,
+  String priority,
 ) async {
   if (myimage.isEmpty && incident != "Supply Fail") {
     return Message(
@@ -894,18 +909,8 @@ Future<Message> submitData(
           : null,
       'reporterName': name,
       'reporterPhone': phone,
+      'priority': priority,
     };
-
-    print("Request payload: $payload");
-    print("Reporter Type: $reportertype");
-    print("Name being sent: '$name'");
-    print("Phone being sent: '$phone'");
-    if (reportertype == "Staff") {
-      print("Staff User ID being sent: $userId");
-    } else {
-      print("Public User Name: $name");
-      print("Public User Phone: $phone");
-    }
 
     final response = await post(
       Uri.parse("${getUrl()}om/reports"),
