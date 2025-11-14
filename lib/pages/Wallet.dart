@@ -1,4 +1,4 @@
-// ignore_for_file: prefer_typing_uninitialized_variables
+// ignore_for_file: prefer_typing_uninitialized_variables, file_names
 
 import 'dart:async';
 import 'dart:convert';
@@ -41,7 +41,6 @@ class _MyWalletState extends State<MyWallet> {
   Timer? _pollingTimer;
 
   Future<void> pollForPaymentStatus(String checkoutRequestID) async {
-    print("request id: $checkoutRequestID");
     _pollingTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
       try {
         final response = await get(
@@ -51,8 +50,6 @@ class _MyWalletState extends State<MyWallet> {
 
         if (response.statusCode == 200) {
           var result = jsonDecode(response.body);
-
-          print("payment status wallet: $result");
 
           if (result['success']) {
             setState(() {
@@ -76,7 +73,7 @@ class _MyWalletState extends State<MyWallet> {
           }
         }
       } catch (e) {
-        print("Error polling payment status: $e");
+        //  debugPrint("Error polling payment status: $e");
       }
     });
   }
@@ -87,7 +84,6 @@ class _MyWalletState extends State<MyWallet> {
     }
 
     try {
-      print("phone number is : $phone, $amount");
       final response = await post(
         Uri.parse("${getUrl()}processrequest"),
         headers: {'Content-Type': 'application/json; charset=UTF-8'},
@@ -100,7 +96,6 @@ class _MyWalletState extends State<MyWallet> {
       if (response.statusCode == 200 || response.statusCode == 201) {
         var a = jsonDecode(response.body);
         String checkoutRequestID = a['data']['CheckoutRequestID'];
-        print("STK Push initiated: $checkoutRequestID");
 
         // Start polling for the payment result
         pollForPaymentStatus(checkoutRequestID);
@@ -116,7 +111,6 @@ class _MyWalletState extends State<MyWallet> {
         }
       }
     } catch (e) {
-      print("wallet error: $e");
       return Message(error: "Connection to server failed! Error: $e");
     }
   }
@@ -142,8 +136,6 @@ class _MyWalletState extends State<MyWallet> {
   }
 
   Future<void> updateTransactionsList(userid) async {
-    print("transacationslist id: $userid");
-
     setState(() {
       isLoading = LoadingAnimationWidget.staggeredDotsWave(
         color: const Color.fromARGB(255, 23, 117, 126),
@@ -159,7 +151,6 @@ class _MyWalletState extends State<MyWallet> {
       if (response.statusCode == 200) {
         // Parsing the response body only if it's successful (status 200)
         var data = json.decode(response.body);
-        print("transactions here: $data");
 
         setState(() {
           error = "";
@@ -188,14 +179,12 @@ class _MyWalletState extends State<MyWallet> {
         });
       } else {
         // Log the response for non-200 status codes
-        print("Error: ${response.statusCode}, Body: ${response.body}");
         setState(() {
           error = "Failed to load transactions";
           isLoading = null;
         });
       }
     } catch (e) {
-      print("transactions error: $e");
       setState(() {
         error = "An error occurred while fetching transactions";
         isLoading = null;
@@ -209,6 +198,8 @@ class _MyWalletState extends State<MyWallet> {
     var phone = decoded["Phone"];
 
     phone.startsWith('0') ? phone = '254${phone.substring(1)}' : phone = phone;
+
+    if (!mounted) return;
 
     if (decoded["error"] == "Invalid token") {
       Navigator.pushReplacement(
@@ -332,7 +323,6 @@ class _MyWalletState extends State<MyWallet> {
                       itemCount: transactions.length,
                       itemBuilder: (context, index) {
                         final transaction = transactions[index];
-                        print("transactions list: ${transactions[index]}");
                         return ListTile(
                           leading: Icon(
                             transaction.type == 'ride_payment'
@@ -377,8 +367,6 @@ class _MyWalletState extends State<MyWallet> {
 }
 
 Future<Message> saveTransactionToDatabase(result, userid) async {
-  print("saved result: ${result["phoneNumber"]}");
-
   try {
     final response = await post(
       Uri.parse("${getUrl()}transaction/create"),
@@ -395,10 +383,7 @@ Future<Message> saveTransactionToDatabase(result, userid) async {
       }),
     );
 
-    print("body is ${response.body}");
-
     if (response.statusCode == 200 || response.statusCode == 203) {
-      print("response status: ${response.statusCode}");
       return Message.fromJson(jsonDecode(response.body));
     } else {
       return Message(
@@ -408,7 +393,6 @@ Future<Message> saveTransactionToDatabase(result, userid) async {
       );
     }
   } catch (e) {
-    print("error transactions: $e");
     return Message(
       token: null,
       success: null,

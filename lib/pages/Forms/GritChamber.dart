@@ -8,7 +8,6 @@ import 'package:um_collect/components/MySelectInput.dart';
 import 'package:um_collect/components/MyTextInput.dart';
 import 'package:um_collect/components/StaffDrawer.dart';
 import 'package:um_collect/components/SubmitButton.dart';
-import 'package:um_collect/components/TextResponse.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/models/Map.dart';
 import 'package:um_collect/pages/Assets.dart';
@@ -45,10 +44,6 @@ class _GritChambersState extends State<GritChambers> {
   dynamic data;
 
   var isLoading;
-
-  void _openDrawer() {
-    _scaffoldKey.currentState?.openDrawer();
-  }
 
   @override
   void initState() {

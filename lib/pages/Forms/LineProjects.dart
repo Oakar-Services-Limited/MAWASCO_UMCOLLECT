@@ -33,12 +33,9 @@ class _LineProjectsState extends State<LineProjects> {
   String? editing = 'false';
   String lineprojectID = '';
   String error = '';
+  String lineType = '--Select--'; // Water Pipes or Sewerline
   String linename = '';
-  String material = '';
   String intake = '';
-  String type = '';
-  String dma = '';
-  String schemename = '';
   String zone = '';
   String route = '';
   String size = '';
@@ -46,14 +43,19 @@ class _LineProjectsState extends State<LineProjects> {
   String role = '';
 
   var isLoading;
+  Timer? _navigationTimer;
 
-  void _openDrawer() {
-    _scaffoldKey.currentState?.openDrawer();
+  @override
+  void dispose() {
+    _navigationTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> fetchStoredData() async {
     var token = await storage.read(key: "mwstaffjwt");
     var decoded = parseJwt(token.toString());
+
+    if (!mounted) return;
 
     setState(() {
       user = decoded["name"];
@@ -66,16 +68,15 @@ class _LineProjectsState extends State<LineProjects> {
     var fetchedData = await storage.read(key: "data");
     data = json.decode(fetchedData!);
 
+    if (!mounted) return;
+
     setState(() {
       data[0]["LineName"] = linename;
-      data[0]["Material"] = material;
+      data[0]["LineType"] = lineType;
       data[0]["Intake"] = intake;
-      data[0]["Type"] = linename;
-      data[0]["DMA"] = linename;
-      data[0]["Route"] = linename;
-      data[0]["SchemeName"] = linename;
-      data[0]["Zone"] = linename;
-      data[0]["Size"] = linename;
+      data[0]["Route"] = route;
+      data[0]["Zone"] = zone;
+      data[0]["Size"] = size;
     });
   }
 
@@ -138,102 +139,82 @@ class _LineProjectsState extends State<LineProjects> {
                     const SizedBox(
                       height: 8,
                     ),
-                    MyTextInput(
-                      lines: 1,
-                      value: '',
-                      type: TextInputType.text,
-                      onSubmit: (value) {
-                        setState(() {
-                          linename = value;
-                        });
-                      },
-                      title: 'Line Name',
-                    ),
-                    MyTextInput(
-                      lines: 1,
-                      value: '',
-                      type: TextInputType.text,
-                      onSubmit: (value) {
-                        setState(() {
-                          material = value;
-                        });
-                      },
-                      title: 'Material',
-                    ),
-                    MyTextInput(
-                      lines: 1,
-                      value: '',
-                      type: TextInputType.numberWithOptions(decimal: true),
-                      onSubmit: (value) {
-                        setState(() {
-                          intake = value;
-                        });
-                      },
-                      title: 'Intake',
-                    ),
                     MySelectInput(
                       onSubmit: (value) {
                         setState(() {
-                          type = value;
+                          lineType = value;
+                          // Clear fields when switching types
+                          if (value == '--Select--') {
+                            linename = '';
+                            intake = '';
+                            zone = '--Select--';
+                            route = '';
+                            size = '';
+                          }
                         });
                       },
                       list: const [
                         "--Select--",
-                        "Laterals",
-                        "Service Lines",
-                        "Main Lines",
+                        "Water Pipes",
+                        "Sewerline",
                       ],
-                      label: 'Type',
-                      value: type,
+                      label: 'Line Type *',
+                      value: lineType,
                     ),
-                    MySelectInput(
-                      onSubmit: (value) => setState(() => dma = value),
-                      list: getDMAs(),
-                      label: 'DMA',
-                      value: dma,
-                    ),
-                    MySelectInput(
-                      onSubmit: (value) {
-                        setState(() {
-                          schemename = value;
-                        });
-                      },
-                      list: const [
-                        "--Select--",
-                        "Rural",
-                        "Urban",
+                    if (lineType != '--Select--') ...[
+                      MyTextInput(
+                        lines: 1,
+                        value: linename,
+                        type: TextInputType.text,
+                        onSubmit: (value) {
+                          setState(() {
+                            linename = value;
+                          });
+                        },
+                        title: 'Line Name *',
+                      ),
+                      if (lineType == 'Water Pipes') ...[
+                        MyTextInput(
+                          lines: 1,
+                          value: intake,
+                          type: TextInputType.numberWithOptions(decimal: true),
+                          onSubmit: (value) {
+                            setState(() {
+                              intake = value;
+                            });
+                          },
+                          title: 'Intake *',
+                        ),
                       ],
-                      label: 'Scheme Name',
-                      value: schemename,
-                    ),
-                    MySelectInput(
-                      onSubmit: (value) => setState(() => zone = value),
-                      list: getZones(),
-                      label: 'Zone',
-                      value: zone,
-                    ),
-                    MyTextInput(
-                      lines: 1,
-                      value: '',
-                      type: TextInputType.text,
-                      onSubmit: (value) {
-                        setState(() {
-                          route = value;
-                        });
-                      },
-                      title: 'Route',
-                    ),
-                    MyTextInput(
-                      lines: 1,
-                      value: '',
-                      type: TextInputType.text,
-                      onSubmit: (value) {
-                        setState(() {
-                          size = value;
-                        });
-                      },
-                      title: 'Size',
-                    ),
+                      MyTextInput(
+                        lines: 1,
+                        value: size,
+                        type: TextInputType.text,
+                        onSubmit: (value) {
+                          setState(() {
+                            size = value;
+                          });
+                        },
+                        title: 'Size *',
+                      ),
+                      MyTextInput(
+                        lines: 1,
+                        value: route,
+                        type: TextInputType.text,
+                        onSubmit: (value) {
+                          setState(() {
+                            route = value;
+                          });
+                        },
+                        title: 'Route *',
+                      ),
+                      MySelectInput(
+                        onSubmit: (value) => setState(() => zone = value),
+                        list: getZones(),
+                        label: 'Zone *',
+                        value: zone,
+                      ),
+                    ],
                     const SizedBox(
                       height: 12,
                     ),
@@ -250,15 +231,28 @@ class _LineProjectsState extends State<LineProjects> {
                             return;
                           }
                           // Validate required fields
+                          if (lineType == '--Select--') {
+                            _showSnackBar("Please select a line type", false);
+                            return;
+                          }
+
                           if (linename.isEmpty ||
-                              material.isEmpty ||
-                              type == '--Select--' ||
-                              zone == '--Select--' ||
-                              schemename == '--Select--') {
+                              size.isEmpty ||
+                              route.isEmpty ||
+                              zone == '--Select--') {
                             _showSnackBar(
                                 "Please fill in all required fields", false);
                             return;
                           }
+
+                          // Validate intake for Water Pipes only
+                          if (lineType == 'Water Pipes' && intake.isEmpty) {
+                            _showSnackBar(
+                                "Please fill in all required fields", false);
+                            return;
+                          }
+
+                          if (!mounted) return;
 
                           setState(() {
                             isLoading =
@@ -271,12 +265,9 @@ class _LineProjectsState extends State<LineProjects> {
                           var res = await submitData(
                             widget.coordinates,
                             lineprojectID,
+                            lineType,
                             linename,
-                            material,
                             intake,
-                            type,
-                            dma,
-                            schemename,
                             zone,
                             route,
                             size,
@@ -284,23 +275,30 @@ class _LineProjectsState extends State<LineProjects> {
                             editing,
                           );
 
+                          if (!mounted) return;
+
                           setState(() {
                             isLoading = null;
-                            if (res.error == null) {
-                              _showSnackBar(res.success, true);
-                              // Proceed to next page after successful submission
-                              Timer(const Duration(seconds: 2), () {
+                          });
+
+                          if (res.error == null) {
+                            _showSnackBar(res.success, true);
+                            // Proceed to next page after successful submission
+                            _navigationTimer?.cancel();
+                            _navigationTimer =
+                                Timer(const Duration(seconds: 2), () {
+                              if (mounted) {
                                 Navigator.pushReplacement(
                                     context,
                                     MaterialPageRoute(
                                         builder: (_) => Assets(
                                               staffid: staffid,
                                             )));
-                              });
-                            } else {
-                              _showSnackBar(res.error, false);
-                            }
-                          });
+                              }
+                            });
+                          } else {
+                            _showSnackBar(res.error, false);
+                          }
                         },
                       ),
                     ),
@@ -340,12 +338,9 @@ class _LineProjectsState extends State<LineProjects> {
 Future<Message> submitData(
     List<Map<String, double>> coordinates,
     String lineprojectID,
+    String lineType,
     String linename,
-    String material,
     String intake,
-    String type,
-    String dma,
-    String schemename,
     String zone,
     String route,
     String size,
@@ -358,18 +353,19 @@ Future<Message> submitData(
 
     http.Response response;
     final requestBody = {
-      'lineName': linename, // Changed from LineName to match server
-      'material': material,
-      'intake': intake,
-      'type': type,
-      'dma': dma,
-      'route': route,
-      'schemeName': schemename, // Changed from SchemeName to match server
+      'lineName': linename,
+      'lineType': lineType,
       'zone': zone,
+      'route': route,
       'size': size,
-      'userId': staffid, // This is now correct
+      'userId': staffid,
       'coordinates': coordinates
     };
+
+    // Add intake only for Water Pipes
+    if (lineType == 'Water Pipes') {
+      requestBody['intake'] = intake;
+    }
 
     // Debug print
     print("Request body: ${jsonEncode(requestBody)}");

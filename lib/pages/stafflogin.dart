@@ -291,7 +291,7 @@ class _StaffLoginState extends State<StaffLogin> {
           'email': email,
           'password': password,
           'type': 'Mobile',
-          'appVersion': '8.0.0'
+          'appVersion': '9.0.0'
         }),
       );
 
@@ -517,23 +517,32 @@ class _StaffLoginState extends State<StaffLogin> {
 
                                   if (response.statusCode == 200 ||
                                       response.statusCode == 203) {
-                                    Navigator.pop(context);
-                                    _showMessage(
-                                        data['message'] ??
-                                            'Password reset instructions sent to your email',
-                                        false);
+                                    if (mounted) {
+                                      Navigator.pop(context);
+                                    }
+                                    if (mounted) {
+                                      _showMessage(
+                                          data['message'] ??
+                                              'Password reset instructions sent to your email',
+                                          false);
+                                    }
                                   } else {
-                                    _showMessage(
-                                        data['message'] ??
-                                            'Failed to process password reset',
-                                        true);
+                                    if (mounted) {
+                                      _showMessage(
+                                          data['message'] ??
+                                              'Failed to process password reset',
+                                          true);
+                                    }
                                   }
                                 } catch (e) {
+                                  if (!mounted) return;
                                   _showMessage(
                                       'Connection error. Please check your internet.',
                                       true);
                                 } finally {
-                                  setState(() => isLoading = false);
+                                  if (mounted) {
+                                    setState(() => isLoading = false);
+                                  }
                                 }
                               },
                         style: ElevatedButton.styleFrom(
