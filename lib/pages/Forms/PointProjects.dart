@@ -35,19 +35,19 @@ class _PointProjectsState extends State<PointProjects> {
   String staffid = '';
 
   String pointID = '';
+  String selectedAssetType = '--Select--';
   String name = '';
   String zone = '';
   String route = '';
   String phone = '';
+  String size = '';
+  String location = '';
+  String remarks = '';
   String user = '';
   String role = '';
   dynamic data;
 
   var isLoading;
-
-  void _openDrawer() {
-    _scaffoldKey.currentState?.openDrawer();
-  }
 
   @override
   void initState() {
@@ -70,6 +70,7 @@ class _PointProjectsState extends State<PointProjects> {
       print("Decoded token: $decoded");
       print("Staff ID from token: ${decoded["id"]}");
 
+      if (!mounted) return;
       setState(() {
         user = decoded["name"];
         staffid = decoded["id"];
@@ -90,13 +91,18 @@ class _PointProjectsState extends State<PointProjects> {
     var fetchedData = await storage.read(key: "data");
     data = json.decode(fetchedData!);
 
+    if (!mounted) return;
     setState(() {
       pointID = data[0]["ID"];
-      name = data[0]["Name"];
-      zone = data[0]["Zone"];
-      route = data[0]["Route"];
-      phone = data[0]["Phone"];
-      user = data[0]["User"];
+      selectedAssetType = data[0]["AssetType"] ?? '--Select--';
+      name = data[0]["Name"] ?? '';
+      zone = data[0]["Zone"] ?? '';
+      route = data[0]["Route"] ?? '';
+      phone = data[0]["Phone"] ?? '';
+      size = data[0]["Size"] ?? '';
+      location = data[0]["Location"] ?? '';
+      remarks = data[0]["Remarks"] ?? '';
+      user = data[0]["User"] ?? '';
     });
   }
 
@@ -110,6 +116,7 @@ class _PointProjectsState extends State<PointProjects> {
         .listen((Position position) {
       print(position.latitude);
       print(position.longitude);
+      if (!mounted) return;
       setState(() {
         long = position.longitude;
         lat = position.latitude;
@@ -184,76 +191,229 @@ class _PointProjectsState extends State<PointProjects> {
                               lon: long,
                               acc: acc,
                             ))),
-                    MyTextInput(
-                      lines: 1,
-                      value: '',
-                      type: TextInputType.text,
-                      onSubmit: (value) {
-                        setState(() {
-                          name = value;
-                        });
-                      },
-                      title: 'name',
-                    ),
                     MySelectInput(
                       onSubmit: (value) {
                         setState(() {
-                          zone = value;
+                          selectedAssetType = value;
+                          // Clear fields when asset type changes
+                          name = '';
+                          zone = '';
+                          route = '';
+                          phone = '';
+                          size = '';
+                          location = '';
+                          remarks = '';
                         });
                       },
                       list: const [
                         "--Select--",
-                        "001 Gathugu",
-                        "002 Urban Institution",
-                        "003 Indian",
-                        "004 Industrial",
-                        "005 Karindundu",
-                        "006 Mathaithi",
-                        "007 Ragati",
-                        "008 Saigon 1",
-                        "009 Sofia",
-                        "010 Muthua",
-                        "011 Blue Valley",
-                        "012 83",
-                        "013 84",
-                        "014 85",
-                        "015 86",
-                        "016 87",
-                        "017 88",
-                        "018 Jambo-88",
-                        "019 Tumutumu-87",
-                        "019 89",
-                        "020 90",
-                        "021 91",
-                        "022 92",
-                        "023 82(Inst.Rural)",
-                        "024 93",
+                        "Customer Meter",
+                        "Tank",
+                        "Master Meter",
+                        "Washout",
+                        "Manhole",
                       ],
-                      label: 'Zone',
-                      value: zone,
+                      label: 'Asset Type',
+                      value: selectedAssetType,
                     ),
-                    MyTextInput(
-                      lines: 1,
-                      value: '',
-                      type: TextInputType.text,
-                      onSubmit: (value) {
-                        setState(() {
-                          route = value;
-                        });
-                      },
-                      title: 'Route',
-                    ),
-                    MyTextInput(
-                      lines: 1,
-                      value: '',
-                      type: TextInputType.numberWithOptions(decimal: true),
-                      onSubmit: (value) {
-                        setState(() {
-                          phone = value;
-                        });
-                      },
-                      title: 'Phone',
-                    ),
+                    if (selectedAssetType != '--Select--')
+                      MyTextInput(
+                        lines: 1,
+                        value: name,
+                        type: TextInputType.text,
+                        onSubmit: (value) {
+                          setState(() {
+                            name = value;
+                          });
+                        },
+                        title: 'Name',
+                      ),
+                    // Customer Meter fields
+                    if (selectedAssetType == 'Customer Meter') ...[
+                      MyTextInput(
+                        lines: 1,
+                        value: phone,
+                        type: TextInputType.phone,
+                        onSubmit: (value) {
+                          setState(() {
+                            phone = value;
+                          });
+                        },
+                        title: 'Phone',
+                      ),
+                      MySelectInput(
+                        onSubmit: (value) {
+                          setState(() {
+                            zone = value;
+                          });
+                        },
+                        list: getZones(),
+                        label: 'Zone',
+                        value: zone,
+                      ),
+                      MyTextInput(
+                        lines: 1,
+                        value: route,
+                        type: TextInputType.text,
+                        onSubmit: (value) {
+                          setState(() {
+                            route = value;
+                          });
+                        },
+                        title: 'Route',
+                      ),
+                    ],
+                    // Tank fields
+                    if (selectedAssetType == 'Tank') ...[
+                      MySelectInput(
+                        onSubmit: (value) {
+                          setState(() {
+                            zone = value;
+                          });
+                        },
+                        list: getZones(),
+                        label: 'Zone',
+                        value: zone,
+                      ),
+                      MyTextInput(
+                        lines: 1,
+                        value: location,
+                        type: TextInputType.text,
+                        onSubmit: (value) {
+                          setState(() {
+                            location = value;
+                          });
+                        },
+                        title: 'Location',
+                      ),
+                    ],
+                    // Master Meter fields
+                    if (selectedAssetType == 'Master Meter') ...[
+                      MyTextInput(
+                        lines: 1,
+                        value: size,
+                        type: TextInputType.text,
+                        onSubmit: (value) {
+                          setState(() {
+                            size = value;
+                          });
+                        },
+                        title: 'Size',
+                      ),
+                      MyTextInput(
+                        lines: 1,
+                        value: route,
+                        type: TextInputType.text,
+                        onSubmit: (value) {
+                          setState(() {
+                            route = value;
+                          });
+                        },
+                        title: 'Route',
+                      ),
+                      MySelectInput(
+                        onSubmit: (value) {
+                          setState(() {
+                            zone = value;
+                          });
+                        },
+                        list: getZones(),
+                        label: 'Zone',
+                        value: zone,
+                      ),
+                      MyTextInput(
+                        lines: 1,
+                        value: location,
+                        type: TextInputType.text,
+                        onSubmit: (value) {
+                          setState(() {
+                            location = value;
+                          });
+                        },
+                        title: 'Location',
+                      ),
+                    ],
+                    // Washout fields
+                    if (selectedAssetType == 'Washout') ...[
+                      MyTextInput(
+                        lines: 1,
+                        value: size,
+                        type: TextInputType.text,
+                        onSubmit: (value) {
+                          setState(() {
+                            size = value;
+                          });
+                        },
+                        title: 'Size',
+                      ),
+                      MyTextInput(
+                        lines: 1,
+                        value: route,
+                        type: TextInputType.text,
+                        onSubmit: (value) {
+                          setState(() {
+                            route = value;
+                          });
+                        },
+                        title: 'Route',
+                      ),
+                      MySelectInput(
+                        onSubmit: (value) {
+                          setState(() {
+                            zone = value;
+                          });
+                        },
+                        list: getZones(),
+                        label: 'Zone',
+                        value: zone,
+                      ),
+                      MyTextInput(
+                        lines: 1,
+                        value: location,
+                        type: TextInputType.text,
+                        onSubmit: (value) {
+                          setState(() {
+                            location = value;
+                          });
+                        },
+                        title: 'Location',
+                      ),
+                    ],
+                    // Manhole fields
+                    if (selectedAssetType == 'Manhole') ...[
+                      MyTextInput(
+                        lines: 1,
+                        value: route,
+                        type: TextInputType.text,
+                        onSubmit: (value) {
+                          setState(() {
+                            route = value;
+                          });
+                        },
+                        title: 'Route',
+                      ),
+                      MySelectInput(
+                        onSubmit: (value) {
+                          setState(() {
+                            zone = value;
+                          });
+                        },
+                        list: getZones(),
+                        label: 'Zone',
+                        value: zone,
+                      ),
+                      MyTextInput(
+                        lines: 3,
+                        value: remarks,
+                        type: TextInputType.multiline,
+                        onSubmit: (value) {
+                          setState(() {
+                            remarks = value;
+                          });
+                        },
+                        title: 'Remarks',
+                      ),
+                    ],
                     const SizedBox(
                       height: 12,
                     ),
@@ -269,14 +429,61 @@ class _PointProjectsState extends State<PointProjects> {
                                 false);
                             return;
                           }
-                          // Validate required fields
-                          if (name.isEmpty ||
-                              zone == '--Select--' ||
-                              zone.isEmpty ||
-                              route.isEmpty ||
-                              phone.isEmpty) {
-                            _showSnackBar(
-                                "Please fill in all required fields", false);
+                          // Validate asset type selection
+                          if (selectedAssetType == '--Select--') {
+                            _showSnackBar("Please select an asset type", false);
+                            return;
+                          }
+
+                          // Validate required fields based on asset type
+                          bool isValid = true;
+                          String errorMessage =
+                              "Please fill in all required fields";
+
+                          if (name.isEmpty) {
+                            isValid = false;
+                          }
+
+                          if (selectedAssetType == 'Customer Meter') {
+                            if (phone.isEmpty ||
+                                zone == '--Select--' ||
+                                zone.isEmpty ||
+                                route.isEmpty) {
+                              isValid = false;
+                            }
+                          } else if (selectedAssetType == 'Tank') {
+                            if (zone == '--Select--' ||
+                                zone.isEmpty ||
+                                location.isEmpty) {
+                              isValid = false;
+                            }
+                          } else if (selectedAssetType == 'Master Meter') {
+                            if (size.isEmpty ||
+                                route.isEmpty ||
+                                zone == '--Select--' ||
+                                zone.isEmpty ||
+                                location.isEmpty) {
+                              isValid = false;
+                            }
+                          } else if (selectedAssetType == 'Washout') {
+                            if (size.isEmpty ||
+                                route.isEmpty ||
+                                zone == '--Select--' ||
+                                zone.isEmpty ||
+                                location.isEmpty) {
+                              isValid = false;
+                            }
+                          } else if (selectedAssetType == 'Manhole') {
+                            if (route.isEmpty ||
+                                zone == '--Select--' ||
+                                zone.isEmpty ||
+                                remarks.isEmpty) {
+                              isValid = false;
+                            }
+                          }
+
+                          if (!isValid) {
+                            _showSnackBar(errorMessage, false);
                             return;
                           }
 
@@ -290,13 +497,18 @@ class _PointProjectsState extends State<PointProjects> {
                               pointID,
                               lat.toString(),
                               long.toString(),
+                              selectedAssetType,
                               name,
                               zone,
                               route,
                               phone,
+                              size,
+                              location,
+                              remarks,
                               staffid,
                               editing);
 
+                          if (!mounted) return;
                           setState(() {
                             isLoading = null;
                             if (res.error == null) {
@@ -304,6 +516,7 @@ class _PointProjectsState extends State<PointProjects> {
                               _showSnackBar(res.success, true);
                               // Proceed to next page after successful submission
                               Timer(const Duration(seconds: 2), () {
+                                if (!mounted) return;
                                 Navigator.pushReplacement(
                                     context,
                                     MaterialPageRoute(
@@ -355,36 +568,53 @@ Future<Message> submitData(
     String pointID,
     String lat,
     String long,
+    String assetType,
     String name,
     String zone,
     String route,
     String phone,
+    String size,
+    String location,
+    String remarks,
     String staffid,
     String? editing) async {
   try {
     // Debug print
-    print("Submitting point data with staffid: $staffid");
+    print(
+        "Submitting point data with staffid: $staffid, assetType: $assetType");
 
     var response;
-    final requestBody = editing == 'true'
-        ? {
-            'name': name,
-            'zone': zone,
-            'route': route,
-            'phone': phone,
-            'userId': staffid,
-            'latitude': lat,
-            'longitude': long,
-          }
-        : {
-            'name': name,
-            'zone': zone,
-            'route': route,
-            'phone': phone,
-            'userId': staffid,
-            'latitude': lat,
-            'longitude': long,
-          };
+    Map<String, dynamic> requestBody = {
+      'assetType': assetType,
+      'name': name,
+      'userId': staffid,
+      'latitude': lat,
+      'longitude': long,
+    };
+
+    // Add fields based on asset type
+    if (assetType == 'Customer Meter') {
+      requestBody['phone'] = phone;
+      requestBody['zone'] = zone;
+      requestBody['route'] = route;
+    } else if (assetType == 'Tank') {
+      requestBody['zone'] = zone;
+      requestBody['location'] = location;
+    } else if (assetType == 'Master Meter') {
+      requestBody['size'] = size;
+      requestBody['route'] = route;
+      requestBody['zone'] = zone;
+      requestBody['location'] = location;
+    } else if (assetType == 'Washout') {
+      requestBody['size'] = size;
+      requestBody['route'] = route;
+      requestBody['zone'] = zone;
+      requestBody['location'] = location;
+    } else if (assetType == 'Manhole') {
+      requestBody['route'] = route;
+      requestBody['zone'] = zone;
+      requestBody['remarks'] = remarks;
+    }
 
     // Debug print
     print("Request body: ${jsonEncode(requestBody)}");
