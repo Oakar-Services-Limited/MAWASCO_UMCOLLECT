@@ -1,3 +1,5 @@
+// ignore_for_file: file_names, prefer_typing_uninitialized_variables
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -143,6 +145,7 @@ class _ReportIncidentState extends State<ReportIncident> {
 
       if (pickedFile != null) {
         String base64Image = await convertFileToBase64(pickedFile);
+        if (!mounted) return;
         setState(() {
           _image = File(pickedFile.path);
           myimage = base64Image;
@@ -150,6 +153,7 @@ class _ReportIncidentState extends State<ReportIncident> {
       }
     } catch (e) {
       // Show error dialog
+      if (!mounted) return;
       showDialog(
         context: context,
         builder: (BuildContext context) {

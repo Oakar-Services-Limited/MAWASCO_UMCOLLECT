@@ -1,4 +1,4 @@
-// ignore_for_file: unnecessary_null_comparison, prefer_collection_literals, empty_catches, depend_on_referenced_packages, prefer_typing_uninitialized_variables, library_private_types_in_public_api
+// ignore_for_file: unnecessary_null_comparison, prefer_collection_literals, empty_catches, depend_on_referenced_packages, prefer_typing_uninitialized_variables, library_private_types_in_public_api, file_names, library_prefixes
 
 import 'dart:convert';
 

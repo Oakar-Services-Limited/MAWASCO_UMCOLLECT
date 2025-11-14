@@ -1,3 +1,5 @@
+// ignore_for_file: file_names, prefer_typing_uninitialized_variables
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -53,7 +55,9 @@ class _NRWLeakagesState extends State<NRWLeakages> {
       setState(() {
         userid = id.toString();
       });
-    } catch (e) {}
+    } catch (e) {
+      // 
+    }
 
     try {
       LocationPermission perm = await Geolocator.checkPermission();
@@ -84,7 +88,9 @@ class _NRWLeakagesState extends State<NRWLeakages> {
       } else {
         promptUserForLocation();
       }
-    } catch (e) {}
+    } catch (e) {
+      // 
+    }
   }
 
   Future<String> convertFileToBase64(XFile file) async {
@@ -138,7 +144,9 @@ class _NRWLeakagesState extends State<NRWLeakages> {
           name = decoded["name"];
         });
       }
-    } catch (e) {}
+    } catch (e) {
+      // 
+    }
   }
 
   @override

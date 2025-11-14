@@ -88,7 +88,8 @@ class _PublicLoginState extends State<PublicLogin> {
                                   borderRadius: BorderRadius.circular(20),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withValues(alpha:0.1),
+                                      color:
+                                          Colors.black.withValues(alpha: 0.1),
                                       blurRadius: 20,
                                       offset: const Offset(0, 10),
                                     ),
@@ -118,7 +119,8 @@ class _PublicLoginState extends State<PublicLogin> {
                                 vertical: size.height * 0.01,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xff0288D1).withValues(alpha:0.1),
+                                color: const Color(0xff0288D1)
+                                    .withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(30),
                               ),
                               child: Text(
@@ -139,7 +141,7 @@ class _PublicLoginState extends State<PublicLogin> {
                                 borderRadius: BorderRadius.circular(20),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withValues(alpha:0.05),
+                                    color: Colors.black.withValues(alpha: 0.05),
                                     blurRadius: 20,
                                     offset: const Offset(0, 10),
                                   ),
@@ -171,11 +173,13 @@ class _PublicLoginState extends State<PublicLogin> {
                                       onPressed: () async {
                                         await storage.write(
                                             key: 'isstaff', value: 'false');
-                                        Navigator.pushReplacement(
-                                            context,
-                                            MaterialPageRoute(
-                                                builder: (_) =>
-                                                    const Incidences()));
+                                        if (mounted) {
+                                          Navigator.pushReplacement(
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder: (_) =>
+                                                      const Incidences()));
+                                        }
                                       },
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor:
@@ -222,7 +226,7 @@ class _PublicLoginState extends State<PublicLogin> {
             ),
             if (isLoading != null)
               Container(
-                color: Colors.black.withValues(alpha:0.5),
+                color: Colors.black.withValues(alpha: 0.5),
                 child: Center(child: isLoading),
               ),
           ],

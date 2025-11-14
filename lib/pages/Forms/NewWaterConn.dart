@@ -1,4 +1,4 @@
-// ignore_for_file: use_build_context_synchronously, non_constant_identifier_names, file_names, unused_field
+// ignore_for_file: use_build_context_synchronously, non_constant_identifier_names, file_names, unused_field, prefer_typing_uninitialized_variables
 
 import 'dart:async';
 import 'dart:convert';
@@ -97,7 +97,9 @@ class _NewWaterConnState extends State<NewWaterConn> {
       if (editing == 'true') {
         prefillForm(data);
       } else {}
-    } catch (e) {}
+    } catch (e) {
+      // 
+    }
   }
 
   prefillForm(data) async {

@@ -1,3 +1,5 @@
+// ignore_for_file: file_names, prefer_typing_uninitialized_variables
+
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -199,7 +201,7 @@ class _FileReportNRWState extends State<FileReportNRW> {
                                 color: Colors.white, // Cream color
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                    color: Colors.grey.withValues(alpha:0.1),
+                                    color: Colors.grey.withValues(alpha: 0.1),
                                     width: 0),
                                 boxShadow: const [
                                   BoxShadow(
@@ -230,7 +232,9 @@ class _FileReportNRWState extends State<FileReportNRW> {
                                                           child,
                                                           loadingProgress) {
                                                         if (loadingProgress ==
-                                                            null) return child;
+                                                            null) {
+                                                          return child;
+                                                        }
                                                         return const Center(
                                                           child:
                                                               CircularProgressIndicator(),
@@ -300,7 +304,7 @@ class _FileReportNRWState extends State<FileReportNRW> {
                               color: Colors.white, // Cream color
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                  color: Colors.grey.withValues(alpha:0.1),
+                                  color: Colors.grey.withValues(alpha: 0.1),
                                   width: 1),
                               boxShadow: const [
                                 BoxShadow(
@@ -450,7 +454,8 @@ class _FileReportNRWState extends State<FileReportNRW> {
                             color: Colors.white, // Cream color
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                                color: Colors.grey.withValues(alpha:0.1), width: 1),
+                                color: Colors.grey.withValues(alpha: 0.1),
+                                width: 1),
                             boxShadow: const [
                               BoxShadow(
                                 color: Color.fromARGB(82, 158, 158, 158),
@@ -551,6 +556,7 @@ class _FileReportNRWState extends State<FileReportNRW> {
 
                             var res = await submitData(
                                 incidentId, repairedImage, taskremark);
+                            if (!mounted) return;
                             setState(() {
                               isLoading = null;
                               if (res.error == null) {
@@ -562,6 +568,7 @@ class _FileReportNRWState extends State<FileReportNRW> {
                               }
                             });
                             if (res.error == null) {
+                              if (!mounted) return;
                               Navigator.pushReplacement(
                                   context,
                                   MaterialPageRoute(

@@ -1,4 +1,4 @@
-// ignore_for_file: use_build_context_synchronously, non_constant_identifier_zones, file_zones, prefer_typing_uninitialized_variables
+// ignore_for_file: use_build_context_synchronously, non_constant_identifier_zones, file_zones, prefer_typing_uninitialized_variables, file_names
 
 import 'dart:async';
 import 'dart:convert';
@@ -74,7 +74,9 @@ class _PointProjectsState extends State<PointProjects> {
       if (editing == 'true') {
         prefillForm(data);
       }
-    } catch (e) {}
+    } catch (e) {
+      // 
+    }
   }
 
   prefillForm(data) async {

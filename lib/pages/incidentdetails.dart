@@ -170,7 +170,9 @@ class _IncidentDetailsState extends State<IncidentDetails> {
                                                           child,
                                                           loadingProgress) {
                                                         if (loadingProgress ==
-                                                            null) return child;
+                                                            null) {
+                                                          return child;
+                                                        }
                                                         return const Center(
                                                           child:
                                                               CircularProgressIndicator(),
