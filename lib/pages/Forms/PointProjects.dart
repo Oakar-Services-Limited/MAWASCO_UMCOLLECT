@@ -75,7 +75,7 @@ class _PointProjectsState extends State<PointProjects> {
         prefillForm(data);
       }
     } catch (e) {
-      // 
+      //
     }
   }
 
@@ -570,8 +570,19 @@ Future<Message> submitData(
     String staffid,
     String? editing) async {
   try {
-    // Debug print
-    var response;
+    final storage = const FlutterSecureStorage();
+    final token = await storage.read(key: "mwstaffjwt");
+
+    if (token == null) {
+      print("Error: Authentication token not found");
+      return Message(
+        token: null,
+        success: null,
+        error: "Authentication token not found. Please login again.",
+      );
+    }
+
+    // Build request body
     Map<String, dynamic> requestBody = {
       'assetType': assetType,
       'name': name,
@@ -604,11 +615,14 @@ Future<Message> submitData(
       requestBody['remarks'] = remarks;
     }
 
+    // Make API request
+    http.Response response;
     if (editing == 'true') {
       response = await http.put(
         Uri.parse("${getUrl()}pj/points/$pointID"),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
         },
         body: jsonEncode(requestBody),
       );
@@ -617,30 +631,46 @@ Future<Message> submitData(
         Uri.parse("${getUrl()}pj/points"),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
         },
         body: jsonEncode(requestBody),
       );
     }
 
-    // Debug print
+    print("Submit point response: ${response.statusCode}");
+
+    // Handle response
     if (response.statusCode == 200 || response.statusCode == 201) {
-      final responseData = jsonDecode(response.body);
-      return Message(
-        token: responseData['data']?['id'],
-        success: responseData['message'] ?? "Point saved successfully",
-        error: null,
-      );
-    } else {
       try {
-        var responseBody = jsonDecode(response.body);
+        final responseData = jsonDecode(response.body);
+        return Message(
+          token: responseData['data']?['id'],
+          success: responseData['message'] ?? "Point saved successfully",
+          error: null,
+        );
+      } catch (e) {
+        print("Error parsing response: $e");
         return Message(
           token: null,
           success: null,
-          error: responseBody['message'] ??
-              responseBody['error'] ??
-              "Server error! Contact administrator.",
+          error:
+              "Failed to parse server response. Status: ${response.statusCode}",
+        );
+      }
+    } else {
+      try {
+        var responseBody = jsonDecode(response.body);
+        final errorMessage = responseBody['message'] ??
+            responseBody['error'] ??
+            "Server error! Contact administrator.";
+        print("API error: $errorMessage");
+        return Message(
+          token: null,
+          success: null,
+          error: errorMessage,
         );
       } catch (e) {
+        print("Error parsing error response: $e");
         return Message(
           token: null,
           success: null,
@@ -650,6 +680,7 @@ Future<Message> submitData(
       }
     }
   } catch (e) {
+    print("Submit point exception: $e");
     return Message(
       token: null,
       success: null,
