@@ -139,7 +139,7 @@ class _IncidentDetailsState extends State<IncidentDetails> {
                                 color: Colors.white, // Cream color
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                    color: Colors.grey.withOpacity(0.1),
+                                    color: Colors.grey.withValues(alpha:0.1),
                                     width: 0),
                                 boxShadow: const [
                                   BoxShadow(
@@ -229,7 +229,7 @@ class _IncidentDetailsState extends State<IncidentDetails> {
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                                color: Colors.grey.withOpacity(0.1), width: 2),
+                                color: Colors.grey.withValues(alpha:0.1), width: 2),
                             boxShadow: const [
                               BoxShadow(
                                 color: Color.fromARGB(82, 158, 158, 158),
@@ -299,7 +299,7 @@ class _IncidentDetailsState extends State<IncidentDetails> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                          color: Colors.grey.withOpacity(0.1), width: 1),
+                          color: Colors.grey.withValues(alpha:0.1), width: 1),
                       boxShadow: const [
                         BoxShadow(
                           color: Color.fromARGB(82, 158, 158, 158),

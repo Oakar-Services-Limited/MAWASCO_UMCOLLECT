@@ -63,7 +63,7 @@ class _CollectedItemState extends State<IRItem> {
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
-                      color: Colors.grey.withOpacity(0.2),
+                      color: Colors.grey.withValues(alpha:0.2),
                       width: 1,
                     ),
                   ),

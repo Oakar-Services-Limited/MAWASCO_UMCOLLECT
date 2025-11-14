@@ -53,7 +53,7 @@ class _CollectedItemState extends State<IncidentTab> {
                 border: Border.all(color: Colors.grey, width: 2),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha:0.2),
                     spreadRadius: 1,
                     blurRadius: 5,
                     offset: const Offset(1, 1),

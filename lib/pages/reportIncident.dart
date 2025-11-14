@@ -203,7 +203,7 @@ class _ReportIncidentState extends State<ReportIncident> {
                 end: Alignment.bottomRight,
                 colors: [
                   const Color(0xff0288D1),
-                  const Color(0xff0288D1).withOpacity(0.8),
+                  const Color(0xff0288D1).withValues(alpha:0.8),
                 ],
               ),
             ),
@@ -236,7 +236,7 @@ class _ReportIncidentState extends State<ReportIncident> {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                const Color(0xff0288D1).withOpacity(0.05),
+                const Color(0xff0288D1).withValues(alpha:0.05),
                 Colors.white,
               ],
             ),
@@ -296,7 +296,7 @@ class _ReportIncidentState extends State<ReportIncident> {
               ),
               if (isLoading != null)
                 Container(
-                  color: Colors.black.withOpacity(0.5),
+                  color: Colors.black.withValues(alpha:0.5),
                   child: Center(child: isLoading),
                 ),
             ],
@@ -350,7 +350,7 @@ class _ReportIncidentState extends State<ReportIncident> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: const Color(0xff0288D1).withOpacity(0.2),
+            color: const Color(0xff0288D1).withValues(alpha:0.2),
             width: 1,
           ),
         ),
@@ -366,7 +366,7 @@ class _ReportIncidentState extends State<ReportIncident> {
                         Icon(
                           Icons.camera_alt_outlined,
                           size: 48,
-                          color: const Color(0xff0288D1).withOpacity(0.7),
+                          color: const Color(0xff0288D1).withValues(alpha:0.7),
                         ),
                         const SizedBox(height: 12),
                         const Text(
@@ -399,13 +399,13 @@ class _ReportIncidentState extends State<ReportIncident> {
                   gradient: LinearGradient(
                     colors: [
                       const Color(0xff0288D1),
-                      const Color(0xff0288D1).withOpacity(0.8),
+                      const Color(0xff0288D1).withValues(alpha:0.8),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(30),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
+                      color: Colors.black.withValues(alpha:0.2),
                       blurRadius: 6,
                       offset: const Offset(0, 3),
                     ),
@@ -427,11 +427,11 @@ class _ReportIncidentState extends State<ReportIncident> {
                 right: 16,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.8),
+                    color: Colors.red.withValues(alpha:0.8),
                     borderRadius: BorderRadius.circular(30),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
+                        color: Colors.black.withValues(alpha:0.2),
                         blurRadius: 6,
                         offset: const Offset(0, 3),
                       ),

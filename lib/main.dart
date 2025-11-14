@@ -401,8 +401,8 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
                                   vertical: 12,
                                 ),
                                 decoration: BoxDecoration(
-                                  color:
-                                      const Color(0xff0288D1).withOpacity(0.1),
+                                  color: const Color(0xff0288D1)
+                                      .withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(30),
                                 ),
                                 child: Text(
@@ -464,7 +464,7 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
                   borderRadius: BorderRadius.circular(30),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),

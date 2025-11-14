@@ -117,7 +117,7 @@ class _NRWPendingState extends State<NRWPending> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              const Color(0xff0288D1).withOpacity(0.1),
+              const Color(0xff0288D1).withValues(alpha:0.1),
               Colors.white,
             ],
           ),
@@ -203,7 +203,7 @@ class _NRWPendingState extends State<NRWPending> {
                 shape: BoxShape.circle,
                 color: isCurrentPage
                     ? const Color(0xff0288D1)
-                    : const Color(0xff0288D1).withOpacity(0.2),
+                    : const Color(0xff0288D1).withValues(alpha:0.2),
               ),
             ),
           );

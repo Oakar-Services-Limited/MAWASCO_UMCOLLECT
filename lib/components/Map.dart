@@ -88,7 +88,7 @@ class _MyMapState extends State<MyMap> {
                 color: const Color(0xFFFFF9F1), // Cream color
                 borderRadius: BorderRadius.circular(15),
                 border:
-                    Border.all(color: Colors.grey.withOpacity(0.1), width: 1),
+                    Border.all(color: Colors.grey.withValues(alpha:0.1), width: 1),
                 boxShadow: const [
                   BoxShadow(
                     color: Color.fromARGB(82, 158, 158, 158),

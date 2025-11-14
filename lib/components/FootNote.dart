@@ -19,7 +19,7 @@ class FootNote extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha:0.5),
               spreadRadius: 0, // Spread radius set to 0
               blurRadius: 7,
               offset: const Offset(4, 4), // Shadow offset for bottom and right

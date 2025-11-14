@@ -79,7 +79,7 @@ class _NewNRWItemState extends State<NewNRWItem> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0xff0288D1).withOpacity(0.1),
+                        color: const Color(0xff0288D1).withValues(alpha:0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(

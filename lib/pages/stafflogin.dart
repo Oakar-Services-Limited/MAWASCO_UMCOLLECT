@@ -164,7 +164,8 @@ class _StaffLoginState extends State<StaffLogin> {
                             : const Color(0xff0288D1),
                         foregroundColor: Colors.white,
                         elevation: 4,
-                        shadowColor: const Color(0xff0288D1).withOpacity(0.4),
+                        shadowColor:
+                            const Color(0xff0288D1).withValues(alpha: 0.4),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -362,19 +363,7 @@ class _StaffLoginState extends State<StaffLogin> {
           }
         }
 
-        if (actualUserId != null && actualUserId.isNotEmpty) {
-          final response = await http.post(
-            Uri.parse("${getUrl()}fcm-tokens/create"),
-            headers: <String, String>{
-              'Content-Type': 'application/json; charset=UTF-8',
-            },
-            body: jsonEncode({
-              'fcmToken': token,
-              'userId': actualUserId,
-              'deviceInfo': 'MAWASCO UM Collector App',
-            }),
-          );
-        }
+        if (actualUserId != null && actualUserId.isNotEmpty) {}
       }
     } catch (e) {
       // Error registering FCM token
@@ -401,7 +390,7 @@ class _StaffLoginState extends State<StaffLogin> {
               borderRadius: BorderRadius.circular(28),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -413,7 +402,7 @@ class _StaffLoginState extends State<StaffLogin> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xff0288D1).withOpacity(0.1),
+                    color: const Color(0xff0288D1).withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -501,24 +490,20 @@ class _StaffLoginState extends State<StaffLogin> {
 
                                   final data = jsonDecode(response.body);
 
+                                  if (!mounted) return;
+
                                   if (response.statusCode == 200 ||
                                       response.statusCode == 203) {
-                                    if (mounted) {
-                                      Navigator.pop(context);
-                                    }
-                                    if (mounted) {
-                                      _showMessage(
-                                          data['message'] ??
-                                              'Password reset instructions sent to your email',
-                                          false);
-                                    }
+                                    Navigator.pop(context);
+                                    _showMessage(
+                                        data['message'] ??
+                                            'Password reset instructions sent to your email',
+                                        false);
                                   } else {
-                                    if (mounted) {
-                                      _showMessage(
-                                          data['message'] ??
-                                              'Failed to process password reset',
-                                          true);
-                                    }
+                                    _showMessage(
+                                        data['message'] ??
+                                            'Failed to process password reset',
+                                        true);
                                   }
                                 } catch (e) {
                                   if (!mounted) return;

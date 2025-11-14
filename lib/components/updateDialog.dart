@@ -205,6 +205,8 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
       await storage.write(key: "data", value: '');
     }
 
+    if (!mounted) return;
+
     switch (assetName) {
       case 'Customer Meters':
         Navigator.pushReplacement(
@@ -373,6 +375,8 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
       BuildContext context, String assetName, Map<String, dynamic> item) async {
     await storage.write(key: 'editing', value: 'true');
     await storage.write(key: "data", value: fetchedData);
+
+    if (!mounted) return;
 
     switch (assetName) {
       case 'Customer Meters':
@@ -736,7 +740,7 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -932,7 +936,7 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xff0288D1).withOpacity(0.1),
+                  color: const Color(0xff0288D1).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(

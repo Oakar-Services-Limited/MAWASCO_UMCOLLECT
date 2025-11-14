@@ -813,7 +813,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                           boxShadow: [
                                                             BoxShadow(
                                                               color: Colors.grey
-                                                                  .withOpacity(
+                                                                  .withValues(alpha:
                                                                       0.2), // shadow color
                                                               spreadRadius:
                                                                   2, // spread radius
@@ -882,7 +882,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                                                 Container(
                                                                                   padding: const EdgeInsets.all(12),
                                                                                   decoration: BoxDecoration(
-                                                                                    color: const Color(0xff0288D1).withOpacity(0.1),
+                                                                                    color: const Color(0xff0288D1).withValues(alpha:0.1),
                                                                                     borderRadius: BorderRadius.circular(8),
                                                                                   ),
                                                                                   child: const Icon(
@@ -1331,7 +1331,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.grey
-                                      .withOpacity(0.5), // Shadow color
+                                      .withValues(alpha:0.5), // Shadow color
                                   spreadRadius: 5, // Spread radius
                                   blurRadius: 7, // Blur radius
                                   offset: const Offset(

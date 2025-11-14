@@ -245,7 +245,7 @@ class _HomeState extends State<Home> {
   Widget _buildWelcomeCard() {
     return Card(
       elevation: 0,
-      color: Colors.white.withOpacity(0),
+      color: Colors.white.withValues(alpha:0),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -259,7 +259,7 @@ class _HomeState extends State<Home> {
                     "Welcome back,",
                     style: TextStyle(
                       fontSize: 16,
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha:0.9),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -276,7 +276,7 @@ class _HomeState extends State<Home> {
                     formattedDate,
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha:0.9),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -284,7 +284,7 @@ class _HomeState extends State<Home> {
                     'Role: $position',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha:0.9),
                     ),
                   ),
                 ],
@@ -293,7 +293,7 @@ class _HomeState extends State<Home> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha:0.2),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -334,7 +334,7 @@ class _HomeState extends State<Home> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xff0288D1).withOpacity(0.1),
+                  color: const Color(0xff0288D1).withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, color: const Color(0xff0288D1)),
@@ -490,7 +490,7 @@ class _HomeState extends State<Home> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(15),
             border: Border.all(
-              color: const Color(0xff0288D1).withOpacity(0.1),
+              color: const Color(0xff0288D1).withValues(alpha:0.1),
             ),
           ),
           child: Column(
@@ -510,7 +510,7 @@ class _HomeState extends State<Home> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xff0288D1).withOpacity(0.1),
+                  color: const Color(0xff0288D1).withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(

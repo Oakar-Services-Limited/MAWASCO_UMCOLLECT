@@ -131,7 +131,7 @@ class _IncidentDetailsNRWState extends State<IncidentDetailsNRW> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                            color: Colors.grey.withOpacity(0.1), width: 2),
+                            color: Colors.grey.withValues(alpha:0.1), width: 2),
                         boxShadow: const [
                           BoxShadow(
                             color: Color.fromARGB(82, 158, 158, 158),
@@ -191,7 +191,7 @@ class _IncidentDetailsNRWState extends State<IncidentDetailsNRW> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                        color: Colors.grey.withOpacity(0.1), width: 0),
+                        color: Colors.grey.withValues(alpha:0.1), width: 0),
                     boxShadow: const [
                       BoxShadow(
                         color: Color.fromARGB(82, 158, 158, 158),
@@ -236,7 +236,7 @@ class _IncidentDetailsNRWState extends State<IncidentDetailsNRW> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(8),
                   border:
-                      Border.all(color: Colors.grey.withOpacity(0.1), width: 1),
+                      Border.all(color: Colors.grey.withValues(alpha:0.1), width: 1),
                   boxShadow: const [
                     BoxShadow(
                       color: Color.fromARGB(82, 158, 158, 158),

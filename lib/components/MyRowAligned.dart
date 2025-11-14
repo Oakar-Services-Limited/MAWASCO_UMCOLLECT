@@ -26,7 +26,7 @@ class _MyRowAlignedState extends State<MyRowAligned> {
       decoration: BoxDecoration(
         color: const Color(0xFFFFF9F1),
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.grey.withOpacity(0.1), width: 1),
+        border: Border.all(color: Colors.grey.withValues(alpha:0.1), width: 1),
         boxShadow: const [
           BoxShadow(
             color: Color.fromARGB(82, 158, 158, 158),

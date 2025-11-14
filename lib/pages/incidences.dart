@@ -124,7 +124,7 @@ class _IncidencesState extends State<Incidences> {
         key: _scaffoldKey,
         appBar: AppBar(
           elevation: 0,
-          backgroundColor: const Color(0xff0288D1).withOpacity(0.95),
+          backgroundColor: const Color(0xff0288D1).withValues(alpha:0.95),
           leading: IconButton(
             icon: const Icon(Icons.menu, color: Colors.white),
             onPressed: () => _scaffoldKey.currentState?.openDrawer(),
@@ -154,7 +154,7 @@ class _IncidencesState extends State<Incidences> {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                const Color(0xff0288D1).withOpacity(0.92),
+                const Color(0xff0288D1).withValues(alpha:0.92),
                 const Color(0xFFE3F2FD),
               ],
               stops: const [0.2, 0.9],
@@ -200,7 +200,7 @@ class _IncidencesState extends State<Incidences> {
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xff0288D1).withOpacity(0.12),
+                            color: const Color(0xff0288D1).withValues(alpha:0.12),
                             blurRadius: 24,
                             offset: const Offset(0, 8),
                             spreadRadius: 0,

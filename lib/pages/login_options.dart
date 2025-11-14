@@ -23,7 +23,7 @@ class LoginOption extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(24),
-        side: BorderSide(color: color.withOpacity(0.1), width: 1),
+        side: BorderSide(color: color.withValues(alpha:0.1), width: 1),
       ),
       child: InkWell(
         onTap: onTap,
@@ -35,7 +35,7 @@ class LoginOption extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha:0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, color: color, size: 32),
@@ -66,7 +66,7 @@ class LoginOption extends StatelessWidget {
               ),
               Icon(
                 Icons.arrow_forward_ios_rounded,
-                color: color.withOpacity(0.5),
+                color: color.withValues(alpha:0.5),
                 size: 20,
               ),
             ],

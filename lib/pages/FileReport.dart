@@ -299,7 +299,7 @@ class _FileReportState extends State<FileReport> {
   Widget _buildHeaderCard() {
     return Card(
       elevation: 0,
-      color: Colors.white.withOpacity(0),
+      color: Colors.white.withValues(alpha:0),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -322,7 +322,7 @@ class _FileReportState extends State<FileReport> {
                     "Serial No: $serial",
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha:0.9),
                     ),
                   ),
                 ],
@@ -331,7 +331,7 @@ class _FileReportState extends State<FileReport> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha:0.2),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -355,7 +355,7 @@ class _FileReportState extends State<FileReport> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         border: Border.all(
-          color: const Color(0xff0288D1).withOpacity(0.1),
+          color: const Color(0xff0288D1).withValues(alpha:0.1),
         ),
       ),
       child: GestureDetector(
@@ -393,7 +393,7 @@ class _FileReportState extends State<FileReport> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         border: Border.all(
-          color: const Color(0xff0288D1).withOpacity(0.1),
+          color: const Color(0xff0288D1).withValues(alpha:0.1),
         ),
       ),
       child: Padding(
@@ -437,7 +437,7 @@ class _FileReportState extends State<FileReport> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         border: Border.all(
-          color: const Color(0xff0288D1).withOpacity(0.1),
+          color: const Color(0xff0288D1).withValues(alpha:0.1),
         ),
       ),
       child: Stack(
@@ -468,7 +468,7 @@ class _FileReportState extends State<FileReport> {
                 borderRadius: BorderRadius.circular(30),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
+                    color: Colors.black.withValues(alpha:0.2),
                     blurRadius: 6,
                     offset: const Offset(0, 3),
                   ),

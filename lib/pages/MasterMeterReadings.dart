@@ -278,7 +278,7 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
                                 borderRadius: BorderRadius.circular(15),
                                 border: Border.all(
                                   color:
-                                      const Color(0xff0288D1).withOpacity(0.1),
+                                      const Color(0xff0288D1).withValues(alpha:0.1),
                                 ),
                               ),
                               child: Stack(
@@ -310,7 +310,7 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
                                         boxShadow: [
                                           BoxShadow(
                                             color:
-                                                Colors.black.withOpacity(0.2),
+                                                Colors.black.withValues(alpha:0.2),
                                             blurRadius: 6,
                                             offset: const Offset(0, 3),
                                           ),
@@ -399,7 +399,7 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
           ),
           if (isLoading != null)
             Container(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha:0.3),
               child: Center(
                 child: isLoading,
               ),

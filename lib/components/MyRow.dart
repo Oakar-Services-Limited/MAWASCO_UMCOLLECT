@@ -24,8 +24,8 @@ class _MyRowState extends State<MyRow> {
         color: const Color(0xFFFFF9F1), // Cream color
         borderRadius: BorderRadius.circular(15),
         border: Border(
-          bottom: BorderSide(color: Colors.grey.withOpacity(0.1), width: 1),
-          right: BorderSide(color: Colors.grey.withOpacity(0.1), width: 1),
+          bottom: BorderSide(color: Colors.grey.withValues(alpha:0.1), width: 1),
+          right: BorderSide(color: Colors.grey.withValues(alpha:0.1), width: 1),
           top: BorderSide.none,
           left: BorderSide.none,
         ),

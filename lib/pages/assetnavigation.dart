@@ -57,6 +57,8 @@ class _AssetNavigationState extends State<AssetNavigation> {
     var decoded = parseJwt(token.toString());
 
     formattedDate = DateFormat('MMMM dd, yyyy').format(DateTime.now());
+    if (!mounted) return;
+    
     if (decoded["error"] == "Invalid token") {
       Navigator.push(context, MaterialPageRoute(builder: (_) => const Login()));
     } else {
