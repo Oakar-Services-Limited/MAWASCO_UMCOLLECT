@@ -68,7 +68,6 @@ class _NRWState extends State<NRW> {
       var token = await storage.read(key: "mwstaffjwt");
       var decoded = parseJwt(token.toString());
       formattedDate = DateFormat('MMMM dd, yyyy').format(DateTime.now());
-      print("decoded: $decoded");
       if (decoded["error"] == "Invalid token") {
         Navigator.pushReplacement(
             context, MaterialPageRoute(builder: (_) => const Login()));
@@ -79,9 +78,6 @@ class _NRWState extends State<NRW> {
           position = decoded["position"];
           isnew = true;
         });
-
-        print("staffid: $staffid, name: $name, position: $position");
-
         await storage.write(key: 'staffid', value: staffid);
 
         fetchStats(staffid, isnew);
@@ -108,18 +104,14 @@ class _NRWState extends State<NRW> {
 
       if (response.statusCode == 200 || response.statusCode == 203) {
         var data = json.decode(response.body);
-        print("reports stats: $data");
-
         setState(() {
           pending = data['countP'];
           complete = data['countR'];
           isLoading = null;
         });
       } else {
-        print("reports stats: ${response.statusCode}");
       }
     } catch (e) {
-      print("reports stats error: $e");
     }
   }
 

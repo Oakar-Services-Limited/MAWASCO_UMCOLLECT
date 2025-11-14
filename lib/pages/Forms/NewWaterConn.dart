@@ -55,10 +55,6 @@ class _NewWaterConnState extends State<NewWaterConn> {
 
   var isLoading;
 
-  void _openDrawer() {
-    _scaffoldKey.currentState?.openDrawer();
-  }
-
   Future<String> convertFileToBase64(XFile file) async {
     List<int> fileBytes = await file.readAsBytes();
     String base64String = base64Encode(fileBytes);

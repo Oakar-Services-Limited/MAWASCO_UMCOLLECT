@@ -8,12 +8,11 @@ import 'package:um_collect/components/MySelectInput.dart';
 import 'package:um_collect/components/MyTextInput.dart';
 import 'package:um_collect/components/StaffDrawer.dart';
 import 'package:um_collect/components/SubmitButton.dart';
-import 'package:um_collect/components/TextResponse.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/models/Map.dart';
 import 'package:um_collect/pages/Assets.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:um_collect/pages/home.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:http/http.dart' as http;
 
@@ -51,10 +50,6 @@ class _MasterMetersState extends State<MasterMeters> {
   dynamic data;
   var isLoading;
 
-  void _openDrawer() {
-    _scaffoldKey.currentState?.openDrawer();
-  }
-
   @override
   void initState() {
     fetchStoredData();
@@ -67,23 +62,16 @@ class _MasterMetersState extends State<MasterMeters> {
       var token = await storage.read(key: "mwstaffjwt");
       var decoded = parseJwt(token.toString());
       editing = await storage.read(key: "editing");
-
-      print("Decoded token: $decoded");
-
       if (!mounted) return;
       setState(() {
         user = decoded["name"];
         staffid = decoded["id"];
         role = decoded["role"] ?? '';
       });
-
-      print("Set staffid to: $staffid");
-
       if (editing == 'true') {
         prefillForm(data);
       } else {}
     } catch (e) {
-      print("Error in fetchStoredData: $e");
     }
   }
 
@@ -115,8 +103,6 @@ class _MasterMetersState extends State<MasterMeters> {
 
     Geolocator.getPositionStream(locationSettings: locationSettings)
         .listen((Position position) {
-      print(position.latitude);
-      print(position.longitude);
       if (!mounted) return;
       setState(() {
         long = position.longitude;
@@ -156,7 +142,7 @@ class _MasterMetersState extends State<MasterMeters> {
             ),
             onPressed: () {
               Navigator.pushReplacement(
-                  context, MaterialPageRoute(builder: (_) => Home()));
+                  context, MaterialPageRoute(builder: (_) => const Home()));
             },
           ),
         ],
@@ -451,7 +437,6 @@ Future<Message> submitData(
               "Server error! Contact administrator.",
         );
       } catch (e) {
-        print("Error parsing response: $e");
         return Message(
           token: null,
           success: null,
@@ -461,7 +446,6 @@ Future<Message> submitData(
       }
     }
   } catch (e) {
-    print("Network error: $e");
     return Message(
       token: null,
       success: null,

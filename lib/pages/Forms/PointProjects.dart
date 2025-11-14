@@ -60,31 +60,21 @@ class _PointProjectsState extends State<PointProjects> {
     try {
       var token = await storage.read(key: "mwstaffjwt");
       if (token == null) {
-        print("No token found");
         return;
       }
 
       var decoded = parseJwt(token.toString());
       editing = await storage.read(key: "editing");
-
-      print("Decoded token: $decoded");
-      print("Staff ID from token: ${decoded["id"]}");
-
       if (!mounted) return;
       setState(() {
         user = decoded["name"];
         staffid = decoded["id"];
         role = decoded["role"] ?? '';
       });
-
-      print("Set staffid to: $staffid");
-
       if (editing == 'true') {
         prefillForm(data);
       }
-    } catch (e) {
-      print("Error in fetchStoredData: $e");
-    }
+    } catch (e) {}
   }
 
   prefillForm(data) async {
@@ -114,8 +104,6 @@ class _PointProjectsState extends State<PointProjects> {
 
     Geolocator.getPositionStream(locationSettings: locationSettings)
         .listen((Position position) {
-      print(position.latitude);
-      print(position.longitude);
       if (!mounted) return;
       setState(() {
         long = position.longitude;
@@ -580,9 +568,6 @@ Future<Message> submitData(
     String? editing) async {
   try {
     // Debug print
-    print(
-        "Submitting point data with staffid: $staffid, assetType: $assetType");
-
     var response;
     Map<String, dynamic> requestBody = {
       'assetType': assetType,
@@ -616,9 +601,6 @@ Future<Message> submitData(
       requestBody['remarks'] = remarks;
     }
 
-    // Debug print
-    print("Request body: ${jsonEncode(requestBody)}");
-
     if (editing == 'true') {
       response = await http.put(
         Uri.parse("${getUrl()}pj/points/$pointID"),
@@ -638,9 +620,6 @@ Future<Message> submitData(
     }
 
     // Debug print
-    print("Response status: ${response.statusCode}");
-    print("Response body: ${response.body}");
-
     if (response.statusCode == 200 || response.statusCode == 201) {
       final responseData = jsonDecode(response.body);
       return Message(
@@ -659,7 +638,6 @@ Future<Message> submitData(
               "Server error! Contact administrator.",
         );
       } catch (e) {
-        print("Error parsing response: $e");
         return Message(
           token: null,
           success: null,
@@ -669,7 +647,6 @@ Future<Message> submitData(
       }
     }
   } catch (e) {
-    print("Network error: $e");
     return Message(
       token: null,
       success: null,

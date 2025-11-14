@@ -57,10 +57,6 @@ class _NewSanConnState extends State<NewSanConn> {
 
   var isLoading;
 
-  void _openDrawer() {
-    _scaffoldKey.currentState?.openDrawer();
-  }
-
   Future<String> convertFileToBase64(XFile file) async {
     List<int> fileBytes = await file.readAsBytes();
     String base64String = base64Encode(fileBytes);
@@ -673,14 +669,9 @@ Future<Message> submitData(
         }),
       );
     }
-
-    print("sanitaion: ${response.body}");
-    print("sanitation: ${response.statusCode}");
-
     if (response.statusCode == 200 || response.statusCode == 203) {
       return Message.fromJson(jsonDecode(response.body));
     } else {
-      print("server error: ${response.statusCode}");
       return Message(
         token: null,
         success: null,

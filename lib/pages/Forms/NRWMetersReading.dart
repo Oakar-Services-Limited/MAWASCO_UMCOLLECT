@@ -60,10 +60,6 @@ class _NRWMeterReadingState extends State<NRWMeterReading> {
   TextEditingController dmaNameController = TextEditingController();
   TextEditingController meterTypeController = TextEditingController();
 
-  void _openDrawer() {
-    _scaffoldKey.currentState?.openDrawer();
-  }
-
   Future<String> convertFileToBase64(XFile file) async {
     List<int> fileBytes = await file.readAsBytes();
     String base64String = base64Encode(fileBytes);
@@ -248,7 +244,6 @@ class _NRWMeterReadingState extends State<NRWMeterReading> {
         if (response.statusCode == 200 || response.statusCode == 203) {
           return Message.fromJson(jsonDecode(response.body));
         } else {
-          print('Second Reading Update Error: ${response.body}');
           return Message(
             token: null,
             success: null,
@@ -256,7 +251,6 @@ class _NRWMeterReadingState extends State<NRWMeterReading> {
           );
         }
       } catch (e) {
-        print('Second Reading Update Exception: $e');
         return Message(
           token: null,
           success: null,
@@ -334,9 +328,6 @@ class _NRWMeterReadingState extends State<NRWMeterReading> {
         'image': myimage,
         'user_id': staffid,
       };
-
-      print('Sending request with body: $requestBody');
-
       final response = await http.post(
         Uri.parse("${getUrl()}nrw_dmareadings/"),
         headers: <String, String>{
@@ -344,15 +335,11 @@ class _NRWMeterReadingState extends State<NRWMeterReading> {
         },
         body: jsonEncode(requestBody),
       );
-
-      print('Server response: ${response.body}');
-
       if (response.statusCode == 200 ||
           response.statusCode == 201 ||
           response.statusCode == 203) {
         return Message.fromJson(jsonDecode(response.body));
       } else {
-        print('First Reading Create Error: ${response.body}');
         return Message(
           token: null,
           success: null,
@@ -360,7 +347,6 @@ class _NRWMeterReadingState extends State<NRWMeterReading> {
         );
       }
     } catch (e) {
-      print('First Reading Create Exception: $e');
       return Message(
         token: null,
         success: null,

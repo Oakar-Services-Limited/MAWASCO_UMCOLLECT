@@ -58,10 +58,6 @@ class _ConnectionChambersState extends State<ConnectionChambers> {
 
   var isLoading;
 
-  void _openDrawer() {
-    _scaffoldKey.currentState?.openDrawer();
-  }
-
   Future<String> convertFileToBase64(XFile file) async {
     List<int> fileBytes = await file.readAsBytes();
     String base64String = base64Encode(fileBytes);
@@ -544,8 +540,8 @@ class _ConnectionChambersState extends State<ConnectionChambers> {
                           });
                           var res = await submitData(
                             connChambersID,
-                            lat,
-                            long,
+                            lat.toString(),
+                            long.toString(),
                             name,
                             zone,
                             subzone,
@@ -604,8 +600,8 @@ class _ConnectionChambersState extends State<ConnectionChambers> {
 
 Future<Message> submitData(
   String connChambersID,
-  double lat,
-  double long,
+  String lat,
+  String long,
   String name,
   String zone,
   String subzone,
@@ -634,8 +630,8 @@ Future<Message> submitData(
           'Content-Type': 'application/json; charset=UTF-8',
         },
         body: jsonEncode(<String, dynamic>{
-          'Latitude': update != null ? lat : null,
-          'Longitude': update != null ? long : null,
+          'Latitude': update != null ? double.parse(lat) : null,
+          'Longitude': update != null ? double.parse(long) : null,
           "Name": name,
           "Zone": zone,
           "Subzone": subzone,
@@ -658,8 +654,8 @@ Future<Message> submitData(
           'Content-Type': 'application/json; charset=UTF-8',
         },
         body: jsonEncode(<String, dynamic>{
-          'Latitude': lat,
-          'Longitude': long,
+          'Latitude': double.parse(lat),
+          'Longitude': double.parse(long),
           "Name": name,
           "Zone": zone,
           "Subzone": subzone,

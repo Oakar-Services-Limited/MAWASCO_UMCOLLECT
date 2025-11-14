@@ -37,8 +37,6 @@ class _StaffLoginState extends State<StaffLogin> {
   void _showMessage(String message, bool isError) {
     if (!mounted) return;
 
-    print('Showing message: $message (isError: $isError)');
-
     ScaffoldMessenger.of(context).clearSnackBars();
     final snackBar = SnackBar(
       content: Row(
@@ -258,8 +256,6 @@ class _StaffLoginState extends State<StaffLogin> {
   }
 
   void _handleLogin() async {
-    print('Login attempt started'); // Debug log
-
     // Validate inputs
     if (email.isEmpty || password.isEmpty) {
       _showMessage('Please fill in all fields', true);
@@ -281,7 +277,6 @@ class _StaffLoginState extends State<StaffLogin> {
     }
 
     setState(() => isLoading = true);
-    print('Making API request to: ${getUrl()}admin/login'); // Debug log
 
     try {
       final response = await http.post(
@@ -294,9 +289,6 @@ class _StaffLoginState extends State<StaffLogin> {
           'appVersion': '9.0.0'
         }),
       );
-
-      print('Response status code: ${response.statusCode}'); // Debug log
-      print('Response body: ${response.body}'); // Debug log
 
       final data = jsonDecode(response.body);
 
@@ -336,7 +328,6 @@ class _StaffLoginState extends State<StaffLogin> {
         );
       }
     } catch (e) {
-      print('Login error: $e'); // Debug log
       _showMessage('Connection error. Please check your internet.', true);
     } finally {
       if (mounted) {
@@ -350,8 +341,6 @@ class _StaffLoginState extends State<StaffLogin> {
       // Get FCM token
       String? token = await FirebaseMessaging.instance.getToken();
       if (token != null) {
-        print('FCM Token: $token');
-
         // Get the stored user ID from JWT
         final jwtToken = await storage.read(key: 'mwstaffjwt');
         String? actualUserId;
@@ -369,7 +358,7 @@ class _StaffLoginState extends State<StaffLogin> {
                   payloadMap['userId']?.toString();
             }
           } catch (e) {
-            print('Error parsing JWT: $e');
+            // Error parsing JWT
           }
         }
 
@@ -385,13 +374,10 @@ class _StaffLoginState extends State<StaffLogin> {
               'deviceInfo': 'MAWASCO UM Collector App',
             }),
           );
-          print('FCM Token registered, status: ${response.statusCode}');
-        } else {
-          print('Could not extract userId from JWT');
         }
       }
     } catch (e) {
-      print('Error registering FCM token: $e');
+      // Error registering FCM token
     }
   }
 

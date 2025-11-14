@@ -72,7 +72,6 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
   void initState() {
     super.initState();
     initializeServices();
-    print("widget label is ${widget.label}");
   }
 
   @override
@@ -201,8 +200,6 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
 
   void getDirections(LatLng dst) async {
     try {
-      print(
-          "Getting directions from: ${curLocation.latitude}, ${curLocation.longitude} to: ${dst.latitude}, ${dst.longitude}");
       List<LatLng> polylineCoordinates = [];
       List<dynamic> points = [];
 
@@ -212,13 +209,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
       // First try to get directions using the Directions API directly
       String directionsUrl =
           'https://maps.googleapis.com/maps/api/directions/json?origin=${curLocation.latitude},${curLocation.longitude}&destination=${dst.latitude},${dst.longitude}&key=$apiKey';
-
-      print("Requesting directions from URL: $directionsUrl");
-
       var response = await http.get(Uri.parse(directionsUrl));
-      print("Directions API Response Status: ${response.statusCode}");
-      print("Directions API Response Body: ${response.body}");
-
       if (response.statusCode == 200) {
         var data = json.decode(response.body);
         if (data['status'] == 'OK') {
@@ -240,9 +231,6 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
             }
           }
         } else {
-          print(
-              "Directions API Error: ${data['status']} - ${data['error_message'] ?? 'No error message'}");
-
           // Show error message to user
           if (data['status'] == 'REQUEST_DENIED' &&
               data['error_message']?.contains('Billing') == true) {
@@ -260,14 +248,10 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
           }
         }
       } else {
-        print("HTTP Error: ${response.statusCode}");
         _showSnackbar(context,
             'Error getting directions: ${response.statusCode}', Colors.red);
         return;
       }
-
-      print("Number of polyline coordinates: ${polylineCoordinates.length}");
-
       if (polylineCoordinates.isNotEmpty) {
         // Clear existing polylines
         setState(() {
@@ -280,11 +264,9 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
         // Fit camera to show the entire route
         _fitCameraToBounds(curLocation, dst);
       } else {
-        print("No polyline coordinates generated");
         _showSnackbar(context, 'No route found between points', Colors.orange);
       }
     } catch (e) {
-      print("Error getting directions: $e");
       _showSnackbar(context, 'Error getting directions: $e', Colors.red);
       // Fallback to direct line on any error
       _drawDirectLine(curLocation, dst);
@@ -293,7 +275,6 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
 
   // Fallback method to draw a direct line between points
   void _drawDirectLine(LatLng start, LatLng end) {
-    print("Drawing direct line between points");
     List<LatLng> directLine = [start, end];
 
     setState(() {
@@ -346,7 +327,6 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
   // Map Drawing and Calculation Methods
   // ==========================================
   addPolyLine(List<LatLng> polylineCoordinates) {
-    print("Adding polyline with ${polylineCoordinates.length} points");
     PolylineId id = const PolylineId('poly');
     Polyline polyline = Polyline(
       polylineId: id,
@@ -357,8 +337,6 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
     );
     setState(() {
       polylines[id] = polyline;
-      print(
-          "Polyline added to map. Current polylines count: ${polylines.length}");
     });
   }
 
@@ -524,8 +502,6 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
   }
 
   void searchObjectID(String v) async {
-    print("Searching for object ID: $v");
-    print("Widget label: ${widget.label}");
     String table;
 
     switch (widget.label) {
@@ -554,8 +530,6 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
           'Content-Type': 'application/json; charset=UTF-8',
         },
       );
-      print("Response status: ${response.statusCode}");
-      print("Response body: ${response.body}");
       if (response.statusCode == 200 || response.statusCode == 203) {
         List<dynamic> body = jsonDecode(response.body);
         if (body.isNotEmpty) {
@@ -789,8 +763,6 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                         0, 0, 0, 16),
                                                 child: TextButton(
                                                     onPressed: () {
-                                                      print(
-                                                          "selected: $selected");
                                                       setState(() {
                                                         accountno = selected[
                                                                 "accountNo"]
@@ -798,8 +770,6 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                         id = selected["id"]
                                                             .toString();
                                                       });
-                                                      print(
-                                                          "selected accountno: $accountno, id: $id");
                                                       FocusScope.of(context)
                                                           .unfocus();
                                                       setState(() {
@@ -1111,8 +1081,6 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                             Expanded(
                                               child: TextButton(
                                                   onPressed: () {
-                                                    print(
-                                                        "selected value is: $selected, $choice");
                                                     if (choice != null) {
                                                       setState(() {
                                                         routing = true;
@@ -1229,8 +1197,6 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                 width: double.infinity,
                                                 child: TextButton(
                                                     onPressed: () async {
-                                                      print(
-                                                          "account number here: $accountno, id: $id");
                                                       if (choice != null) {
                                                         setState(() {
                                                           choice = null;
@@ -1302,8 +1268,6 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                     width: double.infinity,
                                                     child: TextButton(
                                                         onPressed: () async {
-                                                          print(
-                                                              "account number here: $accountno");
                                                           if (choice != null) {
                                                             setState(() {
                                                               choice = null;

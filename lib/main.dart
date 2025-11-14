@@ -16,7 +16,6 @@ import 'dart:convert';
 // Background message handler
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  print('Background message received: ${message.data}');
 
   // For background notifications, you can show system notification here
   // This will be handled by the system when app is in background
@@ -28,9 +27,7 @@ Future<void> main() async {
   // Initialize Firebase
   try {
     await Firebase.initializeApp();
-    print('Firebase initialized successfully');
   } catch (e) {
-    print('Firebase initialization failed: $e');
     // Continue without Firebase for now
   }
 
@@ -134,7 +131,6 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
         );
       }
     } catch (e) {
-      print("Error parsing token: $e");
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -165,12 +161,10 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
         sound: true,
         provisional: false,
       );
-      print('User granted permission: ${settings.authorizationStatus}');
 
       // Get FCM token (will be registered after login)
       String? token = await messaging.getToken();
       if (token != null) {
-        print('FCM Token: $token');
         // Token will be registered after user logs in
       }
 
@@ -180,9 +174,6 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
 
       // Set up foreground message handling
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        print('FOREGROUND MESSAGE RECEIVED');
-        print('Foreground Message Data: ${message.data}');
-
         // Show system notification even when app is in foreground
         if (message.data.isNotEmpty) {
           _showSystemNotification(message);
@@ -197,16 +188,12 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
           .getInitialMessage()
           .then((RemoteMessage? message) {
         if (message != null) {
-          print('App opened from terminated state with message:');
-          print('Initial Message Data: ${message.data}');
           _handleNotificationNavigation(message.data);
         }
       });
 
       // Handle when app is opened from background state
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-        print('App opened from background state with message:');
-        print('Message Data: ${message.data}');
         _handleNotificationNavigation(message.data);
       });
 
@@ -222,7 +209,7 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
               final data = json.decode(response.payload!);
               _handleNotificationNavigation(data);
             } catch (e) {
-              print('❌ Error parsing notification payload: $e');
+              // Error parsing notification payload
             }
           }
         },
@@ -230,11 +217,10 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
 
       // Token refresh listener
       FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
-        print('FCM Token refreshed: $newToken');
         // Token will be re-registered after user logs in again
       });
     } catch (e) {
-      print('Error setting up notifications: $e');
+      // Error setting up notifications
     }
   }
 
@@ -262,12 +248,7 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
         platformChannelSpecifics,
         payload: json.encode(message.data),
       );
-
-      print('✅ System notification shown successfully');
-      print(
-          '📱 Notification: ${message.data['incidentType']} - ${message.data['location']}');
     } catch (e) {
-      print('❌ Error showing system notification: $e');
       // Fallback to simple alert if system notification fails
       _showSimpleAlert(message.data);
     }
@@ -321,26 +302,21 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
                 );
               },
             );
-            print('✅ Alert dialog shown successfully');
-          } else {
-            print('⚠️ Cannot show alert dialog - context not available');
           }
         } catch (e) {
-          print('❌ Error showing alert dialog: $e');
+          // Error showing alert dialog
         }
       });
     } catch (e) {
-      print('❌ Error in _showSimpleAlert: $e');
+      // Error in _showSimpleAlert
     }
   }
 
   void _handleNotificationNavigation(Map<String, dynamic> data) {
     final target = (data['target'] ?? '').toString().toUpperCase().trim();
-    print('Target value: $target');
 
     if (target == 'INCIDENT') {
       // Handle incident notification
-      print('Incident notification received: ${data['incidentId']}');
       // You can navigate to a specific page here if needed
     }
   }

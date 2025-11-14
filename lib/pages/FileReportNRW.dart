@@ -47,10 +47,6 @@ class _FileReportNRWState extends State<FileReportNRW> {
 
   final storage = const FlutterSecureStorage();
 
-  void _openDrawer() {
-    _scaffoldKey.currentState?.openDrawer();
-  }
-
   @override
   void initState() {
     super.initState();
@@ -65,8 +61,6 @@ class _FileReportNRWState extends State<FileReportNRW> {
   }
 
   Future<void> loadFileReport(String id) async {
-    print("file report id: $id");
-
     setState(() {
       isLoading = LoadingAnimationWidget.horizontalRotatingDots(
         color: const Color(0xff0288D1),
@@ -80,8 +74,6 @@ class _FileReportNRWState extends State<FileReportNRW> {
       );
 
       var data = json.decode(response.body);
-      print("file report data: $data");
-
       setState(() {
         userData = data;
         type = data["Type"];
@@ -96,8 +88,6 @@ class _FileReportNRWState extends State<FileReportNRW> {
         isLoading = null;
       });
     } catch (e) {
-      print("Error loading file report: $e");
-
       setState(() {
         isLoading = null;
       });

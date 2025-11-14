@@ -46,14 +46,8 @@ class _FileReportState extends State<FileReport> {
 
   final storage = const FlutterSecureStorage();
 
-  void _openDrawer() {
-    _scaffoldKey.currentState?.openDrawer();
-  }
-
   void _showMessage(String message, bool isError) {
     if (!mounted) return;
-
-    print('Showing message: $message (isError: $isError)');
 
     ScaffoldMessenger.of(context).clearSnackBars();
     final snackBar = SnackBar(
@@ -98,9 +92,7 @@ class _FileReportState extends State<FileReport> {
   void initState() {
     super.initState();
     _image = null;
-    print("FileReport initState - widget.item: ${widget.item}");
     if (widget.item == null) {
-      print("WARNING: Empty item received in widget");
     }
     loadFileReport();
   }
@@ -112,10 +104,7 @@ class _FileReportState extends State<FileReport> {
   }
 
   Future<void> loadFileReport() async {
-    print("loadFileReport called with item: ${widget.item}");
-
     if (widget.item == null) {
-      print("ERROR: Empty item passed to loadFileReport");
       setState(() {
         error = "Invalid Report Data";
         isLoading = null;
@@ -146,12 +135,7 @@ class _FileReportState extends State<FileReport> {
         staffid = widget.item["admin"]?["id"] ?? '';
         isLoading = null;
       });
-
-      print("State updated with incidentId: $incidentId");
-      print("Type: $type");
-      print("Serial: $serial");
     } catch (e) {
-      print("Error in loadFileReport: $e");
       setState(() {
         error = "Failed to load report: $e";
         isLoading = null;
@@ -173,7 +157,6 @@ class _FileReportState extends State<FileReport> {
         });
       }
     } catch (e) {
-      print("Error taking photo: $e");
       setState(() {
         error = "Failed to take photo: $e";
       });
@@ -194,7 +177,6 @@ class _FileReportState extends State<FileReport> {
         });
       }
     } catch (e) {
-      print("Error getting image: $e");
       setState(() {
         error = "Failed to get image: $e";
       });
@@ -205,7 +187,6 @@ class _FileReportState extends State<FileReport> {
     try {
       return DateTime.parse(timestamp).toLocal();
     } catch (e) {
-      print("Error parsing timestamp: $e");
       return DateTime.now();
     }
   }
@@ -662,10 +643,6 @@ Future<Message> submitData(
   String repairedImage,
   String taskremark,
 ) async {
-  print("submitData called with incidentId: $incidentId");
-  print("incidentId length: ${incidentId.length}");
-  print("incidentId is empty: ${incidentId.isEmpty}");
-
   if (repairedImage.isEmpty || taskremark.isEmpty) {
     return Message(
       token: null,
@@ -722,10 +699,6 @@ Future<Message> submitData(
     // Send the request
     var streamedResponse = await request.send();
     var response = await Response.fromStream(streamedResponse);
-
-    print("Response status code: ${response.statusCode}");
-    print("Response body: ${response.body}");
-
     if (response.statusCode == 200 || response.statusCode == 203) {
       return Message(
         token: null,
@@ -755,7 +728,6 @@ Future<Message> submitData(
       );
     }
   } catch (e) {
-    print("Error submitting data: $e");
     return Message(
       token: null,
       success: null,

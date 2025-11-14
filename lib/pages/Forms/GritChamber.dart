@@ -324,8 +324,6 @@ Future<Message> submitData(
 ) async {
   try {
     // Debug print
-    print("Submitting gritchamber data with staffid: $staffid");
-
     var response;
     final requestBody = editing == 'true'
         ? {
@@ -349,9 +347,6 @@ Future<Message> submitData(
             'longitude': long,
           };
 
-    // Debug print
-    print("Request body: ${jsonEncode(requestBody)}");
-
     if (editing == 'true') {
       response = await http.put(
         Uri.parse("${getUrl()}sr/gritchambers/$gritchamberID"),
@@ -371,9 +366,6 @@ Future<Message> submitData(
     }
 
     // Debug print
-    print("Response status: ${response.statusCode}");
-    print("Response body: ${response.body}");
-
     if (response.statusCode == 200 || response.statusCode == 201) {
       final responseData = jsonDecode(response.body);
       return Message(
@@ -400,7 +392,6 @@ Future<Message> submitData(
       }
     }
   } catch (e) {
-    print("Network error: $e");
     return Message(
       token: null,
       success: null,

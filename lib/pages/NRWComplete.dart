@@ -24,10 +24,6 @@ class _NRWCompleteState extends State<NRWComplete> {
   int currentPage = 1;
   final int itemsPerPage = 5;
 
-  void _openDrawer() {
-    _scaffoldKey.currentState?.openDrawer();
-  }
-
   @override
   void initState() {
     fetchCompleteIncidencesdIncidences();
@@ -47,9 +43,6 @@ class _NRWCompleteState extends State<NRWComplete> {
       );
 
       var data = json.decode(response.body);
-
-      print("incidences: $data");
-
       setState(() {
         incireported = data["complete"];
         isLoading = null;
@@ -141,7 +134,6 @@ class _NRWCompleteState extends State<NRWComplete> {
         child: Text('No client calls.'),
       );
     } else {
-      print("completed tasks: $incireported");
       return ListView.builder(
           itemCount: paginatedIncidents.length,
           itemBuilder: (context, index) {

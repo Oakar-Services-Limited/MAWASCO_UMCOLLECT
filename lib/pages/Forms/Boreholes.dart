@@ -58,10 +58,6 @@ class _BoreholesState extends State<Boreholes> {
 
   var isLoading;
 
-  void _openDrawer() {
-    _scaffoldKey.currentState?.openDrawer();
-  }
-
   Future<String> convertFileToBase64(XFile file) async {
     List<int> fileBytes = await file.readAsBytes();
     String base64String = base64Encode(fileBytes);
@@ -93,11 +89,8 @@ class _BoreholesState extends State<Boreholes> {
   Future<void> fetchStoredData() async {
     try {
       var token = await storage.read(key: "mwstaffjwt");
-      print('token is $token');
       var decoded = parseJwt(token.toString());
       editing = await storage.read(key: "editing");
-      print('token is $decoded');
-
       setState(() {
         user = decoded["name"];
         staffid = decoded["id"];
@@ -613,9 +606,6 @@ Future<Message> submitData(
     http.Response response;
     const storage = FlutterSecureStorage();
     String? update = await storage.read(key: "updateLocation");
-
-    print("boreholes submited $lat, $long, $update");
-
     if (editing == 'true') {
       response = await http.put(
         Uri.parse("${getUrl()}boreholes/$boreholeID"),

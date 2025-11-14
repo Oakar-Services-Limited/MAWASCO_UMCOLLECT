@@ -6,12 +6,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:um_collect/components/MySelectInput.dart';
 import 'package:um_collect/components/MyDrawer.dart';
 import 'package:um_collect/components/MyTextInput.dart';
-import 'package:um_collect/components/MyTextInputII.dart';
 import 'package:um_collect/components/SubmitButton.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/models/Map.dart';
 import 'package:um_collect/pages/NRW.dart';
-import 'package:um_collect/pages/TextOakar.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart';
@@ -471,10 +469,6 @@ Future<Message> submitData(
         'reportedBy': name,
       }),
     );
-
-    print("Response status: ${response.statusCode}");
-    print("Response body: ${response.body}");
-
     final responseData = jsonDecode(response.body);
 
     if (response.statusCode == 200 || response.statusCode == 201) {
@@ -494,7 +488,6 @@ Future<Message> submitData(
       );
     }
   } catch (e) {
-    print("Error: $e");
     return Message(
       token: null,
       success: null,

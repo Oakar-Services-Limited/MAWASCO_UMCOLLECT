@@ -61,9 +61,6 @@ class _IncidencesListState extends State<IncidencesList> {
           staffid = userId;
         });
       }
-
-      print("Fetching reported incidents for userId: $userId");
-
       final response = await get(
         Uri.parse("${getUrl()}om/reports?userId=$userId"),
         headers: {
@@ -71,10 +68,7 @@ class _IncidencesListState extends State<IncidencesList> {
           'Authorization': 'Bearer $token',
         },
       );
-
-      print("Response status code: ${response.statusCode}");
       if (response.body.length < 500) {
-        print("Response body: ${response.body}");
       }
 
       if (response.statusCode == 200) {
@@ -127,7 +121,6 @@ class _IncidencesListState extends State<IncidencesList> {
         }
       }
     } catch (e) {
-      print("Exception occurred: $e");
       setState(() {
         incidentLst = [];
         isLoading = null;

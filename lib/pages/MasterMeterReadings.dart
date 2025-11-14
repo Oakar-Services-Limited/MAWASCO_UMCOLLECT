@@ -13,8 +13,6 @@ import 'package:http/http.dart' as http;
 import 'package:um_collect/components/MySelectInput.dart';
 import 'package:um_collect/components/MyTextInput.dart';
 import 'package:um_collect/components/StaffDrawer.dart';
-import 'package:um_collect/components/SubmitButton.dart';
-import 'package:um_collect/components/TextResponse.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/pages/home.dart';
 
@@ -42,14 +40,8 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
   late File? _image;
   final imagePicker = ImagePicker();
 
-  void _openDrawer() {
-    _scaffoldKey.currentState?.openDrawer();
-  }
-
   void _showMessage(String message, bool isError) {
     if (!mounted) return;
-
-    print('Showing message: $message (isError: $isError)');
 
     ScaffoldMessenger.of(context).clearSnackBars();
     final snackBar = SnackBar(

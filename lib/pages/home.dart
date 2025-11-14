@@ -72,7 +72,6 @@ class _HomeState extends State<Home> {
 
       var decoded = parseJwt(token);
       formattedDate = DateFormat('MMMM dd, yyyy').format(DateTime.now());
-      print("decoded: $decoded");
       if (decoded["error"] == "Invalid token") {
         Navigator.pushReplacement(
             context, MaterialPageRoute(builder: (_) => const Login()));
@@ -83,9 +82,6 @@ class _HomeState extends State<Home> {
           position = decoded["position"];
           isnew = true;
         });
-
-        print("staffid: $staffid, name: $name, position: $position");
-
         await storage.write(key: 'staffid', value: staffid);
 
         fetchStats(staffid, isnew);
@@ -146,10 +142,6 @@ class _HomeState extends State<Home> {
           resolvedResponse.statusCode == 200) {
         var pendingData = json.decode(pendingResponse.body);
         var resolvedData = json.decode(resolvedResponse.body);
-
-        print("reports stats pending: ${pendingData['data']?.length ?? 0}");
-        print("reports stats resolved: ${resolvedData['data']?.length ?? 0}");
-
         if (!mounted) return;
         setState(() {
           pending = (pendingData['data']?.length ?? 0).toString();
@@ -157,8 +149,6 @@ class _HomeState extends State<Home> {
           isLoading = null;
         });
       } else {
-        print(
-            "reports stats: pending=${pendingResponse.statusCode}, resolved=${resolvedResponse.statusCode}");
         if (!mounted) return;
         setState(() {
           pending = '0';
@@ -167,7 +157,6 @@ class _HomeState extends State<Home> {
         });
       }
     } catch (e) {
-      print("reports stats error: $e");
       if (!mounted) return;
       setState(() {
         pending = '0';

@@ -8,7 +8,6 @@ import 'package:um_collect/components/MySelectInput.dart';
 import 'package:um_collect/components/MyTextInput.dart';
 import 'package:um_collect/components/StaffDrawer.dart';
 import 'package:um_collect/components/SubmitButton.dart';
-import 'package:um_collect/components/TextResponse.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/models/Map.dart';
 import 'package:um_collect/pages/Assets.dart';
@@ -53,10 +52,6 @@ class _TanksState extends State<Tanks> {
 
   var isLoading;
 
-  void _openDrawer() {
-    _scaffoldKey.currentState?.openDrawer();
-  }
-
   @override
   void initState() {
     fetchStoredData();
@@ -67,19 +62,13 @@ class _TanksState extends State<Tanks> {
   Future<void> fetchStoredData() async {
     try {
       var token = await storage.read(key: "mwstaffjwt");
-      print('token is $token');
       var decoded = parseJwt(token.toString());
       editing = await storage.read(key: "editing");
-      print('token is $decoded');
-
       setState(() {
         user = decoded["name"];
         staffid = decoded["id"];
         role = decoded["role"] ?? '';
       });
-
-      print('editing is $editing');
-
       if (editing == 'true') {
         prefillForm(data);
       } else {}
@@ -115,8 +104,6 @@ class _TanksState extends State<Tanks> {
 
     Geolocator.getPositionStream(locationSettings: locationSettings)
         .listen((Position position) {
-      print(position.latitude);
-      print(position.longitude);
       setState(() {
         long = position.longitude;
         lat = position.latitude;
@@ -432,8 +419,6 @@ Future<Message> submitData(
     String url = editing == 'true' && tankID.isNotEmpty
         ? "${getUrl()}wt/tanks/$tankID"
         : "${getUrl()}wt/tanks";
-    print("Submitting to URL: $url");
-
     Map<String, dynamic> requestBody = {
       'latitude': lat,
       'longitude': long,
@@ -450,8 +435,6 @@ Future<Message> submitData(
       'remarks': remarks,
       'userId': staffid
     };
-
-    print("Request body: ${jsonEncode(requestBody)}");
 
     if (editing == 'true' && tankID.isNotEmpty) {
       response = await http.put(
@@ -470,10 +453,6 @@ Future<Message> submitData(
         body: jsonEncode(requestBody),
       );
     }
-
-    print("Response status code: ${response.statusCode}");
-    print("Response body: ${response.body}");
-
     if (response.statusCode == 200 || response.statusCode == 201) {
       final responseData = jsonDecode(response.body);
       return Message(
@@ -498,7 +477,6 @@ Future<Message> submitData(
       );
     }
   } catch (e) {
-    print("Error submitting tank data: $e");
     return Message(
       token: null,
       success: null,

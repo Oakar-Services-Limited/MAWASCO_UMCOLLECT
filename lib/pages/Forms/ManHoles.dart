@@ -8,7 +8,6 @@ import 'package:um_collect/components/MySelectInput.dart';
 import 'package:um_collect/components/MyTextInput.dart';
 import 'package:um_collect/components/StaffDrawer.dart';
 import 'package:um_collect/components/SubmitButton.dart';
-import 'package:um_collect/components/TextResponse.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/models/Map.dart';
 import 'package:um_collect/pages/Assets.dart';
@@ -96,8 +95,6 @@ class _ManHolesState extends State<ManHoles> {
 
     Geolocator.getPositionStream(locationSettings: locationSettings)
         .listen((Position position) {
-      print(position.latitude);
-      print(position.longitude);
       setState(() {
         long = position.longitude;
         lat = position.latitude;
@@ -342,8 +339,6 @@ Future<Message> submitData(
 ) async {
   try {
     // Debug print
-    print("Submitting manhole data with staffid: $staffid");
-
     var response;
     final requestBody = editing == 'true'
         ? {
@@ -367,9 +362,6 @@ Future<Message> submitData(
             'longitude': long,
           };
 
-    // Debug print
-    print("Request body: ${jsonEncode(requestBody)}");
-
     if (editing == 'true') {
       response = await http.put(
         Uri.parse("${getUrl()}sr/manholes/$manholeID"),
@@ -389,9 +381,6 @@ Future<Message> submitData(
     }
 
     // Debug print
-    print("Response status: ${response.statusCode}");
-    print("Response body: ${response.body}");
-
     if (response.statusCode == 200 || response.statusCode == 201) {
       final responseData = jsonDecode(response.body);
       return Message(
@@ -418,7 +407,6 @@ Future<Message> submitData(
       }
     }
   } catch (e) {
-    print("Network error: $e");
     return Message(
       token: null,
       success: null,

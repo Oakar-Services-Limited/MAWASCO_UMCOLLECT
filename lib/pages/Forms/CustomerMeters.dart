@@ -114,8 +114,6 @@ class _CustomerMetersState extends State<CustomerMeters> {
 
     Geolocator.getPositionStream(locationSettings: locationSettings)
         .listen((Position position) {
-      print(position.latitude);
-      print(position.longitude);
       setState(() {
         long = position.longitude;
         lat = position.latitude;
@@ -129,7 +127,6 @@ class _CustomerMetersState extends State<CustomerMeters> {
     try {
       var token = await storage.read(key: "mwstaffjwt");
       var decoded = parseJwt(token.toString());
-      print('decoded is $decoded');
       setState(() {
         userid = decoded["id"];
         role = decoded["role"] ?? '';
@@ -745,9 +742,6 @@ Future<Message> submitData(
       'latitude': id == '' ? lat : null,
       'longitude': id == '' ? long : null,
     };
-
-    print('Payload is $payload, userid is: $userid');
-
     if (id != '') {
       response = await http.put(
         Uri.parse("${getUrl()}wt/customer-meters/$id"),

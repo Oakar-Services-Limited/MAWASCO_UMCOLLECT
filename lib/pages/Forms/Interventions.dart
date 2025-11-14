@@ -15,7 +15,6 @@ import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/models/Map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:um_collect/pages/NRW.dart';
-import 'package:um_collect/pages/home.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:http/http.dart' as http;
 
@@ -69,10 +68,6 @@ class _InterventionsState extends State<Interventions> {
   dynamic data;
 
   var isLoading;
-
-  void _openDrawer() {
-    _scaffoldKey.currentState?.openDrawer();
-  }
 
   Future<String> convertFileToBase64(XFile file) async {
     List<int> fileBytes = await file.readAsBytes();
@@ -876,8 +871,7 @@ Future<Message> submitData(
       );
     }
 
-    print("Submitting data with token: ${token.substring(0, 10)}...");
-    print("Request body: ${jsonEncode({
+    final requestBody = {
           'latitude': lat,
           'longitude': long,
           'DMAName': dma,
@@ -933,10 +927,6 @@ Future<Message> submitData(
         'date': date,
       }),
     );
-
-    print("Response status code: ${response.statusCode}");
-    print("Response body: ${response.body}");
-
     if (response.statusCode == 200 || response.statusCode == 201) {
       final responseBody = jsonDecode(response.body);
       return Message(
@@ -953,7 +943,6 @@ Future<Message> submitData(
       );
     }
   } catch (e) {
-    print("Error submitting data: $e");
     return Message(
       token: null,
       success: null,

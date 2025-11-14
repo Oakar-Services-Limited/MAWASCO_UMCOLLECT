@@ -48,10 +48,6 @@ class _WashoutsState extends State<Washouts> {
 
   var isLoading;
 
-  void _openDrawer() {
-    _scaffoldKey.currentState?.openDrawer();
-  }
-
   @override
   void initState() {
     fetchStoredData();
@@ -102,8 +98,6 @@ class _WashoutsState extends State<Washouts> {
 
     Geolocator.getPositionStream(locationSettings: locationSettings)
         .listen((Position position) {
-      print(position.latitude);
-      print(position.longitude);
       setState(() {
         long = position.longitude;
         lat = position.latitude;
@@ -361,8 +355,6 @@ Future<Message> submitData(
     String? editing) async {
   try {
     // Debug print
-    print("Submitting with staffid: $staffid");
-
     var response;
     final requestBody = {
       'name': name,
@@ -376,9 +368,6 @@ Future<Message> submitData(
       'latitude': lat,
       'longitude': long,
     };
-
-    // Debug print
-    print("Request body: ${jsonEncode(requestBody)}");
 
     if (editing == 'true') {
       response = await http.put(
@@ -399,9 +388,6 @@ Future<Message> submitData(
     }
 
     // Debug print
-    print("Response status: ${response.statusCode}");
-    print("Response body: ${response.body}");
-
     if (response.statusCode == 200 || response.statusCode == 201) {
       final responseData = jsonDecode(response.body);
       return Message(
@@ -421,7 +407,6 @@ Future<Message> submitData(
               "Server error! Contact administrator.",
         );
       } catch (e) {
-        print("Error parsing response: $e");
         return Message(
           token: null,
           success: null,
@@ -431,7 +416,6 @@ Future<Message> submitData(
       }
     }
   } catch (e) {
-    print("Network error: $e");
     return Message(
       token: null,
       success: null,

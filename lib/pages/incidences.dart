@@ -61,10 +61,6 @@ class _IncidencesState extends State<Incidences> {
         Uri.parse("${getUrl()}om/categories"),
         headers: {'Content-Type': 'application/json'},
       );
-
-      print("Response INCIDECES: ${response.body}");
-      print("Response INCIDECES: ${response.statusCode}");
-
       if (!mounted) return; // Check if widget is still mounted
 
       if (response.statusCode == 200) {
@@ -102,17 +98,12 @@ class _IncidencesState extends State<Incidences> {
   checkStaff() async {
     var staff = await storage.read(key: "isstaff");
     var id = await storage.read(key: "staffid");
-
-    print("staff is $staff");
-
     if (!mounted) return; // Check if widget is still mounted
 
     setState(() {
       isstaff = staff;
       staffid = id;
     });
-
-    print("isstaff is $isstaff, $staffid");
   }
 
   @override
@@ -289,7 +280,6 @@ class _IncidencesState extends State<Incidences> {
                                         .replaceAll(' ', '');
                                     // final imagePath =
                                     //     'assets/images/$imageName.png';
-                                    print("Image name: $imageName,");
                                     return IRItem(
                                       incident: category.name,
                                       asset: 'assets/images/$imageName.png',

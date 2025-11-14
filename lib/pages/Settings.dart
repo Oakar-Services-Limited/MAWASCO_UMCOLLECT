@@ -6,14 +6,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-import 'package:um_collect/components/MyDrawer.dart';
 import 'package:um_collect/components/MyTextInput.dart';
 import 'package:um_collect/components/StaffDrawer.dart';
 import 'package:um_collect/pages/TextOakar.dart';
 import 'package:um_collect/pages/home.dart';
 import 'package:um_collect/pages/login.dart';
 import 'package:um_collect/pages/stafflogin.dart';
-import '../Components/SubmitButton.dart';
 import '../Components/Utils.dart';
 
 class Settings extends StatefulWidget {
@@ -28,7 +26,6 @@ class _SettingsState extends State<Settings> {
   String date = '';
   final storage = const FlutterSecureStorage();
   bool checkedin = false;
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey();
   var userDetails;
   String oldPass = "";
   String nePass = "";
@@ -369,8 +366,6 @@ class _SettingsState extends State<Settings> {
       );
 
       final data = jsonDecode(response.body);
-      print(data);
-
       if (response.statusCode == 200 || response.statusCode == 203) {
         setState(() {
           successful = true;
@@ -391,7 +386,6 @@ class _SettingsState extends State<Settings> {
         });
       }
     } catch (e) {
-      print(e);
       setState(() {
         successful = false;
         error = "Server connection failed! Check your internet.";

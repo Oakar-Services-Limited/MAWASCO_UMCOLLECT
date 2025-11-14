@@ -43,9 +43,6 @@ class _NRWPendingState extends State<NRWPending> {
       );
 
       var data = json.decode(response.body);
-
-      print("submitted data: $data");
-
       setState(() {
         incireported = data["pending"];
         isLoading = null;

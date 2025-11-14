@@ -45,10 +45,6 @@ class _SewerLinesState extends State<SewerLines> {
 
   var isLoading;
 
-  void _openDrawer() {
-    _scaffoldKey.currentState?.openDrawer();
-  }
-
   Future<void> getUserInfo() async {
     var token = await storage.read(key: "mwstaffjwt");
     var decoded = parseJwt(token.toString());
@@ -358,9 +354,6 @@ Future<Message> submitData(
       'coordinates': coordinates
     };
 
-    // Debug print
-    print("Submitting request with body: ${jsonEncode(requestBody)}");
-
     var response = await http.post(
       Uri.parse("${getUrl()}sr/sewer-lines"),
       headers: <String, String>{
@@ -370,9 +363,6 @@ Future<Message> submitData(
     );
 
     // Debug print
-    print("Response status: ${response.statusCode}");
-    print("Response body: ${response.body}");
-
     if (response.statusCode == 200 || response.statusCode == 201) {
       final responseData = jsonDecode(response.body);
       return Message(
@@ -391,7 +381,6 @@ Future<Message> submitData(
               "Server error! Contact administrator.",
         );
       } catch (e) {
-        print("Error parsing response: $e");
         return Message(
           token: null,
           success: null,
@@ -401,7 +390,6 @@ Future<Message> submitData(
       }
     }
   } catch (e) {
-    print("Network error: $e");
     return Message(
       token: null,
       success: null,

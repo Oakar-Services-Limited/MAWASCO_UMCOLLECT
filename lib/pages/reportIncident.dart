@@ -60,7 +60,6 @@ class _ReportIncidentState extends State<ReportIncident> {
       if (staffToken != null) {
         var decoded = parseJwt(staffToken.toString());
         var id = decoded["id"];
-        print("Full decoded JWT: $decoded");
         if (mounted) {
           setState(() {
             userid = id.toString();
@@ -74,8 +73,6 @@ class _ReportIncidentState extends State<ReportIncident> {
             name = decoded["name"] ?? decoded["Name"] ?? "";
           });
         }
-        print("Staff ID set to: $userid");
-        print("Staff Name: $name, Phone: $phone");
         return; // Exit early if staff token found
       }
 
@@ -90,9 +87,7 @@ class _ReportIncidentState extends State<ReportIncident> {
             reportertype = "Public";
           });
         }
-        print("Public User ID set to: $userid");
       } else {
-        print("No JWT token found");
         if (mounted) {
           setState(() {
             userid = '';
@@ -101,7 +96,6 @@ class _ReportIncidentState extends State<ReportIncident> {
         }
       }
     } catch (e) {
-      print("Error getting user ID: $e");
       if (mounted) {
         setState(() {
           userid = '';
@@ -177,9 +171,6 @@ class _ReportIncidentState extends State<ReportIncident> {
   @override
   void initState() {
     super.initState();
-    print("Category ID: ${widget.categoryId}");
-    print("Incident: ${widget.incident}");
-
     _image = null;
     getLocation();
     fetchStoredUserData();
@@ -878,13 +869,6 @@ Future<Message> submitData(
           token: null, success: null, error: "Please select the pipe size!");
     }
   }
-
-  print("Category ID here: ${categoryId}");
-  print("Incident: ${incident}");
-  print("Leak Type: ${incidenttype}");
-
-  print("Submitting data to server...");
-
   try {
     final payload = {
       'description': description,
@@ -920,9 +904,6 @@ Future<Message> submitData(
       body: jsonEncode(payload),
     );
 
-    print("Response status code: ${response.statusCode}"); // Debug log
-    print("Response body: ${response.body}"); // Debug log
-
     if (response.statusCode == 200 || response.statusCode == 201) {
       return Message.fromJson(jsonDecode(response.body));
     } else {
@@ -948,7 +929,6 @@ Future<Message> submitData(
       );
     }
   } catch (e) {
-    print("Error submitting data: $e"); // Debug log
     return Message(
       token: null,
       success: null,

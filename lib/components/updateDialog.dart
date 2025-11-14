@@ -114,9 +114,6 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
       } else {
         url = "${getUrl()}wt/assetsearch/$searchItem/$v";
       }
-
-      print('searched value: $v, searched item: $searchItem');
-
       final response = await get(Uri.parse(url), headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
         'Accept': 'application/json'
@@ -128,9 +125,6 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
       }
 
       var data = json.decode(response.body);
-
-      print(data);
-
       setState(() {
         entries.clear();
         oentries.clear();
@@ -192,7 +186,6 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
         }
       });
     } catch (e, stackTrace) {
-      print("505 ERROR: $e, $stackTrace");
       setState(() {
         isLoading = null;
         error = "Error searching: ${e.toString()}";
@@ -926,7 +919,6 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
             try {
               itemData = json.decode(fetchedData);
             } catch (e) {
-              print("Error decoding item data: $e");
               itemData = {"ObjectID": name};
             }
             navigateToForm(context, widget.assetName, itemData);

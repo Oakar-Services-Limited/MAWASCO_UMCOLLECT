@@ -55,10 +55,6 @@ class _ConsumerLinesState extends State<ConsumerLines> {
 
   var isLoading;
 
-  void _openDrawer() {
-    _scaffoldKey.currentState?.openDrawer();
-  }
-
   Future<String> convertFileToBase64(XFile file) async {
     List<int> fileBytes = await file.readAsBytes();
     String base64String = base64Encode(fileBytes);
@@ -533,7 +529,6 @@ Future<Message> submitData(
       );
     }
   } catch (e) {
-    print("consumer error: $e");
     return Message(
       token: null,
       success: null,

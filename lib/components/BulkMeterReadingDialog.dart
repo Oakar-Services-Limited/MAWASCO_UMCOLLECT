@@ -274,8 +274,6 @@ Future<Message> submitData(
 
   DateTime now = DateTime.now();
   String dateread = DateFormat('yyyy-MM-dd').format(now);
-
-  print("dialog data: $dateread, $accountno, $meterreading, $image, ");
   try {
     final response = await post(
       Uri.parse("${getUrl()}meterreading/create"),

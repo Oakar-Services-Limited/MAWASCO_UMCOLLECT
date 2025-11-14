@@ -51,10 +51,6 @@ class _WaterPipesState extends State<WaterPipes> {
 
   var isLoading;
 
-  void _openDrawer() {
-    _scaffoldKey.currentState?.openDrawer();
-  }
-
   void _showSnackBar(String message, bool isSuccess) {
     if (!mounted) return;
 
@@ -113,7 +109,6 @@ class _WaterPipesState extends State<WaterPipes> {
   @override
   void initState() {
     fetchStoredData();
-    print("Coordinates are now: " + widget.coordinates.toString());
     super.initState();
   }
 
@@ -465,10 +460,6 @@ Future<Message> submitData(
         'coordinates': coordinates
       }),
     );
-
-    print("Response status code: ${response.statusCode}");
-    print("Response body: ${response.body}");
-
     if (response.statusCode == 200 || response.statusCode == 201) {
       final responseData = jsonDecode(response.body);
       return Message(
@@ -483,11 +474,9 @@ Future<Message> submitData(
         errorMessage = responseBody['error'] ??
             responseBody['message'] ??
             "Server error (${response.statusCode})! Please check all required fields.";
-        print("Error details: $errorMessage");
       } catch (e) {
         errorMessage =
             "Server returned invalid response. Status: ${response.statusCode}";
-        print("Error parsing response: $e");
       }
       return Message(
         token: null,
@@ -496,7 +485,6 @@ Future<Message> submitData(
       );
     }
   } catch (e) {
-    print("Error submitting water pipe data: $e");
     return Message(
       token: null,
       success: null,

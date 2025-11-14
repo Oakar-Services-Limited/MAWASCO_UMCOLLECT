@@ -47,7 +47,6 @@ class _NavigateState extends State<Navigate> {
   @override
   void initState() {
     super.initState();
-    print("Navigate widget item: ${widget.item}"); // Debug log
     initializeServices();
   }
 
@@ -85,7 +84,6 @@ class _NavigateState extends State<Navigate> {
       // Add null safety checks
       final report = widget.item["report"];
       if (report == null) {
-        print("Report data is null");
         return;
       }
 
@@ -93,7 +91,6 @@ class _NavigateState extends State<Navigate> {
       final longitude = report["longitude"]?.toString();
 
       if (latitude == null || longitude == null) {
-        print("Latitude or longitude is null");
         return;
       }
 
@@ -102,7 +99,6 @@ class _NavigateState extends State<Navigate> {
       _fitCameraToBounds(curLocation, destination);
       getDirections(destination);
     } catch (e) {
-      print("Error in _getCurrentLocation: $e");
     }
   }
 
@@ -193,14 +189,11 @@ class _NavigateState extends State<Navigate> {
         });
       }
     } catch (e) {
-      print("Error in getNavigation: $e");
     }
   }
 
   void getDirections(LatLng dst) async {
     try {
-      print(
-          "Getting directions from: ${curLocation.latitude}, ${curLocation.longitude} to: ${dst.latitude}, ${dst.longitude}");
       List<LatLng> polylineCoordinates = [];
       List<dynamic> points = [];
 
@@ -210,13 +203,7 @@ class _NavigateState extends State<Navigate> {
       // First try to get directions using the Directions API directly
       String directionsUrl =
           'https://maps.googleapis.com/maps/api/directions/json?origin=${curLocation.latitude},${curLocation.longitude}&destination=${dst.latitude},${dst.longitude}&key=$apiKey';
-
-      print("Requesting directions from URL: $directionsUrl");
-
       var response = await http.get(Uri.parse(directionsUrl));
-      print("Directions API Response Status: ${response.statusCode}");
-      print("Directions API Response Body: ${response.body}");
-
       if (response.statusCode == 200) {
         var data = json.decode(response.body);
         if (data['status'] == 'OK') {
@@ -238,9 +225,6 @@ class _NavigateState extends State<Navigate> {
             }
           }
         } else {
-          print(
-              "Directions API Error: ${data['status']} - ${data['error_message'] ?? 'No error message'}");
-
           // Show error message to user
           if (data['status'] == 'REQUEST_DENIED' &&
               data['error_message']?.contains('Billing') == true) {
@@ -258,14 +242,10 @@ class _NavigateState extends State<Navigate> {
           }
         }
       } else {
-        print("HTTP Error: ${response.statusCode}");
         _showSnackbar(context,
             'Error getting directions: ${response.statusCode}', Colors.red);
         return;
       }
-
-      print("Number of polyline coordinates: ${polylineCoordinates.length}");
-
       if (polylineCoordinates.isNotEmpty) {
         // Clear existing polylines
         setState(() {
@@ -278,13 +258,11 @@ class _NavigateState extends State<Navigate> {
         // Fit camera to show the entire route
         _fitCameraToBounds(curLocation, dst);
       } else {
-        print("No polyline coordinates generated");
         _showSnackbar(context, 'No route found between points', Colors.orange);
         // Fallback to direct line
         _drawDirectLine(curLocation, dst);
       }
     } catch (e) {
-      print("Error getting directions: $e");
       _showSnackbar(context, 'Error getting directions: $e', Colors.red);
       // Fallback to direct line on any error
       _drawDirectLine(curLocation, dst);
@@ -293,7 +271,6 @@ class _NavigateState extends State<Navigate> {
 
   // Fallback method to draw a direct line between points
   void _drawDirectLine(LatLng start, LatLng end) {
-    print("Drawing direct line between points");
     List<LatLng> directLine = [start, end];
 
     setState(() {
@@ -411,7 +388,6 @@ class _NavigateState extends State<Navigate> {
     setState(() {
       final report = widget.item["report"];
       if (report == null) {
-        print("Report data is null in addMarker");
         return;
       }
 
@@ -419,7 +395,6 @@ class _NavigateState extends State<Navigate> {
       final longitude = report["longitude"]?.toString();
 
       if (latitude == null || longitude == null) {
-        print("Latitude or longitude is null in addMarker");
         return;
       }
 

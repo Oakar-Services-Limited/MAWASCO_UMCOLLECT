@@ -26,10 +26,6 @@ class _CompleteIncidencesState extends State<CompleteIncidences> {
   int currentPage = 1;
   final int itemsPerPage = 5;
 
-  void _openDrawer() {
-    _scaffoldKey.currentState?.openDrawer();
-  }
-
   @override
   void initState() {
     fetchCompleteIncidencesdIncidences();
@@ -53,8 +49,6 @@ class _CompleteIncidencesState extends State<CompleteIncidences> {
 
       final url =
           "${getUrl()}om/assigned-reports?userId=${widget.staffid}&status=Resolved";
-      print("Fetching resolved incidents from URL: $url");
-
       final response = await get(
         Uri.parse(url),
         headers: {
@@ -62,12 +56,8 @@ class _CompleteIncidencesState extends State<CompleteIncidences> {
           'Authorization': 'Bearer $token',
         },
       );
-      print("Response status code: ${response.statusCode}");
-      print("Response body: ${response.body}");
-
       if (response.statusCode == 200) {
         var data = json.decode(response.body);
-        print("Decoded data: $data");
         setState(() {
           incireported = data["data"] ?? [];
           isLoading = null;
@@ -75,8 +65,6 @@ class _CompleteIncidencesState extends State<CompleteIncidences> {
       } else if (response.statusCode == 400 || response.statusCode == 401) {
         // Handle authentication errors
         var errorData = json.decode(response.body);
-        print("Error response: ${response.body}");
-
         if (errorData['error'] == 'Invalid token' ||
             response.statusCode == 401) {
           // Clear invalid token
@@ -111,7 +99,6 @@ class _CompleteIncidencesState extends State<CompleteIncidences> {
           }
         }
       } else {
-        print("Error response: ${response.body}");
         setState(() {
           incireported = [];
           isLoading = null;
@@ -251,7 +238,6 @@ class _CompleteIncidencesState extends State<CompleteIncidences> {
         ),
       );
     } else {
-      print("completed tasks: $incireported");
       return ListView.builder(
           itemCount: paginatedIncidents.length,
           itemBuilder: (context, index) {

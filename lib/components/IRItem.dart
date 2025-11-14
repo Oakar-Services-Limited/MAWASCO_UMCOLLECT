@@ -37,8 +37,6 @@ class _CollectedItemState extends State<IRItem> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        print("Tapped on incident: ${widget.incident}");
-        print("Tapped on categoryId: ${widget.categoryId}");
         Navigator.push(
           context,
           MaterialPageRoute(

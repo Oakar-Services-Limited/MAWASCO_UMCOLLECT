@@ -2,22 +2,11 @@
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:um_collect/components/MyDrawer.dart';
-import 'package:um_collect/components/StaffDrawer.dart';
 import 'package:um_collect/pages/home.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class PrivacyPolicy extends StatelessWidget {
   const PrivacyPolicy({super.key});
-
-  void _launchURL() async {
-    const url = 'https://osl.co.ke/contact-us/';
-    if (await canLaunch(url)) {
-      await launch(url);
-    } else {
-      throw 'Could not launch $url';
-    }
-  }
 
   @override
   Widget build(BuildContext context) {

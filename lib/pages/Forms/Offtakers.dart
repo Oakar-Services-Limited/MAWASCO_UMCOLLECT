@@ -59,10 +59,6 @@ class _OfftakesState extends State<Offtakes> {
 
   var isLoading;
 
-  void _openDrawer() {
-    _scaffoldKey.currentState?.openDrawer();
-  }
-
   Future<String> convertFileToBase64(XFile file) async {
     List<int> fileBytes = await file.readAsBytes();
     String base64String = base64Encode(fileBytes);
@@ -660,10 +656,6 @@ Future<Message> submitData(
         }),
       );
     }
-
-    print("offtakers data is ${response.statusCode}");
-    print("offtakers data is $response");
-
     if (response.statusCode == 200 || response.statusCode == 203) {
       return Message.fromJson(jsonDecode(response.body));
     } else {

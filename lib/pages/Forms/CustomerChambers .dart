@@ -59,10 +59,6 @@ class _CustomerChambersState extends State<CustomerChambers> {
 
   var isLoading;
 
-  void _openDrawer() {
-    _scaffoldKey.currentState?.openDrawer();
-  }
-
   Future<String> convertFileToBase64(XFile file) async {
     List<int> fileBytes = await file.readAsBytes();
     String base64String = base64Encode(fileBytes);
@@ -688,7 +684,6 @@ Future<Message> submitData(
     if (response.statusCode == 200 || response.statusCode == 203) {
       return Message.fromJson(jsonDecode(response.body));
     } else {
-      print("server error: ${response.statusCode}");
       return Message(
         token: null,
         success: null,

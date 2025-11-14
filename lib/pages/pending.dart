@@ -49,8 +49,6 @@ class _PendingIncidencesState extends State<PendingIncidences> {
 
       final url =
           "${getUrl()}om/assigned-reports?userId=${widget.staffid}&status=Inprogress";
-      print("Fetching assigned incidents from URL: $url");
-
       final response = await get(
         Uri.parse(url),
         headers: {
@@ -58,12 +56,8 @@ class _PendingIncidencesState extends State<PendingIncidences> {
           'Authorization': 'Bearer $token',
         },
       );
-      print("Response status code: ${response.statusCode}");
-      print("Response body: ${response.body}");
-
       if (response.statusCode == 200) {
         var data = json.decode(response.body);
-        print("Decoded data: $data");
         setState(() {
           incireported = data["data"] ?? [];
           isLoading = null;
@@ -71,8 +65,6 @@ class _PendingIncidencesState extends State<PendingIncidences> {
       } else if (response.statusCode == 400 || response.statusCode == 401) {
         // Handle authentication errors
         var errorData = json.decode(response.body);
-        print("Error response: ${response.body}");
-
         if (errorData['error'] == 'Invalid token' ||
             response.statusCode == 401) {
           // Clear invalid token
@@ -107,7 +99,6 @@ class _PendingIncidencesState extends State<PendingIncidences> {
           }
         }
       } else {
-        print("Error response: ${response.body}");
         setState(() {
           incireported = [];
           isLoading = null;
@@ -123,7 +114,6 @@ class _PendingIncidencesState extends State<PendingIncidences> {
         }
       }
     } catch (e) {
-      print("Exception occurred: $e");
       setState(() {
         incireported = [];
         isLoading = null;

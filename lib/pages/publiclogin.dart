@@ -3,7 +3,6 @@
 import 'package:http/http.dart';
 import 'package:um_collect/pages/incidences.dart';
 
-import '../Components/SubmitButton.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';

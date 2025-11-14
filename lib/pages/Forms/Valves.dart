@@ -2,15 +2,12 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:um_collect/components/MySelectInput.dart';
 import 'package:um_collect/components/MyTextInput.dart';
 import 'package:um_collect/components/StaffDrawer.dart';
 import 'package:um_collect/components/SubmitButton.dart';
-import 'package:um_collect/components/TextResponse.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/models/Map.dart';
 import 'package:um_collect/pages/Assets.dart';
@@ -51,10 +48,6 @@ class _ValvesState extends State<Valves> {
   dynamic data;
 
   var isLoading;
-
-  void _openDrawer() {
-    _scaffoldKey.currentState?.openDrawer();
-  }
 
   @override
   void initState() {
@@ -108,8 +101,6 @@ class _ValvesState extends State<Valves> {
 
     Geolocator.getPositionStream(locationSettings: locationSettings)
         .listen((Position position) {
-      print(position.latitude);
-      print(position.longitude);
       setState(() {
         long = position.longitude;
         lat = position.latitude;
@@ -440,10 +431,6 @@ Future<Message> submitData(
         }),
       );
     }
-
-    print("Response status code: ${response.statusCode}");
-    print("Response body: ${response.body}");
-
     if (response.statusCode == 200 || response.statusCode == 201) {
       final responseData = jsonDecode(response.body);
       return Message(
@@ -469,7 +456,6 @@ Future<Message> submitData(
       );
     }
   } catch (e) {
-    print("Error submitting tank data: $e");
     return Message(
       token: null,
       success: null,

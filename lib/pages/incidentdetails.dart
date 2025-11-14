@@ -44,8 +44,6 @@ class _IncidentDetailsState extends State<IncidentDetails> {
   }
 
   loadIncidentDetails(String id) async {
-    print("incident id: $id");
-
     setState(() {
       isLoading = LoadingAnimationWidget.staggeredDotsWave(
         color: const Color(0xff0288D1),
@@ -58,7 +56,6 @@ class _IncidentDetailsState extends State<IncidentDetails> {
     );
 
     var data = json.decode(response.body);
-    print("incident data: $data");
     setState(() {
       userData = data;
       type = data["Type"];
@@ -82,7 +79,6 @@ class _IncidentDetailsState extends State<IncidentDetails> {
     final String fullImageUrl = imageUrl.isNotEmpty
         ? "${getUrl()}uploads/${imageUrl.replaceAll("uploads/", "")}"
         : '';
-    print("imageurl full: $fullImageUrl");
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
