@@ -102,7 +102,9 @@ class _SewerMainTrunkState extends State<SewerMainTrunk> {
       if (editing == 'true') {
         prefillForm(data);
       } else {}
-    } catch (e) {}
+    } catch (e) {
+      // Error handling: silently ignore errors during data fetching
+    }
   }
 
   prefillForm(data) async {
@@ -503,9 +505,9 @@ Future<Message> submitData(
 }
 
 class Message {
-  var token;
-  var success;
-  var error;
+  dynamic token;
+  dynamic success;
+  dynamic error;
 
   Message({
     required this.token,

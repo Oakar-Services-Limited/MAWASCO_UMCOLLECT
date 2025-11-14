@@ -100,7 +100,9 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
     try {
       geolocator.Position position =
           await geolocator.Geolocator.getCurrentPosition(
-        desiredAccuracy: geolocator.LocationAccuracy.high,
+        locationSettings: const geolocator.LocationSettings(
+          accuracy: geolocator.LocationAccuracy.high,
+        ),
       );
 
       setState(() {
@@ -115,7 +117,9 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
 
       _updateCameraPosition(
           LatLng(position.latitude, position.longitude), position.heading);
-    } catch (e) {}
+    } catch (e) {
+      // Error handling: silently ignore errors
+    }
   }
 
   Future<void> _fitCameraToBounds(LatLng position1, LatLng position2) async {
@@ -145,7 +149,9 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
           ),
         ),
       );
-    } catch (e) {}
+    } catch (e) {
+      // Error handling: silently ignore errors
+    }
   }
 
   // ==========================================
@@ -195,7 +201,9 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
           }
         });
       }
-    } catch (e) {}
+    } catch (e) {
+      // Error handling: silently ignore errors
+    }
   }
 
   void getDirections(LatLng dst) async {
@@ -320,7 +328,9 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
           }
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      // Error handling: silently ignore errors
+    }
   }
 
   // ==========================================
@@ -1458,6 +1468,8 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
         );
         await launchUrl(smsLaunchUri);
       }
-    } catch (e) {}
+    } catch (e) {
+      // Error handling: silently ignore errors
+    }
   }
 }

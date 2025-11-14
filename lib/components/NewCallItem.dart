@@ -177,9 +177,9 @@ class _CollectedItemState extends State<NewCallItem> {
 }
 
 class Message {
-  var token;
-  var success;
-  var error;
+  dynamic token;
+  dynamic success;
+  dynamic error;
 
   Message({
     required this.token,

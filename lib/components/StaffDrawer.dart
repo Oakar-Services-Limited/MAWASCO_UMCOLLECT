@@ -45,7 +45,9 @@ class _StaffDrawerState extends State<StaffDrawer> {
 
         await storage.write(key: 'staffid', value: staffid);
       }
-    } catch (e) {}
+    } catch (e) {
+      // Error handling: silently ignore errors
+    }
   }
 
   @override

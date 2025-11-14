@@ -86,7 +86,9 @@ class _HomeState extends State<Home> {
 
         fetchStats(staffid, isnew);
       }
-    } catch (e) {}
+    } catch (e) {
+      // Error handling: silently ignore errors during data fetching
+    }
   }
 
   Future<void> fetchStats(String id, bool isnew) async {

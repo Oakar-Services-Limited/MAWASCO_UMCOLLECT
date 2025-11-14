@@ -98,7 +98,7 @@ class _NewWaterConnState extends State<NewWaterConn> {
         prefillForm(data);
       } else {}
     } catch (e) {
-      // 
+      //
     }
   }
 
@@ -126,7 +126,9 @@ class _NewWaterConnState extends State<NewWaterConn> {
 
   getLocation() async {
     position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
+        locationSettings: const LocationSettings(
+      accuracy: LocationAccuracy.high,
+    ));
     setState(() {
       long = position.longitude;
       lat = position.latitude;
@@ -621,9 +623,9 @@ Future<Message> submitData(
 }
 
 class Message {
-  var token;
-  var success;
-  var error;
+  dynamic token;
+  dynamic success;
+  dynamic error;
 
   Message({
     required this.token,

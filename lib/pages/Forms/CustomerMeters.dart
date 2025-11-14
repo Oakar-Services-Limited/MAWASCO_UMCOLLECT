@@ -134,7 +134,9 @@ class _CustomerMetersState extends State<CustomerMeters> {
       if (widget.customerMeter.isNotEmpty) {
         prefillForm(widget.customerMeter);
       } else {}
-    } catch (e) {}
+    } catch (e) {
+      // Error handling: silently ignore errors during data fetching
+    }
   }
 
   prefillForm(data) async {
@@ -602,12 +604,14 @@ class _CustomerMetersState extends State<CustomerMeters> {
                                 key: 'meterid', value: res.token);
 
                             Timer(const Duration(seconds: 2), () {
-                              Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) => Assets(
-                                            staffid: staffid,
-                                          )));
+                              if (mounted) {
+                                Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) => Assets(
+                                              staffid: staffid,
+                                            )));
+                              }
                             });
                           }
                         },
@@ -793,9 +797,9 @@ Future<Message> submitData(
 }
 
 class Message {
-  var token;
-  var success;
-  var error;
+  dynamic token;
+  dynamic success;
+  dynamic error;
 
   Message({
     required this.token,

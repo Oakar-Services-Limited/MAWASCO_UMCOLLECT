@@ -568,13 +568,14 @@ class _FileReportNRWState extends State<FileReportNRW> {
                               }
                             });
                             if (res.error == null) {
-                              if (!mounted) return;
-                              Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) => NRWComplete(
-                                            staffid: staffid,
-                                          )));
+                              if (mounted) {
+                                Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) => NRWComplete(
+                                              staffid: staffid,
+                                            )));
+                              }
                             }
                           },
                         ),
@@ -642,9 +643,9 @@ Future<Message> submitData(
 }
 
 class Message {
-  var token;
-  var success;
-  var error;
+  dynamic token;
+  dynamic success;
+  dynamic error;
 
   Message({
     required this.token,

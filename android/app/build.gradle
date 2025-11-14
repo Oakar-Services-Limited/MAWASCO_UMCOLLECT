@@ -15,7 +15,7 @@ if (localPropertiesFile.exists()) {
 
 def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
 if (flutterVersionCode == null) {
-    flutterVersionCode = '55'
+    flutterVersionCode = '56'
 }
 
 def flutterVersionName = localProperties.getProperty('flutter.versionName')
@@ -51,7 +51,8 @@ android {
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         
-        // Support for 16 KB memory page sizes
+        // Support for 16 KB memory page sizes (required for Android 15+)
+        // This ensures native libraries are compatible with 16 KB page sizes
         ndk {
             abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86_64'
         }

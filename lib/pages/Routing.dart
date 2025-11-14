@@ -179,7 +179,9 @@ class _RoutingState extends State<Routing> {
           _updateVehicleMarker(locationData);
         });
       }
-    } catch (e) {}
+    } catch (e) {
+      // Error handling: silently ignore errors
+    }
   }
 
   Future<void> _drawRoute(
@@ -228,7 +230,9 @@ class _RoutingState extends State<Routing> {
       } else {
         throw Exception('Failed to load directions');
       }
-    } catch (e) {}
+    } catch (e) {
+      // Error handling: silently ignore errors
+    }
   }
 
   void _createVehicleMarker(double latitude, double longitude) {

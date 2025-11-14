@@ -87,7 +87,9 @@ class _MyMapState extends State<MyMap> {
           ),
         ),
       );
-    } catch (e) {}
+    } catch (e) {
+      // Error handling: silently ignore errors
+    }
   }
 
   @override

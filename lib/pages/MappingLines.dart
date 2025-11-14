@@ -63,7 +63,9 @@ class _MappingLinesState extends State<MappingLines> {
               CameraPosition(target: _currentLocation, bearing: 0, zoom: 20)));
         }
       });
-    } catch (e) {}
+    } catch (e) {
+      // Error handling: silently ignore errors
+    }
   }
 
   void _loadCoordinates() async {

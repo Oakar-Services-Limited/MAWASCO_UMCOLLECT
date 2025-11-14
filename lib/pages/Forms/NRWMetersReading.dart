@@ -115,7 +115,9 @@ class _NRWMeterReadingState extends State<NRWMeterReading> {
 
   getLocation() async {
     position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ));
 
     setState(() {
       long = position.longitude;
@@ -927,9 +929,9 @@ class _NRWMeterReadingState extends State<NRWMeterReading> {
 }
 
 class Message {
-  var token;
-  var success;
-  var error;
+  dynamic token;
+  dynamic success;
+  dynamic error;
 
   Message({
     required this.token,

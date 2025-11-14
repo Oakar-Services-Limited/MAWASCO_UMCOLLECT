@@ -68,7 +68,9 @@ class _NavigateNRWState extends State<NavigateNRW> {
     try {
       geolocator.Position position =
           await geolocator.Geolocator.getCurrentPosition(
-        desiredAccuracy: geolocator.LocationAccuracy.high,
+        locationSettings: const geolocator.LocationSettings(
+          accuracy: geolocator.LocationAccuracy.high,
+        ),
       );
 
       setState(() {
@@ -84,7 +86,9 @@ class _NavigateNRWState extends State<NavigateNRW> {
           double.parse(widget.item["Longitude"]));
       _fitCameraToBounds(curLocation, destination);
       getDirections(destination);
-    } catch (e) {}
+    } catch (e) {
+      // Error handling: silently ignore errors
+    }
   }
 
   Future<void> _fitCameraToBounds(LatLng position1, LatLng position2) async {
@@ -114,7 +118,9 @@ class _NavigateNRWState extends State<NavigateNRW> {
           ),
         ),
       );
-    } catch (e) {}
+    } catch (e) {
+      // Error handling: silently ignore errors
+    }
   }
 
   getNavigation(BitmapDescriptor vehicleIcon) async {
@@ -167,7 +173,9 @@ class _NavigateNRWState extends State<NavigateNRW> {
           }
         });
       }
-    } catch (e) {}
+    } catch (e) {
+      // Error handling: silently ignore errors
+    }
   }
 
   void getDirections(LatLng dst) async {
@@ -208,7 +216,9 @@ class _NavigateNRWState extends State<NavigateNRW> {
         }
       }
       addPolyLine(polylineCoordinates);
-    } catch (e) {}
+    } catch (e) {
+      // Error handling: silently ignore errors
+    }
   }
 
   Future<void> getNavigationInstructions(LatLng dst) async {
@@ -239,7 +249,9 @@ class _NavigateNRWState extends State<NavigateNRW> {
           }
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      // Error handling: silently ignore errors
+    }
   }
 
   addPolyLine(List<LatLng> polylineCoordinates) {
@@ -1030,6 +1042,8 @@ class _NavigateNRWState extends State<NavigateNRW> {
         );
         await launchUrl(smsLaunchUri);
       }
-    } catch (e) {}
+    } catch (e) {
+      // Error handling: silently ignore errors
+    }
   }
 }

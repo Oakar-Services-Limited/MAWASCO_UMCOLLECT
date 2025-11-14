@@ -82,7 +82,9 @@ class _NRWState extends State<NRW> {
 
         fetchStats(staffid, isnew);
       }
-    } catch (e) {}
+    } catch (e) {
+      // Error handling: silently ignore errors
+    }
   }
 
   Future<void> fetchStats(String id, bool isnew) async {
@@ -112,6 +114,7 @@ class _NRWState extends State<NRW> {
       } else {
       }
     } catch (e) {
+      // Error handling: silently ignore errors
     }
   }
 

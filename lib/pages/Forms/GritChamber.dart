@@ -89,7 +89,9 @@ class _GritChambersState extends State<GritChambers> {
 
   getLocation() async {
     position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ));
 
     setState(() {
       long = position.longitude;
@@ -403,9 +405,9 @@ Future<Message> submitData(
 }
 
 class Message {
-  var token;
-  var success;
-  var error;
+  dynamic token;
+  dynamic success;
+  dynamic error;
 
   Message({
     required this.token,

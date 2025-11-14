@@ -157,9 +157,9 @@ Future<Message> recoverPassword(String email) async {
 }
 
 class Message {
-  var token;
-  var success;
-  var error;
+  dynamic token;
+  dynamic success;
+  dynamic error;
 
   Message({
     required this.token,

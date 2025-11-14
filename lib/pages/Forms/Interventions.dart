@@ -140,7 +140,9 @@ class _InterventionsState extends State<Interventions> {
 
   getLocation() async {
     position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
+        locationSettings: const LocationSettings(
+      accuracy: LocationAccuracy.high,
+    ));
     setState(() {
       long = position.longitude;
       lat = position.latitude;
@@ -792,10 +794,17 @@ class _InterventionsState extends State<Interventions> {
                               date,
                               user);
 
+                          if (!mounted) return;
                           setState(() {
                             isLoading = null;
                             if (res.error == null) {
                               error = res.success;
+                            } else {
+                              error = res.error ?? "An unknown error occurred";
+                            }
+                          });
+                          if (res.error == null) {
+                            if (mounted) {
                               ScaffoldMessenger.of(context).clearSnackBars();
                               final snackBar = SnackBar(
                                 content: Text(
@@ -805,17 +814,17 @@ class _InterventionsState extends State<Interventions> {
                               );
                               ScaffoldMessenger.of(context)
                                   .showSnackBar(snackBar);
-                              Future.delayed(const Duration(seconds: 2), () {
+                            }
+                            Future.delayed(const Duration(seconds: 2), () {
+                              if (mounted) {
                                 Navigator.pushReplacement(
                                   context,
                                   MaterialPageRoute(
                                       builder: (_) => const NRW()),
                                 );
-                              });
-                            } else {
-                              error = res.error ?? "An unknown error occurred";
-                            }
-                          });
+                              }
+                            });
+                          }
                         },
                       ),
                     ),
@@ -931,9 +940,9 @@ Future<Message> submitData(
 }
 
 class Message {
-  var token;
-  var success;
-  var error;
+  dynamic token;
+  dynamic success;
+  dynamic error;
 
   Message({
     required this.token,

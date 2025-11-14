@@ -100,7 +100,7 @@ class _AppurtenancesState extends State<Appurtenances> {
         prefillForm(data);
       } else {}
     } catch (e) {
-      // 
+      //
     }
   }
 
@@ -127,7 +127,9 @@ class _AppurtenancesState extends State<Appurtenances> {
 
   getLocation() async {
     position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
+        locationSettings: const LocationSettings(
+      accuracy: LocationAccuracy.high,
+    ));
 
     setState(() {
       long = position.longitude;
@@ -603,12 +605,14 @@ class _AppurtenancesState extends State<Appurtenances> {
                           if (res.error == null) {
                             // PROCEED TO NEXT PAGE
                             Timer(const Duration(seconds: 2), () {
-                              Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) => Assets(
-                                            staffid: staffid,
-                                          )));
+                              if (mounted) {
+                                Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) => Assets(
+                                              staffid: staffid,
+                                            )));
+                              }
                             });
                           }
                         },
@@ -724,9 +728,9 @@ Future<Message> submitData(
 }
 
 class Message {
-  var token;
-  var success;
-  var error;
+  dynamic token;
+  dynamic success;
+  dynamic error;
 
   Message({
     required this.token,

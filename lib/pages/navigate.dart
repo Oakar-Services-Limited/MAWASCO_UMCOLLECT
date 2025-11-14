@@ -68,7 +68,9 @@ class _NavigateState extends State<Navigate> {
     try {
       geolocator.Position position =
           await geolocator.Geolocator.getCurrentPosition(
-        desiredAccuracy: geolocator.LocationAccuracy.high,
+        locationSettings: const geolocator.LocationSettings(
+          accuracy: geolocator.LocationAccuracy.high,
+        ),
       );
 
       setState(() {
@@ -99,6 +101,7 @@ class _NavigateState extends State<Navigate> {
       _fitCameraToBounds(curLocation, destination);
       getDirections(destination);
     } catch (e) {
+      // Error handling: silently ignore errors
     }
   }
 
@@ -129,7 +132,9 @@ class _NavigateState extends State<Navigate> {
           ),
         ),
       );
-    } catch (e) {}
+    } catch (e) {
+      // Error handling: silently ignore errors
+    }
   }
 
   getNavigation(BitmapDescriptor vehicleIcon) async {
@@ -189,6 +194,7 @@ class _NavigateState extends State<Navigate> {
         });
       }
     } catch (e) {
+      // Error handling: silently ignore errors
     }
   }
 
@@ -332,7 +338,9 @@ class _NavigateState extends State<Navigate> {
           }
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      // Error handling: silently ignore errors
+    }
   }
 
   addPolyLine(List<LatLng> polylineCoordinates) {
@@ -1125,6 +1133,8 @@ class _NavigateState extends State<Navigate> {
         );
         await launchUrl(smsLaunchUri);
       }
-    } catch (e) {}
+    } catch (e) {
+      // Error handling: silently ignore errors
+    }
   }
 }

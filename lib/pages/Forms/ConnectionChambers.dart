@@ -101,7 +101,9 @@ class _ConnectionChambersState extends State<ConnectionChambers> {
       if (editing == 'true') {
         prefillForm(data);
       } else {}
-    } catch (e) {}
+    } catch (e) {
+      // Error handling: silently ignore errors during data fetching
+    }
   }
 
   prefillForm(data) async {
@@ -127,7 +129,9 @@ class _ConnectionChambersState extends State<ConnectionChambers> {
 
   getLocation() async {
     position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
+        locationSettings: const LocationSettings(
+      accuracy: LocationAccuracy.high,
+    ));
     setState(() {
       long = position.longitude;
       lat = position.latitude;
@@ -692,9 +696,9 @@ Future<Message> submitData(
 }
 
 class Message {
-  var token;
-  var success;
-  var error;
+  dynamic token;
+  dynamic success;
+  dynamic error;
 
   Message({
     required this.token,

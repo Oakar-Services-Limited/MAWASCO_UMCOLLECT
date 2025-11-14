@@ -56,7 +56,7 @@ class _NRWLeakagesState extends State<NRWLeakages> {
         userid = id.toString();
       });
     } catch (e) {
-      // 
+      //
     }
 
     try {
@@ -64,7 +64,9 @@ class _NRWLeakagesState extends State<NRWLeakages> {
       if (perm == LocationPermission.always ||
           perm == LocationPermission.whileInUse) {
         position = await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.high);
+            locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ));
         setState(() {
           long = position.longitude;
           lat = position.latitude;
@@ -89,7 +91,7 @@ class _NRWLeakagesState extends State<NRWLeakages> {
         promptUserForLocation();
       }
     } catch (e) {
-      // 
+      //
     }
   }
 
@@ -145,7 +147,7 @@ class _NRWLeakagesState extends State<NRWLeakages> {
         });
       }
     } catch (e) {
-      // 
+      //
     }
   }
 
@@ -505,9 +507,9 @@ Future<Message> submitData(
 }
 
 class Message {
-  var token;
-  var success;
-  var error;
+  dynamic token;
+  dynamic success;
+  dynamic error;
 
   Message({
     required this.token,

@@ -506,13 +506,14 @@ class _PointProjectsState extends State<PointProjects> {
                               _showSnackBar(res.success, true);
                               // Proceed to next page after successful submission
                               Timer(const Duration(seconds: 2), () {
-                                if (!mounted) return;
-                                Navigator.pushReplacement(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (_) => Assets(
-                                              staffid: staffid,
-                                            )));
+                                if (mounted) {
+                                  Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (_) => Assets(
+                                                staffid: staffid,
+                                              )));
+                                }
                               });
                             } else {
                               _showSnackBar(res.error, false);
@@ -658,9 +659,9 @@ Future<Message> submitData(
 }
 
 class Message {
-  var token;
-  var success;
-  var error;
+  dynamic token;
+  dynamic success;
+  dynamic error;
 
   Message({
     required this.token,
