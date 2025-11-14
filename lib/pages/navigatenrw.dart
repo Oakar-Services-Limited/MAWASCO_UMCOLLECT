@@ -900,7 +900,7 @@ class _NavigateNRWState extends State<NavigateNRW> {
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.grey
-                                        .withValues(alpha:0.5), // Shadow color
+                                        .withValues(alpha: 0.5), // Shadow color
                                     spreadRadius: 5, // Spread radius
                                     blurRadius: 7, // Blur radius
                                     offset: const Offset(0,

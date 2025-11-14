@@ -1,4 +1,4 @@
-// ignore_for_file: unnecessary_null_comparison, prefer_collection_literals, empty_catches, depend_on_referenced_packages
+// ignore_for_file: unnecessary_null_comparison, prefer_collection_literals, empty_catches, depend_on_referenced_packages, prefer_typing_uninitialized_variables, library_private_types_in_public_api
 
 import 'dart:convert';
 
@@ -345,8 +345,8 @@ class _RoutingState extends State<Routing> {
                           color: const Color(0xFFF5E8DD),
                           boxShadow: [
                             BoxShadow(
-                              color:
-                                  Colors.grey.withValues(alpha:0.2), // shadow color
+                              color: Colors.grey
+                                  .withValues(alpha: 0.2), // shadow color
                               spreadRadius: 1, // spread radius
                               blurRadius: 1, // blur radius
                               offset: const Offset(
@@ -413,7 +413,7 @@ class _RoutingState extends State<Routing> {
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.grey
-                                      .withValues(alpha:0.2), // shadow color
+                                      .withValues(alpha: 0.2), // shadow color
                                   spreadRadius: 1, // spread radius
                                   blurRadius: 1, // blur radius
                                   offset: const Offset(
@@ -458,8 +458,8 @@ class _RoutingState extends State<Routing> {
                                                 color: Colors.white,
                                                 boxShadow: [
                                                   BoxShadow(
-                                                    color: Colors.grey
-                                                        .withValues(alpha:
+                                                    color: Colors.grey.withValues(
+                                                        alpha:
                                                             0.2), // shadow color
                                                     spreadRadius:
                                                         2, // spread radius

@@ -1,4 +1,4 @@
-// ignore_for_file: file_names, prefer_typing_uninitialized_variables
+// ignore_for_file: file_names, prefer_typing_uninitialized_variables, use_build_context_synchronously
 
 import 'package:http/http.dart' as http;
 import 'package:um_collect/pages/home.dart';
@@ -490,16 +490,17 @@ class _StaffLoginState extends State<StaffLogin> {
 
                                   final data = jsonDecode(response.body);
 
-                                  if (!mounted) return;
-
                                   if (response.statusCode == 200 ||
                                       response.statusCode == 203) {
+                                    if (!mounted) return;
                                     Navigator.pop(context);
+                                    if (!mounted) return;
                                     _showMessage(
                                         data['message'] ??
                                             'Password reset instructions sent to your email',
                                         false);
                                   } else {
+                                    if (!mounted) return;
                                     _showMessage(
                                         data['message'] ??
                                             'Failed to process password reset',

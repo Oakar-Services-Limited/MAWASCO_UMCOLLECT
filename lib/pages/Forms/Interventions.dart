@@ -1,4 +1,4 @@
-// ignore_for_file: use_build_context_synchronously, non_constant_identifier_names, file_names
+// ignore_for_file: use_build_context_synchronously, non_constant_identifier_names, file_names, prefer_typing_uninitialized_variables
 
 import 'dart:async';
 import 'dart:convert';
@@ -122,7 +122,9 @@ class _InterventionsState extends State<Interventions> {
         user = decoded["name"];
         staffid = decoded["id"];
       });
-    } catch (e) {}
+    } catch (e) {
+      //
+    }
   }
 
   void _initializeDateVariables() {
@@ -872,29 +874,29 @@ Future<Message> submitData(
     }
 
     final requestBody = {
-          'latitude': lat,
-          'longitude': long,
-          'DMAName': dma,
-          'scope': scope,
-          'accountNo': account,
-          "meterActivity": activity,
-          "meterModel": model,
-          'reason': reason,
-          "highFlowResult": highflow,
-          'lowFlowResult': lowflow,
-          "testResult": results,
-          'serviceReport': sreport,
-          'meterReadings': readings,
-          'meterSerial': serial,
-          'oldMeterSerial': oldserial,
-          'newMeterSerial': newserial,
-          'oldMeterReading': oldreadings,
-          'newMeterModel': newmodel,
-          'newMeterReading': newreadings,
-          "activityPhoto": myimage,
-          "afterPhoto": newold_image,
-          'date': date,
-        })}");
+      'latitude': lat,
+      'longitude': long,
+      'DMAName': dma,
+      'scope': scope,
+      'accountNo': account,
+      "meterActivity": activity,
+      "meterModel": model,
+      'reason': reason,
+      "highFlowResult": highflow,
+      'lowFlowResult': lowflow,
+      "testResult": results,
+      'serviceReport': sreport,
+      'meterReadings': readings,
+      'meterSerial': serial,
+      'oldMeterSerial': oldserial,
+      'newMeterSerial': newserial,
+      'oldMeterReading': oldreadings,
+      'newMeterModel': newmodel,
+      'newMeterReading': newreadings,
+      "activityPhoto": myimage,
+      "afterPhoto": newold_image,
+      'date': date,
+    };
 
     final response = await http.post(
       Uri.parse("${getUrl()}nrw_interventions/"),
@@ -902,30 +904,7 @@ Future<Message> submitData(
         'Content-Type': 'application/json; charset=UTF-8',
         'Authorization': 'Bearer $token',
       },
-      body: jsonEncode(<String, dynamic>{
-        'latitude': lat,
-        'longitude': long,
-        'DMAName': dma,
-        'scope': scope,
-        'accountNo': account,
-        "meterActivity": activity,
-        "meterModel": model,
-        'reason': reason,
-        "highFlowResult": highflow,
-        'lowFlowResult': lowflow,
-        "testResult": results,
-        'serviceReport': sreport,
-        'meterReadings': readings,
-        'meterSerial': serial,
-        'oldMeterSerial': oldserial,
-        'newMeterSerial': newserial,
-        'oldMeterReading': oldreadings,
-        'newMeterModel': newmodel,
-        'newMeterReading': newreadings,
-        "activityPhoto": myimage,
-        "afterPhoto": newold_image,
-        'date': date,
-      }),
+      body: jsonEncode(requestBody),
     );
     if (response.statusCode == 200 || response.statusCode == 201) {
       final responseBody = jsonDecode(response.body);
