@@ -574,7 +574,6 @@ Future<Message> submitData(
     final token = await storage.read(key: "mwstaffjwt");
 
     if (token == null) {
-      print("Error: Authentication token not found");
       return Message(
         token: null,
         success: null,
@@ -637,8 +636,6 @@ Future<Message> submitData(
       );
     }
 
-    print("Submit point response: ${response.statusCode}");
-
     // Handle response
     if (response.statusCode == 200 || response.statusCode == 201) {
       try {
@@ -649,7 +646,6 @@ Future<Message> submitData(
           error: null,
         );
       } catch (e) {
-        print("Error parsing response: $e");
         return Message(
           token: null,
           success: null,
@@ -663,14 +659,12 @@ Future<Message> submitData(
         final errorMessage = responseBody['message'] ??
             responseBody['error'] ??
             "Server error! Contact administrator.";
-        print("API error: $errorMessage");
         return Message(
           token: null,
           success: null,
           error: errorMessage,
         );
       } catch (e) {
-        print("Error parsing error response: $e");
         return Message(
           token: null,
           success: null,
@@ -680,7 +674,6 @@ Future<Message> submitData(
       }
     }
   } catch (e) {
-    print("Submit point exception: $e");
     return Message(
       token: null,
       success: null,
