@@ -33,6 +33,7 @@ class _LineProjectsState extends State<LineProjects> {
   String? editing = 'false';
   String lineprojectID = '';
   String error = '';
+  String projectType = '--Select--';
   String lineType = '--Select--'; // Water Pipes or Sewerline
   String linename = '';
   String intake = '';
@@ -41,6 +42,7 @@ class _LineProjectsState extends State<LineProjects> {
   String size = '';
   String user = '';
   String role = '';
+
 
   var isLoading;
   Timer? _navigationTimer;
@@ -135,6 +137,24 @@ class _LineProjectsState extends State<LineProjects> {
                         fontSize: 14,
                         color: Colors.black87,
                       ),
+                    ),
+                    const SizedBox(
+                      height: 8,
+                    ),
+
+                    MySelectInput(
+                      onSubmit: (value) {
+                        setState(() {
+                          projectType = value;
+                        });
+                      },
+                      list: const [
+                        "--Select--",
+                        "Extension",
+                        "Rehabilitation",
+                      ],
+                      label: 'Project Type *',
+                      value: projectType,
                     ),
                     const SizedBox(
                       height: 8,
@@ -265,6 +285,7 @@ class _LineProjectsState extends State<LineProjects> {
                           var res = await submitData(
                             widget.coordinates,
                             lineprojectID,
+                            projectType,
                             lineType,
                             linename,
                             intake,
@@ -338,6 +359,7 @@ class _LineProjectsState extends State<LineProjects> {
 Future<Message> submitData(
     List<Map<String, double>> coordinates,
     String lineprojectID,
+    String projectType,
     String lineType,
     String linename,
     String intake,
@@ -350,6 +372,7 @@ Future<Message> submitData(
     // Debug print
     http.Response response;
     final requestBody = {
+      'projectType': projectType,
       'lineName': linename,
       'lineType': lineType,
       'zone': zone,

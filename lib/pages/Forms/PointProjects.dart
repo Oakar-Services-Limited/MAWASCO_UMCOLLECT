@@ -36,6 +36,7 @@ class _PointProjectsState extends State<PointProjects> {
 
   String pointID = '';
   String selectedAssetType = '--Select--';
+  String projectType = '--Select--';
   String name = '';
   String zone = '';
   String route = '';
@@ -181,6 +182,23 @@ class _PointProjectsState extends State<PointProjects> {
                               lon: long,
                               acc: acc,
                             ))),
+                    MySelectInput(
+                      onSubmit: (value) {
+                        setState(() {
+                          projectType = value;
+                        });
+                      },
+                      list: const [
+                        "--Select--",
+                        "Extension",
+                        "Rehabilitation",
+                      ],
+                      label: 'Project Type *',
+                      value: projectType,
+                    ),
+                    const SizedBox(
+                      height: 8,
+                    ),
                     MySelectInput(
                       onSubmit: (value) {
                         setState(() {
