@@ -505,6 +505,7 @@ class _PointProjectsState extends State<PointProjects> {
                               pointID,
                               lat.toString(),
                               long.toString(),
+                              projectType,
                               selectedAssetType,
                               name,
                               zone,
@@ -577,6 +578,7 @@ Future<Message> submitData(
     String pointID,
     String lat,
     String long,
+    String projectType,
     String assetType,
     String name,
     String zone,
@@ -587,6 +589,8 @@ Future<Message> submitData(
     String remarks,
     String staffid,
     String? editing) async {
+  debugPrint(
+      'projectType: $projectType, assetType: $assetType, name: $name, zone: $zone, route: $route, phone: $phone, size: $size, location: $location, remarks: $remarks, staffid: $staffid, editing: $editing');
   try {
     final storage = const FlutterSecureStorage();
     final token = await storage.read(key: "mwstaffjwt");
@@ -601,6 +605,7 @@ Future<Message> submitData(
 
     // Build request body
     Map<String, dynamic> requestBody = {
+      'projectType': projectType,
       'assetType': assetType,
       'name': name,
       'userId': staffid,

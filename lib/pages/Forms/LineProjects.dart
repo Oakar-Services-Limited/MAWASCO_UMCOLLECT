@@ -43,7 +43,6 @@ class _LineProjectsState extends State<LineProjects> {
   String user = '';
   String role = '';
 
-
   var isLoading;
   Timer? _navigationTimer;
 
@@ -141,7 +140,6 @@ class _LineProjectsState extends State<LineProjects> {
                     const SizedBox(
                       height: 8,
                     ),
-
                     MySelectInput(
                       onSubmit: (value) {
                         setState(() {
@@ -368,6 +366,8 @@ Future<Message> submitData(
     String size,
     String staffid,
     String? editing) async {
+  debugPrint(
+      'projectType: $projectType, lineName: $linename, lineType: $lineType, zone: $zone, route: $route, size: $size, staffid: $staffid, coordinates: $coordinates, intake: $intake');
   try {
     // Debug print
     http.Response response;
