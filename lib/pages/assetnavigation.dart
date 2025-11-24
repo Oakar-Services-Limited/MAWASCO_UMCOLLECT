@@ -58,7 +58,7 @@ class _AssetNavigationState extends State<AssetNavigation> {
 
     formattedDate = DateFormat('MMMM dd, yyyy').format(DateTime.now());
     if (!mounted) return;
-    
+
     if (decoded["error"] == "Invalid token") {
       Navigator.push(context, MaterialPageRoute(builder: (_) => const Login()));
     } else {
@@ -335,7 +335,6 @@ class _AssetNavigationState extends State<AssetNavigation> {
                                 child: LayoutBuilder(
                                   builder: (context, constraints) {
                                     return MyRowIII(
-                                      
                                       title: 'Customer Meters',
                                       image: 'assets/images/customer-meter.png',
                                       availableWidth: constraints.maxWidth,
@@ -344,118 +343,17 @@ class _AssetNavigationState extends State<AssetNavigation> {
                                 ),
                               ),
                             ),
-                            // Expanded(
-                            //   child: InkWell(
-                            //     onTap: () {
-                            //       Navigator.push(
-                            //           context,
-                            //           MaterialPageRoute(
-                            //               builder: (_) => NavigateToAsset(
-                            //                     label: 'Appurtenances',
-                            //                     staffid: widget.staffid,
-                            //                   )));
-                            //     },
-                            //     child: LayoutBuilder(
-                            //       builder: (context, constraints) {
-                            //         return MyRowIII(
-                            //           no: mapped,
-                            //           title: 'Appurtenances',
-                            //           image: 'assets/images/appurtenance.png',
-                            //           availableWidth: constraints.maxWidth,
-                            //         );
-                            //       },
-                            //     ),
-                            //   ),
-                            // ),
                           ],
                         ),
                         const SizedBox(
                           height: 20,
                         ),
-                        // Row(
-                        //   children: [
-                        //     Expanded(
-                        //       child: InkWell(
-                        //         onTap: () {
-                        //           Navigator.push(
-                        //               context,
-                        //               MaterialPageRoute(
-                        //                   builder: (_) => NavigateToAsset(
-                        //                         label: 'Connection Chamber',
-                        //                         staffid: widget.staffid,
-                        //                       )));
-                        //         },
-                        //         child: LayoutBuilder(
-                        //           builder: (context, constraints) {
-                        //             return MyRowIII(
-                        //               no: total_farmers,
-                        //               title: 'Connection Chamber',
-                        //               image:
-                        //                   'assets/images/connectionchamber.png',
-                        //               availableWidth: constraints.maxWidth,
-                        //             );
-                        //           },
-                        //         ),
-                        //       ),
-                        //     ),
-                        //     const SizedBox(
-                        //       width: 16,
-                        //     ),
-                        //     Expanded(
-                        //       child: InkWell(
-                        //         onTap: () {
-                        //           Navigator.push(
-                        //               context,
-                        //               MaterialPageRoute(
-                        //                   builder: (_) => NavigateToAsset(
-                        //                         label: 'Customer Chambers',
-                        //                         staffid: widget.staffid,
-                        //                       )));
-                        //         },
-                        //         child: LayoutBuilder(
-                        //           builder: (context, constraints) {
-                        //             return MyRowIII(
-                        //               no: mapped,
-                        //               title: 'Customer Chambers',
-                        //               image: 'assets/images/sewerchamber.png',
-                        //               availableWidth: constraints.maxWidth,
-                        //             );
-                        //           },
-                        //         ),
-                        //       ),
-                        //     ),
-                        //   ],
-                        // ),
+
                         const SizedBox(
                           height: 20,
                         ),
                         Row(
                           children: [
-                            Expanded(
-                              child: InkWell(
-                                onTap: () {
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (_) => NavigateToAsset(
-                                                label: 'Facilities',
-                                                staffid: widget.staffid,
-                                              )));
-                                },
-                                child: LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    return MyRowIII(
-                                      title: 'Facilities',
-                                      image: 'assets/images/facility.png',
-                                      availableWidth: constraints.maxWidth,
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                            const SizedBox(
-                              width: 16,
-                            ),
                             Expanded(
                               child: InkWell(
                                 onTap: () {
@@ -483,59 +381,7 @@ class _AssetNavigationState extends State<AssetNavigation> {
                         const SizedBox(
                           height: 10,
                         ),
-                        // Row(
-                        //   children: [
-                        //     Expanded(
-                        //       child: InkWell(
-                        //         onTap: () {
-                        //           Navigator.push(
-                        //               context,
-                        //               MaterialPageRoute(
-                        //                   builder: (_) => NavigateToAsset(
-                        //                         label: 'Water Connection',
-                        //                         staffid: widget.staffid,
-                        //                       )));
-                        //         },
-                        //         child: LayoutBuilder(
-                        //           builder: (context, constraints) {
-                        //             return MyRowIII(
-                        //               no: total_farmers,
-                        //               title: 'Water Connection',
-                        //               image: 'assets/images/customer-meter.png',
-                        //               availableWidth: constraints.maxWidth,
-                        //             );
-                        //           },
-                        //         ),
-                        //       ),
-                        //     ),
-                        //     const SizedBox(
-                        //       width: 16,
-                        //     ),
-                        //     Expanded(
-                        //       child: InkWell(
-                        //         onTap: () {
-                        //           Navigator.push(
-                        //               context,
-                        //               MaterialPageRoute(
-                        //                   builder: (_) => NavigateToAsset(
-                        //                         label: 'Sanitation Connection',
-                        //                         staffid: widget.staffid,
-                        //                       )));
-                        //         },
-                        //         child: LayoutBuilder(
-                        //           builder: (context, constraints) {
-                        //             return MyRowIII(
-                        //               no: mapped,
-                        //               title: 'Sanitation Connection',
-                        //               image: 'assets/images/sewer.png',
-                        //               availableWidth: constraints.maxWidth,
-                        //             );
-                        //           },
-                        //         ),
-                        //       ),
-                        //     ),
-                        //   ],
-                        // ),
+                     
                         const SizedBox(
                           height: 48,
                         ),
