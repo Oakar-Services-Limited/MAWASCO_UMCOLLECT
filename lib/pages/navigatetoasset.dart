@@ -527,6 +527,9 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
       case "Master Meters":
         table = "wt_master_meters";
         break;
+      case "Manholes":
+        table = "sr_manholes";
+        break;
       case "Incidences":
         table = "om_reports";
         break;
@@ -1009,10 +1012,10 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                   label: Text(
                                                     widget.label ==
                                                             "Customer Meters"
-                                                        ? "SerialNo/Account No"
+                                                        ? "Name/Account No"
                                                         : widget.label ==
                                                                 "Incidences"
-                                                            ? "Name/Serial No"
+                                                            ? "Serial No"
                                                             : widget.label ==
                                                                     "Water Connection"
                                                                 ? "Search Water Connection"
