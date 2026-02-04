@@ -44,7 +44,7 @@ class _KiosksState extends State<Kiosks> {
   String remarks = '';
   String user = '';
   String role = '';
-  late File? _image;
+  File? _image;
   final imagePicker = ImagePicker();
   String myimage = '';
 
@@ -135,7 +135,7 @@ class _KiosksState extends State<Kiosks> {
     });
   }
 
-  getLocation() async {
+   getLocation() async {
     LocationSettings locationSettings = LocationSettings(
       accuracy: LocationAccuracy.bestForNavigation, // Highest possible
       distanceFilter: 0, // Get all movements
@@ -151,7 +151,6 @@ class _KiosksState extends State<Kiosks> {
       });
     });
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -486,6 +485,7 @@ class _KiosksState extends State<Kiosks> {
       },
     );
   }
+
   void _showSnackBar(String message, bool isSuccess) {
     if (!mounted) return;
 
@@ -514,19 +514,27 @@ Future<Message> submitData(
     String remarks,
     String staffid,
     String? editing) async {
+  print("====== KIOSK SUBMIT START ======");
+  print("Editing flag: $editing");
+  print("Kiosk ID: $kioskID");
+
   if (myimage.isEmpty) {
+    print("❌ Image missing");
     return Message(token: null, success: null, error: "Take Photo of Kiosk!");
   }
+
   try {
     Response response;
-    const storage = FlutterSecureStorage();
-    String? update = await storage.read(key: "updateLocation");
 
-    // Debug: Print the full URL and request body
-    String url = editing == 'true' && kioskID.isNotEmpty
-        ? "${getUrl()}wt/kiosks/$kioskID"
-        : "${getUrl()}wt/kiosks";
-    Map<String, dynamic> requestBody = {
+    final bool isEditing = editing == 'true' && kioskID.isNotEmpty;
+
+    final String url =
+        isEditing ? "${getUrl()}wt/kiosks/$kioskID" : "${getUrl()}wt/kiosks";
+
+    print("➡️ HTTP METHOD: ${isEditing ? 'PUT' : 'POST'}");
+    print("➡️ URL: $url");
+
+    final Map<String, dynamic> requestBody = {
       'latitude': lat,
       'longitude': long,
       'name': name,
@@ -537,52 +545,62 @@ Future<Message> submitData(
       'image': myimage,
     };
 
-    if (editing == 'true' && kioskID.isNotEmpty) {
-      response = await put(
+    print("📦 REQUEST BODY:");
+    requestBody.forEach((k, v) {
+      print("   $k: ${v.toString().length > 100 ? '<<large value>>' : v}");
+    });
+
+    if (isEditing) {
+      response = await http.put(
         Uri.parse(url),
-        headers: <String, String>{
+        headers: {
           'Content-Type': 'application/json; charset=UTF-8',
         },
         body: jsonEncode(requestBody),
       );
     } else {
-      response = await post(
+      response = await http.post(
         Uri.parse(url),
-        headers: <String, String>{
+        headers: {
           'Content-Type': 'application/json; charset=UTF-8',
         },
         body: jsonEncode(requestBody),
       );
     }
+
+    print("⬅️ RESPONSE STATUS: ${response.statusCode}");
+    print("⬅️ RESPONSE HEADERS: ${response.headers}");
+    print("⬅️ RESPONSE BODY:");
+    print(response.body);
+
     if (response.statusCode == 200 || response.statusCode == 201) {
       final responseData = jsonDecode(response.body);
+      print("✅ SUCCESS");
       return Message(
         token: responseData['data']?['id'],
         success: responseData['message'] ?? "Kiosk saved successfully",
         error: null,
       );
     } else {
-      String errorMessage;
-      try {
-        var responseBody = jsonDecode(response.body);
-        errorMessage =
-            responseBody['error'] ?? "Server error! Contact administrator.";
-      } catch (e) {
-        errorMessage =
-            "Server returned invalid response. Status: ${response.statusCode}";
-      }
+      print("❌ SERVER ERROR");
       return Message(
         token: null,
         success: null,
-        error: errorMessage,
+        error: "Server error ${response.statusCode}: ${response.reasonPhrase}",
       );
     }
-  } catch (e) {
+  } catch (e, stackTrace) {
+    print("🔥 EXCEPTION THROWN");
+    print(e);
+    print(stackTrace);
+
     return Message(
       token: null,
       success: null,
-      error: "Connection failed! Check your internet connection. Error: $e",
+      error: "Exception: $e",
     );
+  } finally {
+    print("====== KIOSK SUBMIT END ======");
   }
 }
 
