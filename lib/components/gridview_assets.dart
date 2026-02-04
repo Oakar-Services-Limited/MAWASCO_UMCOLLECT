@@ -74,6 +74,15 @@ class _GridViewAssetsState extends State<GridViewAssets> {
                   )),
         );
         break;
+      case 'Kiosks':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => const DataCollectorsDialog(
+                    assetName: 'Kiosks',
+                  )),
+        );
+        break;
 
       case 'Sewer Lines':
         Navigator.push(
@@ -120,14 +129,14 @@ class _GridViewAssetsState extends State<GridViewAssets> {
                   )),
         );
         break;
-        case 'Project (Lines)':
+      case 'Project (Lines)':
         Navigator.push(
           context,
           MaterialPageRoute(
               builder: (_) => const DataCollectorsDialog(
                     assetName: 'Project (Lines)',
                   )),
-        );  
+        );
         break;
       case 'Customer Chambers':
         Navigator.push(
