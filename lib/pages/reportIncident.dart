@@ -886,7 +886,7 @@ Future<Message> submitData(
       'incidentType': reportertype == "Staff"
           ? (incident == "Leakage" || incident == "Sewer Burst")
               ? incidenttype
-              : null
+              : incident
           : incident,
       'schemeType':
           incident == "Leakage" && reportertype == "Staff" ? schemetype : null,
