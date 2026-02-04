@@ -29,7 +29,7 @@ class GridIcons {
       'assets/images/valve.png',
       'assets/images/master-meter.png',
       'assets/images/washout.png',
-      'assets/images/kiosk.png',
+      'assets/images/hydration.png',
     ];
   }
 

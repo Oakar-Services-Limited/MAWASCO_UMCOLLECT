@@ -31,6 +31,7 @@ class _KiosksState extends State<Kiosks> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final storage = const FlutterSecureStorage();
   late Position position;
+  StreamSubscription<Position>? _positionStreamSubscription;
 
   var long = 36.0, lat = -2.0, acc = 100.0;
   String error = '';
@@ -64,6 +65,7 @@ class _KiosksState extends State<Kiosks> {
       var token = await storage.read(key: "mwstaffjwt");
       var decoded = parseJwt(token.toString());
       editing = await storage.read(key: "editing");
+      if (!mounted) return;
       setState(() {
         user = decoded["name"];
         staffid = decoded["id"];
@@ -125,6 +127,7 @@ class _KiosksState extends State<Kiosks> {
     var fetchedData = await storage.read(key: "data");
     data = json.decode(fetchedData!);
 
+    if (!mounted) return;
     setState(() {
       kioskID = data[0]["id"] ?? "";
       name = data[0]["name"] ?? "";
@@ -135,22 +138,31 @@ class _KiosksState extends State<Kiosks> {
     });
   }
 
-   getLocation() async {
+  getLocation() async {
     LocationSettings locationSettings = LocationSettings(
       accuracy: LocationAccuracy.bestForNavigation, // Highest possible
       distanceFilter: 0, // Get all movements
     );
 
-    Geolocator.getPositionStream(locationSettings: locationSettings)
-        .listen((Position position) {
+    _positionStreamSubscription =
+        Geolocator.getPositionStream(locationSettings: locationSettings)
+            .listen((Position position) {
+      if (!mounted) return;
       setState(() {
         long = position.longitude;
         lat = position.latitude;
         acc = position.accuracy;
-        position = position;
+        this.position = position;
       });
     });
   }
+
+  @override
+  void dispose() {
+    _positionStreamSubscription?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -276,6 +288,7 @@ class _KiosksState extends State<Kiosks> {
                                 false);
                             return;
                           }
+                          if (!mounted) return;
                           setState(() {
                             isLoading =
                                 LoadingAnimationWidget.staggeredDotsWave(
@@ -293,6 +306,7 @@ class _KiosksState extends State<Kiosks> {
                               staffid,
                               editing);
 
+                          if (!mounted) return;
                           setState(() {
                             isLoading = null;
                             if (res.error == null) {
@@ -305,6 +319,7 @@ class _KiosksState extends State<Kiosks> {
                           });
                           if (res.error == null) {
                             Timer(const Duration(seconds: 2), () {
+                              if (!mounted) return;
                               Navigator.pushReplacement(
                                   context,
                                   MaterialPageRoute(
