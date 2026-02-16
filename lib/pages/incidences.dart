@@ -97,7 +97,7 @@ class _IncidencesState extends State<Incidences> {
     }
   }
 
-  checkStaff() async {
+  Future<void> checkStaff() async {
     var staff = await storage.read(key: "isstaff");
     var id = await storage.read(key: "staffid");
     if (!mounted) return; // Check if widget is still mounted

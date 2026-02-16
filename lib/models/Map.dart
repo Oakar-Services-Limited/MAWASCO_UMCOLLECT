@@ -39,7 +39,7 @@ class _MyMapState extends State<MyMap> {
     checkEditing();
   }
 
-  checkEditing() async {
+  Future<void> checkEditing() async {
     String? d = await storage.read(key: "editing");
     if (d != null) {
       setState(() {
@@ -48,7 +48,7 @@ class _MyMapState extends State<MyMap> {
     }
   }
 
-  addMarker() async {
+  Future<void> addMarker() async {
     _vehicleIcon = await BitmapDescriptor.fromAssetImage(
       const ImageConfiguration(devicePixelRatio: 0.5),
       'assets/images/loc.png',

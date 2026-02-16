@@ -252,11 +252,7 @@ class _MappingLinesState extends State<MappingLines> {
       ),
       body: Stack(
         children: [
-          _currentLocation == null
-              ? const Center(
-                  child: CircularProgressIndicator(),
-                )
-              : GoogleMap(
+          GoogleMap(
                   initialCameraPosition: CameraPosition(
                     target: LatLng(
                         _currentLocation.latitude, _currentLocation.longitude),

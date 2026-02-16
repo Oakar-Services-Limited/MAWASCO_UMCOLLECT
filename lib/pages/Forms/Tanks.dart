@@ -77,7 +77,7 @@ class _TanksState extends State<Tanks> {
     }
   }
 
-  prefillForm(data) async {
+  Future<void> prefillForm(data) async {
     var fetchedData = await storage.read(key: "data");
     data = json.decode(fetchedData!);
 
@@ -98,7 +98,7 @@ class _TanksState extends State<Tanks> {
     });
   }
 
-  getLocation() async {
+  Future<void> getLocation() async {
     LocationSettings locationSettings = LocationSettings(
       accuracy: LocationAccuracy.bestForNavigation, // Highest possible
       distanceFilter: 0, // Get all movements

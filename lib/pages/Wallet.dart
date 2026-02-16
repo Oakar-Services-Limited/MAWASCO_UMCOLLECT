@@ -192,7 +192,7 @@ class _MyWalletState extends State<MyWallet> {
     }
   }
 
-  getToken() async {
+  Future<void> getToken() async {
     var token = await storage.read(key: "mwstaffjwt");
     var decoded = parseJwt(token.toString());
     var phone = decoded["Phone"];

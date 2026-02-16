@@ -55,7 +55,7 @@ class _NavigateState extends State<Navigate> {
     super.didUpdateWidget(oldWidget);
   }
 
-  initializeServices() async {
+  Future<void> initializeServices() async {
     _vehicleIcon = await BitmapDescriptor.fromAssetImage(
       const ImageConfiguration(devicePixelRatio: 0.5),
       'assets/images/car.png',
@@ -137,7 +137,7 @@ class _NavigateState extends State<Navigate> {
     }
   }
 
-  getNavigation(BitmapDescriptor vehicleIcon) async {
+  Future<void> getNavigation(BitmapDescriptor vehicleIcon) async {
     try {
       bool serviceEnabled;
       PermissionStatus permissionGranted;
@@ -343,7 +343,7 @@ class _NavigateState extends State<Navigate> {
     }
   }
 
-  addPolyLine(List<LatLng> polylineCoordinates) {
+  void addPolyLine(List<LatLng> polylineCoordinates) {
     PolylineId id = const PolylineId('poly');
     Polyline polyline = Polyline(
       polylineId: id,
@@ -392,7 +392,7 @@ class _NavigateState extends State<Navigate> {
         destposition.latitude, destposition.longitude);
   }
 
-  addMarker(BitmapDescriptor vehicleIcon) {
+  void addMarker(BitmapDescriptor vehicleIcon) {
     setState(() {
       final report = widget.item["report"];
       if (report == null) {
@@ -853,7 +853,7 @@ class _NavigateState extends State<Navigate> {
                                                     },
                                                     style: const ButtonStyle(
                                                         backgroundColor:
-                                                            MaterialStatePropertyAll(
+                                                            WidgetStatePropertyAll(
                                                       Colors.orange,
                                                     )),
                                                     child: const Text(
@@ -897,13 +897,13 @@ class _NavigateState extends State<Navigate> {
                                                 },
                                                 style: const ButtonStyle(
                                                     side:
-                                                        MaterialStatePropertyAll(
+                                                        WidgetStatePropertyAll(
                                                             BorderSide(
                                                                 color: Colors
                                                                     .orange,
                                                                 width: 1)),
                                                     backgroundColor:
-                                                        MaterialStatePropertyAll(
+                                                        WidgetStatePropertyAll(
                                                             Colors
                                                                 .transparent)),
                                                 child: const Text(

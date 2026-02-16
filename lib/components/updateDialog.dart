@@ -51,7 +51,7 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
   String error = "";
   var fetchedData = '';
   var isLoading;
-  bool _isCheckboxChecked = false;
+  final bool _isCheckboxChecked = false;
   final TextEditingController _searchController = TextEditingController();
 
   List<SearchAsset> entries = <SearchAsset>[];
@@ -70,7 +70,7 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
     super.dispose();
   }
 
-  searchAsset(v, searchItem) async {
+  Future<void> searchAsset(v, searchItem) async {
     await storage.write(key: 'editing', value: 'true');
     await storage.write(key: "data", value: '');
     setState(() {
@@ -185,7 +185,7 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
           }
         }
       });
-    } catch (e, stackTrace) {
+    } catch (e) {
       setState(() {
         isLoading = null;
         error = "Error searching: ${e.toString()}";
@@ -193,7 +193,7 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
     }
   }
 
-  navigateToForm(
+  Future<void> navigateToForm(
       BuildContext context, assetName, Map<String, dynamic> item) async {
     // Only set editing to true if we have an item with an ID
     if (item.isNotEmpty && item["id"] != null) {
@@ -371,7 +371,7 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
     }
   }
 
-  updateAssetInfo(
+  Future<void> updateAssetInfo(
       BuildContext context, String assetName, Map<String, dynamic> item) async {
     await storage.write(key: 'editing', value: 'true');
     await storage.write(key: "data", value: fetchedData);
@@ -592,7 +592,7 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
     }
   }
 
-  getSearchItem() {
+  void getSearchItem() {
     switch (widget.assetName) {
       case "Customer Meters":
         setState(() {

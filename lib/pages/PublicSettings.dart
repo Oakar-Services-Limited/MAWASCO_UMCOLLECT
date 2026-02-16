@@ -42,7 +42,7 @@ class _PublicSettingsState extends State<PublicSettings> {
   }
 
   //Check for Login
-  getToken() async {
+  Future<void> getToken() async {
     var token = await storage.read(key: "mwjwt");
     var decoded = parseJwt(token.toString());
     if (decoded["error"] == "Invalid token") {

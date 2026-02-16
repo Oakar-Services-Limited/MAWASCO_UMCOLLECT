@@ -94,7 +94,7 @@ class _CustomerLinesState extends State<CustomerLines> {
     }
   }
 
-  prefillForm(data) async {
+  Future<void> prefillForm(data) async {
     var fetchedData = await storage.read(key: "data");
     data = json.decode(fetchedData!);
 

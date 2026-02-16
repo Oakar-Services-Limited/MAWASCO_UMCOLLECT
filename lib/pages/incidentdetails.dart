@@ -43,7 +43,7 @@ class _IncidentDetailsState extends State<IncidentDetails> {
     super.dispose();
   }
 
-  loadIncidentDetails(String id) async {
+  Future<void> loadIncidentDetails(String id) async {
     setState(() {
       isLoading = LoadingAnimationWidget.staggeredDotsWave(
         color: const Color(0xff0288D1),

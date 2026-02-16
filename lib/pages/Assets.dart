@@ -24,7 +24,7 @@ class _AssetsState extends State<Assets> {
   bool haspermission = false;
   late Position position;
 
-  getUserDetails() async {
+  Future<void> getUserDetails() async {
     var token = await storage.read(key: "mwstaffjwt");
     var decoded = parseJwt(token.toString());
 

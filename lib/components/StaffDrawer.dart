@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:um_collect/components/FootNote.dart';
 import 'package:um_collect/components/Utils.dart';
+import 'package:um_collect/pages/FormsListPage.dart';
 import 'package:um_collect/pages/Settings.dart';
 import 'package:um_collect/pages/home.dart';
 import 'package:um_collect/pages/incidences.dart';
@@ -123,6 +124,14 @@ class _StaffDrawerState extends State<StaffDrawer> {
                               builder: (_) => AssetNavigation(
                                     staffid: staffid,
                                   ))),
+                    ),
+                     _buildDrawerItem(
+                      icon: Icons.description,
+                      title: 'Forms',
+                      onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const FormsListPage())),
                     ),
                     _buildDrawerItem(
                       icon: Icons.settings,

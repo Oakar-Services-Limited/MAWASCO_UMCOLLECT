@@ -886,7 +886,7 @@ Future<Message> submitData(
       'incidentType': reportertype == "Staff"
           ? (incident == "Leakage" || incident == "Sewer Burst")
               ? incidenttype
-              : null
+              : incident
           : incident,
       'schemeType':
           incident == "Leakage" && reportertype == "Staff" ? schemetype : null,
@@ -899,6 +899,8 @@ Future<Message> submitData(
       'reporterPhone': phone,
       'priority': priority,
     };
+
+    print("Payload: $payload");
 
     final response = await post(
       Uri.parse("${getUrl()}om/reports"),

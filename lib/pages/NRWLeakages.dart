@@ -47,7 +47,7 @@ class _NRWLeakagesState extends State<NRWLeakages> {
   String myimage = '';
   StreamSubscription<Position>? positionStreamSubscription;
 
-  getUserLocation() async {
+  Future<void> getUserLocation() async {
     try {
       var token = await storage.read(key: "mwjwt");
       var decoded = parseJwt(token.toString());
@@ -101,7 +101,7 @@ class _NRWLeakagesState extends State<NRWLeakages> {
     return base64String;
   }
 
-  promptUserForLocation() async {
+  Future<void> promptUserForLocation() async {
     servicestatus = await Geolocator.isLocationServiceEnabled();
     if (servicestatus) {
       permission = await Geolocator.checkPermission();

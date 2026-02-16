@@ -55,7 +55,7 @@ class _NavigateNRWState extends State<NavigateNRW> {
     super.didUpdateWidget(oldWidget);
   }
 
-  initializeServices() async {
+  Future<void> initializeServices() async {
     _vehicleIcon = await BitmapDescriptor.fromAssetImage(
       const ImageConfiguration(devicePixelRatio: 0.5),
       'assets/images/car.png',
@@ -123,7 +123,7 @@ class _NavigateNRWState extends State<NavigateNRW> {
     }
   }
 
-  getNavigation(BitmapDescriptor vehicleIcon) async {
+  Future<void> getNavigation(BitmapDescriptor vehicleIcon) async {
     try {
       bool serviceEnabled;
       PermissionStatus permissionGranted;
@@ -254,7 +254,7 @@ class _NavigateNRWState extends State<NavigateNRW> {
     }
   }
 
-  addPolyLine(List<LatLng> polylineCoordinates) {
+  void addPolyLine(List<LatLng> polylineCoordinates) {
     PolylineId id = const PolylineId('poly');
     Polyline polyline = Polyline(
       polylineId: id,
@@ -303,7 +303,7 @@ class _NavigateNRWState extends State<NavigateNRW> {
         destposition.latitude, destposition.longitude);
   }
 
-  addMarker(BitmapDescriptor vehicleIcon) {
+  void addMarker(BitmapDescriptor vehicleIcon) {
     setState(() {
       sourcePosition = Marker(
         markerId: const MarkerId('source'),
