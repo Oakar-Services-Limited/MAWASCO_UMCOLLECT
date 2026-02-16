@@ -121,15 +121,25 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
   }
 
   /// List from Utils (preloaded on Home when possible); search on frontend in MySearchableSelectInput.
+  /// Always refreshes cache in background to ensure fresh data, but shows cached immediately for fast load.
   Future<void> _loadMasterMeters() async {
     final cached = getMasterMeterNamesCached();
     if (cached != null && cached.isNotEmpty) {
+      // Show cached immediately for instant load (0ms)
       setState(() {
         masterMeterNames = ["--Select--", ...cached];
         isLoadingMeters = false;
       });
+      // Refresh in background to ensure fresh data (e.g. after creating new meter)
+      refreshMasterMeterNamesCache().then((freshNames) {
+        if (!mounted) return;
+        setState(() {
+          masterMeterNames = ["--Select--", ...freshNames];
+        });
+      });
       return;
     }
+    // No cache: fetch and show loading
     setState(() => isLoadingMeters = true);
     final names = await getMasterMeterNames();
     if (!mounted) return;

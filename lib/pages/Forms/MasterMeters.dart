@@ -11,7 +11,6 @@ import 'package:um_collect/components/SubmitButton.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/models/Map.dart';
 import 'package:um_collect/pages/Assets.dart';
-import 'package:um_collect/pages/home.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:http/http.dart' as http;
@@ -335,6 +334,8 @@ class _MasterMetersState extends State<MasterMeters> {
                             if (res.error == null) {
                               error = "";
                               _showSnackBar(res.success, true);
+                              // Invalidate cache so new meter appears immediately in Master Meter Readings
+                              invalidateMasterMeterNamesCache();
                             } else {
                               error = res.error;
                               _showSnackBar(error, false);

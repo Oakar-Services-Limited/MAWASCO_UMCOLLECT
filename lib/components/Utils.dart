@@ -219,3 +219,16 @@ Future<List<String>> _fetchMasterMeterNamesFromApi() async {
 void preloadMasterMeterNames() {
   getMasterMeterNames();
 }
+
+/// Invalidate cache so next fetch gets fresh data. Call after creating/updating/deleting a master meter.
+void invalidateMasterMeterNamesCache() {
+  _masterMeterNamesCache = [];
+  _masterMeterNamesCacheTime = null;
+  _masterMeterNamesFetchFuture = null;
+}
+
+/// Force refresh cache in background. Returns the fresh list when done.
+Future<List<String>> refreshMasterMeterNamesCache() async {
+  invalidateMasterMeterNamesCache();
+  return getMasterMeterNames();
+}
