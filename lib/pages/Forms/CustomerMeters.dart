@@ -106,7 +106,7 @@ class _CustomerMetersState extends State<CustomerMeters> {
     super.initState();
   }
 
-  getLocation() async {
+  Future<void> getLocation() async {
     LocationSettings locationSettings = LocationSettings(
       accuracy: LocationAccuracy.bestForNavigation, // Highest possible
       distanceFilter: 0, // Get all movements
@@ -139,7 +139,7 @@ class _CustomerMetersState extends State<CustomerMeters> {
     }
   }
 
-  prefillForm(data) async {
+  Future<void> prefillForm(data) async {
     setState(() {
       id = data["id"] ?? "";
       accnum = data["accountNo"]?.toString() ?? "";

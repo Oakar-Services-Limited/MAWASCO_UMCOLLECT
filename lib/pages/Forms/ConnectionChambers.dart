@@ -106,7 +106,7 @@ class _ConnectionChambersState extends State<ConnectionChambers> {
     }
   }
 
-  prefillForm(data) async {
+  Future<void> prefillForm(data) async {
     var fetchedData = await storage.read(key: "data");
     data = json.decode(fetchedData!);
 
@@ -127,7 +127,7 @@ class _ConnectionChambersState extends State<ConnectionChambers> {
     });
   }
 
-  getLocation() async {
+  Future<void> getLocation() async {
     position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
       accuracy: LocationAccuracy.high,

@@ -900,6 +900,8 @@ Future<Message> submitData(
       'priority': priority,
     };
 
+    print("Payload: $payload");
+
     final response = await post(
       Uri.parse("${getUrl()}om/reports"),
       headers: <String, String>{

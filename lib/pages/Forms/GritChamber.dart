@@ -71,7 +71,7 @@ class _GritChambersState extends State<GritChambers> {
     }
   }
 
-  prefillForm(data) async {
+  Future<void> prefillForm(data) async {
     var fetchedData = await storage.read(key: "data");
     data = json.decode(fetchedData!);
 
@@ -87,7 +87,7 @@ class _GritChambersState extends State<GritChambers> {
     });
   }
 
-  getLocation() async {
+  Future<void> getLocation() async {
     position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,

@@ -42,7 +42,7 @@ class _SettingsState extends State<Settings> {
   }
 
   //Fetch user details from API
-  getUserDetails() async {
+  Future<void> getUserDetails() async {
     setState(() => isLoadingDetails = true);
     try {
       var token = await storage.read(key: "mwstaffjwt");

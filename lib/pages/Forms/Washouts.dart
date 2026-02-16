@@ -75,7 +75,7 @@ class _WashoutsState extends State<Washouts> {
     }
   }
 
-  prefillForm(data) async {
+  Future<void> prefillForm(data) async {
     var fetchedData = await storage.read(key: "data");
     data = json.decode(fetchedData!);
 
@@ -92,7 +92,7 @@ class _WashoutsState extends State<Washouts> {
     });
   }
 
-  getLocation() async {
+  Future<void> getLocation() async {
     LocationSettings locationSettings = LocationSettings(
       accuracy: LocationAccuracy.bestForNavigation, // Highest possible
       distanceFilter: 0, // Get all movements

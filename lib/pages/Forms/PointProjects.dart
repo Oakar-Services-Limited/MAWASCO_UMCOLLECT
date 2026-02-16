@@ -80,7 +80,7 @@ class _PointProjectsState extends State<PointProjects> {
     }
   }
 
-  prefillForm(data) async {
+  Future<void> prefillForm(data) async {
     var fetchedData = await storage.read(key: "data");
     data = json.decode(fetchedData!);
 
@@ -99,7 +99,7 @@ class _PointProjectsState extends State<PointProjects> {
     });
   }
 
-  getLocation() async {
+  Future<void> getLocation() async {
     LocationSettings locationSettings = LocationSettings(
       accuracy: LocationAccuracy.bestForNavigation, // Highest possible
       distanceFilter: 0, // Get all movements

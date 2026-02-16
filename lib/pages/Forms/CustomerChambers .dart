@@ -107,7 +107,7 @@ class _CustomerChambersState extends State<CustomerChambers> {
     }
   }
 
-  prefillForm(data) async {
+  Future<void> prefillForm(data) async {
     var fetchedData = await storage.read(key: "data");
     data = json.decode(fetchedData!);
 
@@ -130,7 +130,7 @@ class _CustomerChambersState extends State<CustomerChambers> {
     });
   }
 
-  getLocation() async {
+  Future<void> getLocation() async {
     position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,

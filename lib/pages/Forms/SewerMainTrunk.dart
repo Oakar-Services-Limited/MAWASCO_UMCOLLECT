@@ -107,7 +107,7 @@ class _SewerMainTrunkState extends State<SewerMainTrunk> {
     }
   }
 
-  prefillForm(data) async {
+  Future<void> prefillForm(data) async {
     var fetchedData = await storage.read(key: "data");
     data = json.decode(fetchedData!);
     setState(() {

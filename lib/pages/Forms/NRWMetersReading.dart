@@ -113,7 +113,7 @@ class _NRWMeterReadingState extends State<NRWMeterReading> {
     });
   }
 
-  getLocation() async {
+  Future<void> getLocation() async {
     position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,

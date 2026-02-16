@@ -119,7 +119,7 @@ class _NewSanConnState extends State<NewSanConn> {
     }
   }
 
-  prefillForm(data) async {
+  Future<void> prefillForm(data) async {
     var fetchedData = await storage.read(key: "data");
     data = json.decode(fetchedData!);
 
@@ -140,7 +140,7 @@ class _NewSanConnState extends State<NewSanConn> {
     });
   }
 
-  getLocation() async {
+  Future<void> getLocation() async {
     position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,

@@ -85,7 +85,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
   // ==========================================
   // Initialization Methods
   // ==========================================
-  initializeServices() async {
+  Future<void> initializeServices() async {
     _vehicleIcon = await BitmapDescriptor.fromAssetImage(
       const ImageConfiguration(devicePixelRatio: 0.5),
       'assets/images/car.png',
@@ -159,7 +159,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
   // ==========================================
   // Navigation and Routing Methods
   // ==========================================
-  getNavigation(BitmapDescriptor vehicleIcon) async {
+  Future<void> getNavigation(BitmapDescriptor vehicleIcon) async {
     try {
       bool serviceEnabled;
       PermissionStatus permissionGranted;
@@ -338,7 +338,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
   // ==========================================
   // Map Drawing and Calculation Methods
   // ==========================================
-  addPolyLine(List<LatLng> polylineCoordinates) {
+  void addPolyLine(List<LatLng> polylineCoordinates) {
     PolylineId id = const PolylineId('poly');
     Polyline polyline = Polyline(
       polylineId: id,
@@ -384,7 +384,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
         destposition.latitude, destposition.longitude);
   }
 
-  addMarker(BitmapDescriptor vehicleIcon) {
+  void addMarker(BitmapDescriptor vehicleIcon) {
     setState(() {
       sourcePosition = Marker(
         markerId: const MarkerId('source'),
