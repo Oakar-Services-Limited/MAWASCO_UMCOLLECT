@@ -41,6 +41,7 @@ class _MasterMetersState extends State<MasterMeters> {
   String category = '';
   String size = '';
   String name = '';
+  String serial = '';
   String zone = '';
   String route = '';
   String location = '';
@@ -72,7 +73,7 @@ class _MasterMetersState extends State<MasterMeters> {
         prefillForm(data);
       } else {}
     } catch (e) {
-      // 
+      //
     }
   }
 
@@ -85,6 +86,7 @@ class _MasterMetersState extends State<MasterMeters> {
       masterMeterID = data[0]["id"]?.toString() ?? "";
       category = data[0]["category"]?.toString() ?? "";
       name = data[0]["name"]?.toString() ?? "";
+      serial = data[0]["serial"]?.toString() ?? "";
       size = data[0]["size"]?.toString() ?? "";
       route = data[0]["route"]?.toString() ?? "";
       zone = data[0]["zone"]?.toString() ?? "";
@@ -142,8 +144,8 @@ class _MasterMetersState extends State<MasterMeters> {
               color: Colors.white,
             ),
             onPressed: () {
-              Navigator.pushReplacement(
-                  context, MaterialPageRoute(builder: (_) => const Home()));
+              Navigator.pushReplacement(context,
+                  MaterialPageRoute(builder: (_) => Assets(staffid: staffid)));
             },
           ),
         ],
@@ -200,6 +202,17 @@ class _MasterMetersState extends State<MasterMeters> {
                         });
                       },
                       title: 'Name',
+                    ),
+                        MyTextInput(
+                      lines: 1,
+                      value: serial,
+                      type: TextInputType.number,
+                      onSubmit: (value) {
+                        setState(() {
+                          serial = value;
+                        });
+                      },
+                      title: 'Serial Number',
                     ),
                     MySelectInput(
                       onSubmit: (value) => setState(() => category = value),
@@ -304,6 +317,7 @@ class _MasterMetersState extends State<MasterMeters> {
                               lat.toString(),
                               long.toString(),
                               name,
+                              serial,
                               category,
                               size,
                               route,
@@ -363,6 +377,7 @@ Future<Message> submitData(
     String lat,
     String long,
     String name,
+    String serial,
     String category,
     String size,
     String route,
@@ -384,6 +399,7 @@ Future<Message> submitData(
         },
         body: jsonEncode(<String, dynamic>{
           'name': name,
+          'serial': serial,
           'category': category,
           'size': size,
           'route': route,
@@ -403,6 +419,7 @@ Future<Message> submitData(
         },
         body: jsonEncode(<String, dynamic>{
           'name': name,
+          'serial': serial,
           'category': category,
           'size': size,
           'route': route,
