@@ -11,6 +11,7 @@ import 'package:um_collect/models/SearchAsset.dart';
 import 'package:um_collect/pages/Forms/Appurtenances.dart';
 import 'package:um_collect/pages/Forms/Boreholes.dart';
 import 'package:um_collect/pages/Forms/GritChamber.dart';
+import 'package:um_collect/pages/Forms/Kiosks.dart';
 import 'package:um_collect/pages/Forms/PointProjects.dart';
 import 'package:um_collect/pages/Forms/PumpingStations.dart';
 import 'package:um_collect/pages/Forms/SewerTreatment.dart';
@@ -100,8 +101,12 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
         break;
       case 'Master Meters':
         searchItem = 'wt_master_meters';
+        break;
       case 'Washouts':
         searchItem = 'wt_washouts';
+        break;
+      case 'Kiosks':
+        searchItem = 'wt_kiosks';
         break;
       default:
         searchItem = 'customers';
@@ -248,6 +253,12 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const Washouts()),
+        );
+        break;
+      case 'Kiosks':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const Kiosks()),
         );
         break;
       case 'Offtakes':
@@ -436,6 +447,12 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
           MaterialPageRoute(builder: (_) => const Washouts()),
         );
         break;
+      case 'Kiosks':
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const Kiosks()),
+        );
+        break;
       case 'Offtakes':
         Navigator.pushReplacement(
           context,
@@ -622,6 +639,11 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
       case "Washouts":
         setState(() {
           searchItem = "productionmeters";
+        });
+        break;
+      case "Kiosks":
+        setState(() {
+          searchItem = "kiosks";
         });
         break;
       case "Offtakes":

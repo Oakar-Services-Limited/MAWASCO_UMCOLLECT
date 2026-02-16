@@ -74,6 +74,15 @@ class _GridViewAssetsState extends State<GridViewAssets> {
                   )),
         );
         break;
+      case 'Kiosks':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => const DataCollectorsDialog(
+                    assetName: 'Kiosks',
+                  )),
+        );
+        break;
 
       case 'Sewer Lines':
         Navigator.push(
@@ -120,14 +129,14 @@ class _GridViewAssetsState extends State<GridViewAssets> {
                   )),
         );
         break;
-        case 'Project (Lines)':
+      case 'Project (Lines)':
         Navigator.push(
           context,
           MaterialPageRoute(
               builder: (_) => const DataCollectorsDialog(
                     assetName: 'Project (Lines)',
                   )),
-        );  
+        );
         break;
       case 'Customer Chambers':
         Navigator.push(
@@ -246,11 +255,14 @@ class _GridViewAssetsState extends State<GridViewAssets> {
                               topRight: Radius.circular(8)),
                           clipBehavior: Clip.hardEdge,
                           color: const Color.fromARGB(255, 207, 236, 252),
-                          child: Image.asset(
-                            waterNetworkImages[index],
+                          child: Container(
                             width: double.infinity,
                             height: 120,
-                            fit: BoxFit.cover,
+                            alignment: Alignment.center,
+                            child: Image.asset(
+                              waterNetworkImages[index],
+                              fit: BoxFit.contain,
+                            ),
                           ),
                         ),
                         const SizedBox(
@@ -311,11 +323,14 @@ class _GridViewAssetsState extends State<GridViewAssets> {
                               topLeft: Radius.circular(8),
                               topRight: Radius.circular(8)),
                           clipBehavior: Clip.hardEdge,
-                          child: Image.asset(
-                            sewerNetworkImages[index],
+                          child: Container(
                             width: double.infinity,
                             height: 120,
-                            fit: BoxFit.cover,
+                            alignment: Alignment.center,
+                            child: Image.asset(
+                              sewerNetworkImages[index],
+                              fit: BoxFit.contain,
+                            ),
                           ),
                         ),
                         const SizedBox(
@@ -375,11 +390,15 @@ class _GridViewAssetsState extends State<GridViewAssets> {
                           borderRadius: const BorderRadius.only(
                               topLeft: Radius.circular(8),
                               topRight: Radius.circular(8)),
-                          child: Image.asset(
-                            newProjectImages[index],
+                          clipBehavior: Clip.hardEdge,
+                          child: Container(
                             width: double.infinity,
                             height: 120,
-                            fit: BoxFit.cover,
+                            alignment: Alignment.center,
+                            child: Image.asset(
+                              newProjectImages[index],
+                              fit: BoxFit.contain,
+                            ),
                           ),
                         ),
                         const SizedBox(

@@ -29,6 +29,7 @@ class GridIcons {
       'assets/images/valve.png',
       'assets/images/master-meter.png',
       'assets/images/washout.png',
+      'assets/images/hydration.png',
     ];
   }
 
@@ -40,6 +41,7 @@ class GridIcons {
       'Valves',
       'Master Meters',
       'Washouts',
+      'Kiosks',
     ];
   }
 

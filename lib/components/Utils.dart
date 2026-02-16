@@ -2,10 +2,10 @@
 import 'dart:convert';
 
 String getUrl() {
-  // return "http://192.168.1.136:3003/api/";
+  return "http://192.168.1.136:3003/api/";
   // return "http://192.168.1.121:3003/api/";
 
-  return "https://api-utilitymanager.mawasco.co.ke/api/";
+  // return "https://api-utilitymanager.mawasco.co.ke/api/";
 //
 }
 
@@ -60,6 +60,7 @@ List<String> getDMAs() {
     "Gikore",
     "Gikumbo",
     "Githaiti",
+    "Githambiro",
     "Gitugu",
     "Gitumbi",
     "Ihwagi",
@@ -110,8 +111,11 @@ List<String> getDMAs() {
     "Mutiini",
     "N/A",
     "Ndiriti",
+    "Ngurumo",
     "Ragati",
+    "Rititi",
     "Rugoka",
+    "Ruthagati",
     "Saigon",
     "Sofia",
     "Waweru",
