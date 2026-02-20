@@ -85,6 +85,7 @@ class _HomeState extends State<Home> {
         await storage.write(key: 'staffid', value: staffid);
 
         fetchStats(staffid, isnew);
+        preloadMasterMeterNames(); // Warm cache so Master Meter Readings opens with list ready
       }
     } catch (e) {
       // Error handling: silently ignore errors during data fetching

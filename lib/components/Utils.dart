@@ -1,10 +1,13 @@
 // ignore_for_file: file_names
 import 'dart:convert';
 
-String getUrl() {
-  return "http://192.168.1.121:3003/api/";
+import 'package:http/http.dart' as http;
 
-  // return "https://api-utilitymanager.mawasco.co.ke/api/";
+String getUrl() {
+  // return "http://192.168.1.136:3003/api/";
+  // return "http://192.168.1.121:3003/api/";
+
+  return "https://api-utilitymanager.mawasco.co.ke/api/";
 //
 }
 
@@ -151,4 +154,81 @@ List<String> getZones() {
     "023 82(Inst.Rural)",
     "024 93"
   ];
+}
+
+// --- Master meter names: central cache, fetched once and reused (search on frontend) ---
+
+List<String> _masterMeterNamesCache = [];
+DateTime? _masterMeterNamesCacheTime;
+Future<List<String>>? _masterMeterNamesFetchFuture;
+const int _masterMeterNamesCacheMaxAgeSeconds = 300;
+
+/// If cache is valid, returns it; otherwise null. Use so the page can show list immediately with no loading.
+List<String>? getMasterMeterNamesCached() {
+  if (_masterMeterNamesCache.isEmpty || _masterMeterNamesCacheTime == null) return null;
+  final now = DateTime.now();
+  if (now.difference(_masterMeterNamesCacheTime!).inSeconds >= _masterMeterNamesCacheMaxAgeSeconds) {
+    return null;
+  }
+  return List.from(_masterMeterNamesCache);
+}
+
+/// Returns master meter names (cached if valid, otherwise fetches and caches). Add "--Select--" in UI if needed.
+Future<List<String>> getMasterMeterNames() async {
+  final cached = getMasterMeterNamesCached();
+  if (cached != null) return cached;
+
+  if (_masterMeterNamesFetchFuture != null) {
+    return _masterMeterNamesFetchFuture!;
+  }
+
+  _masterMeterNamesFetchFuture = _fetchMasterMeterNamesFromApi();
+  try {
+    final list = await _masterMeterNamesFetchFuture!;
+    return list;
+  } finally {
+    _masterMeterNamesFetchFuture = null;
+  }
+}
+
+Future<List<String>> _fetchMasterMeterNamesFromApi() async {
+  final response = await http.get(
+    Uri.parse("${getUrl()}wt/master-meters?limit=1000&namesOnly=1"),
+    headers: <String, String>{'Content-Type': 'application/json; charset=UTF-8'},
+  );
+
+  if (response.statusCode != 200) {
+    return List.from(_masterMeterNamesCache); // keep previous cache on error
+  }
+
+  final decoded = jsonDecode(response.body);
+  final data = decoded['data'] as List? ?? [];
+  final names = <String>[];
+  for (var meter in data) {
+    if (meter['name'] != null && meter['name'].toString().isNotEmpty) {
+      final name = meter['name'].toString();
+      if (!names.contains(name)) names.add(name);
+    }
+  }
+  _masterMeterNamesCache = names;
+  _masterMeterNamesCacheTime = DateTime.now();
+  return List.from(names);
+}
+
+/// Call from Home (or after login) to warm the cache so Master Meter Readings opens with list ready.
+void preloadMasterMeterNames() {
+  getMasterMeterNames();
+}
+
+/// Invalidate cache so next fetch gets fresh data. Call after creating/updating/deleting a master meter.
+void invalidateMasterMeterNamesCache() {
+  _masterMeterNamesCache = [];
+  _masterMeterNamesCacheTime = null;
+  _masterMeterNamesFetchFuture = null;
+}
+
+/// Force refresh cache in background. Returns the fresh list when done.
+Future<List<String>> refreshMasterMeterNamesCache() async {
+  invalidateMasterMeterNamesCache();
+  return getMasterMeterNames();
 }

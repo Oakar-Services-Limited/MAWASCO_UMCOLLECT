@@ -10,7 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:http/http.dart' as http;
-import 'package:um_collect/components/MySelectInput.dart';
+import 'package:um_collect/components/MySearchableSelectInput.dart';
 import 'package:um_collect/components/MyTextInput.dart';
 import 'package:um_collect/components/StaffDrawer.dart';
 import 'package:um_collect/components/Utils.dart';
@@ -39,6 +39,9 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
 
   late File? _image;
   final imagePicker = ImagePicker();
+  
+  List<String> masterMeterNames = ["--Select--"];
+  bool isLoadingMeters = false;
 
   void _showMessage(String message, bool isError) {
     if (!mounted) return;
@@ -105,9 +108,45 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
 
   @override
   void initState() {
+    super.initState();
     _image = null;
     fetchStoredData();
-    super.initState();
+    _loadMasterMeters();
+    // Clear any lingering success snackbar from a previous submit when opening the page afresh
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+      }
+    });
+  }
+
+  /// List from Utils (preloaded on Home when possible); search on frontend in MySearchableSelectInput.
+  /// Always refreshes cache in background to ensure fresh data, but shows cached immediately for fast load.
+  Future<void> _loadMasterMeters() async {
+    final cached = getMasterMeterNamesCached();
+    if (cached != null && cached.isNotEmpty) {
+      // Show cached immediately for instant load (0ms)
+      setState(() {
+        masterMeterNames = ["--Select--", ...cached];
+        isLoadingMeters = false;
+      });
+      // Refresh in background to ensure fresh data (e.g. after creating new meter)
+      refreshMasterMeterNamesCache().then((freshNames) {
+        if (!mounted) return;
+        setState(() {
+          masterMeterNames = ["--Select--", ...freshNames];
+        });
+      });
+      return;
+    }
+    // No cache: fetch and show loading
+    setState(() => isLoadingMeters = true);
+    final names = await getMasterMeterNames();
+    if (!mounted) return;
+    setState(() {
+      masterMeterNames = ["--Select--", ...names];
+      isLoadingMeters = false;
+    });
   }
 
   Future<void> fetchStoredData() async {
@@ -166,86 +205,25 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
                           ),
                         ),
                         const SizedBox(height: 20),
-                        MySelectInput(
-                          onSubmit: (value) {
-                            setState(() {
-                              metername = value;
-                            });
-                          },
-                          list: const [
-                            "--Select--",
-                            "master meter under kiamucheru dma",
-                            "KAHUTIINI DMA",
-                            "Gikumbo",
-                            "master meter under kiamucheru dma",
-                            "master meter under Gathehu dma",
-                            "Mathaithi B",
-                            "GATINA Dma",
-                            "Behind factory line DMA ",
-                            "Kanjuri",
-                            "William nyamu njoroge ",
-                            "CHERU RITITI ",
-                            "Joseph wachira kinyua",
-                            "Blue Valley ",
-                            "Kiaihuru",
-                            "Giatuu",
-                            "tryout",
-                            "Muchohi",
-                            "Ithodeka",
-                            "John mwarari ",
-                            "Kiamucheru ",
-                            "Omega",
-                            "mugugutu dma",
-                            "Mbogoini B",
-                            "Giakairu ",
-                            "Giakimuru",
-                            "Giakimuru",
-                            "Karogoto",
-                            "Gathagana",
-                            "Gathugu",
-                            "IHWAGI MASTER METER",
-                            "Kiamucheru",
-                            "Dr Wachira",
-                            "Kiamucheru",
-                            "Kiamariga lower DMA",
-                            "Kirima",
-                            "Karatina Girls ",
-                            "Kiamariga lower DMA",
-                            "victoria wanja",
-                            "Jamaica",
-                            "Gichoru DMA",
-                            "Kiarage dma",
-                            "Magutu dma",
-                            "Itoga",
-                            "kianjogu master meter ",
-                            "Karembu/Kiamabara/kirimara",
-                            "Gichoru DMA",
-                            "Gitumbi",
-                            "Magutu dma",
-                            "Biashara ",
-                            "Itoga",
-                            "kiamuthumbi ",
-                            "Migingo dma",
-                            "Kangogoro",
-                            "kihayu DMA Master meter",
-                            "Mathaithi A",
-                            "Biashara ",
-                            "Githima",
-                            "Kanyama DMA ",
-                            "waweru line",
-                            "Gikore dma",
-                            "Mukangu master meter",
-                            "kiamabara master meter ",
-                            "ITOGA ",
-                            "Simlaw",
-                            "Mutuiini DMA",
-                            "Ikonju",
-                            "VIL",
-                            "Baraka",
-                          ],
-                          label: 'Select Meter Name',
-                          value: metername,
-                        ),
+                        isLoadingMeters
+                            ? const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(20.0),
+                                  child: CircularProgressIndicator(
+                                    color: Color(0xff0288D1),
+                                  ),
+                                ),
+                              )
+                            : MySearchableSelectInput(
+                                onSubmit: (value) {
+                                  setState(() {
+                                    metername = value;
+                                  });
+                                },
+                                list: masterMeterNames,
+                                label: 'Select Meter Name',
+                                value: metername,
+                              ),
                         const SizedBox(height: 20),
                         MyTextInput(
                           lines: 1,
@@ -353,6 +331,7 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
                                 myimage,
                               );
 
+                              if (!mounted) return;
                               setState(() {
                                 isLoading = null;
                               });
@@ -363,6 +342,7 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
                                         "Reading submitted successfully",
                                     false);
                                 Timer(const Duration(seconds: 2), () {
+                                  if (!mounted) return;
                                   Navigator.pushReplacement(
                                     context,
                                     MaterialPageRoute(

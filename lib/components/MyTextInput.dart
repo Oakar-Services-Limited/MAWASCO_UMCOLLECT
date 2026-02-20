@@ -1,4 +1,5 @@
 // ignore_for_file: file_names
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -25,25 +26,47 @@ class MyTextInput extends StatefulWidget {
 
 class _MyTextInputState extends State<MyTextInput> {
   late TextEditingController _controller;
+  final FocusNode _focusNode = FocusNode();
   bool _obscureText = true;
+  Timer? _debounceTimer;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.value);
+    _focusNode.addListener(() {
+      if (!_focusNode.hasFocus) {
+        _debounceTimer?.cancel();
+        widget.onSubmit(_controller.text);
+      }
+    });
   }
 
   @override
   void didUpdateWidget(covariant MyTextInput oldWidget) {
     super.didUpdateWidget(oldWidget);
-
-    if (widget.value != oldWidget.value) {
-      _controller.text = widget.value;
+    // Only sync from parent when it's an external change (e.g. form reset),
+    // not when parent has a stale value from a previous keystroke.
+    if (widget.value != _controller.text) {
+      final isExternal = widget.value.isEmpty ||
+          widget.value.length >= _controller.text.length;
+      if (isExternal) {
+        _controller.text = widget.value;
+      }
     }
+  }
+
+  void _onChanged(String value) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 150), () {
+      widget.onSubmit(value);
+    });
   }
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
+    _focusNode.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -61,9 +84,8 @@ class _MyTextInputState extends State<MyTextInput> {
       child: Padding(
           padding: const EdgeInsets.fromLTRB(0, 16, 0, 16),
           child: TextField(
-              onChanged: (value) {
-                widget.onSubmit(value);
-              },
+              focusNode: _focusNode,
+              onChanged: _onChanged,
               keyboardType: widget.type,
               inputFormatters: widget.type ==
                       const TextInputType.numberWithOptions(decimal: false)
