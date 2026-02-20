@@ -12,6 +12,8 @@ import 'package:intl/intl.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:um_collect/pages/GeometryMapPage.dart';
+import 'package:um_collect/utils/form_logic.dart'
+    show evaluateFieldVisibility, flattenFields, traverseFieldsVisible;
 
 class FormFillPage extends StatefulWidget {
   final String formId;
@@ -68,23 +70,29 @@ class _FormFillPageState extends State<FormFillPage> {
         setState(() {
           formData = data;
           isLoading = false;
-          // Initialize responses with default values
+          // Initialize responses with default values (support nested fields)
           if (data['fields'] != null) {
-            for (var field in data['fields']) {
-              final fieldType = (field['type'] ?? '').toLowerCase();
+            final allFields = data['fields'] as List;
+            final flat = flattenFields(allFields);
+            for (var field in flat) {
+              final name = field['name']?.toString();
+              if (name == null) continue; // Containers have no name
+              final fieldType = (field['type'] ?? '').toString().toLowerCase();
+              if (fieldType == 'container') continue;
               if (field['defaultValue'] != null) {
                 if (fieldType == 'multiselect') {
-                  responses[field['name']] = field['defaultValue'] is List
-                      ? List.from(field['defaultValue'])
+                  responses[name] = field['defaultValue'] is List
+                      ? List.from(field['defaultValue'] as List)
                       : [field['defaultValue']];
                 } else {
-                  responses[field['name']] = field['defaultValue'];
+                  responses[name] = field['defaultValue'];
                 }
               } else if (fieldType == 'multiselect') {
-                responses[field['name']] = [];
+                responses[name] = [];
               } else if (fieldType == 'boolean') {
-                responses[field['name']] = false;
+                responses[name] = null;
               }
+              // Matrix: no default; leave unset
             }
           }
         });
@@ -105,34 +113,42 @@ class _FormFillPageState extends State<FormFillPage> {
   }
 
   Future<void> submitForm() async {
-    // Validate all fields
+    // Validate only visible leaf fields (supports nested containers)
     bool isValid = true;
-    final fields = formData?['fields'] as List?;
-
-    if (fields != null) {
-      for (var field in fields) {
-        final name = field['name'] ?? '';
+    final fieldsTree = formData?['fields'] as List?;
+    if (fieldsTree == null) {
+      // no fields
+    } else {
+      final visibleFields = traverseFieldsVisible(fieldsTree, responses);
+      for (var field in visibleFields) {
+        final name = field['name']?.toString() ?? '';
         final required = field['required'] ?? false;
-        final fieldType = (field['type'] ?? '').toLowerCase();
+        final fieldType = (field['type'] ?? '').toString().toLowerCase();
 
-        if (required) {
-          if (fieldType == 'multiselect') {
-            final value = responses[name];
-            if (value == null || (value is List && value.isEmpty)) {
-              isValid = false;
-              _showError('${field['label']} is required');
-              break;
-            }
-          } else if (fieldType == 'boolean') {
-            // Boolean fields are always valid (they default to false)
-            continue;
-          } else {
-            final value = responses[name];
-            if (value == null || value.toString().trim().isEmpty) {
-              isValid = false;
-              _showError('${field['label']} is required');
-              break;
-            }
+        if (!required) continue;
+
+        if (fieldType == 'multiselect') {
+          final value = responses[name];
+          if (value == null || (value is List && value.isEmpty)) {
+            isValid = false;
+            _showError('${field['label']} is required');
+            break;
+          }
+        } else if (fieldType == 'boolean') {
+          continue;
+        } else if (fieldType == 'matrix') {
+          final value = responses[name];
+          if (value == null) {
+            isValid = false;
+            _showError('${field['label']} is required');
+            break;
+          }
+        } else {
+          final value = responses[name];
+          if (value == null || value.toString().trim().isEmpty) {
+            isValid = false;
+            _showError('${field['label']} is required');
+            break;
           }
         }
       }
@@ -219,6 +235,24 @@ class _FormFillPageState extends State<FormFillPage> {
           ),
         ),
       );
+    }
+  }
+
+  /// Clears values of fields that are currently hidden (supports nested containers).
+  void _clearHiddenFieldValues() {
+    final fieldsTree = formData?['fields'] as List?;
+    if (fieldsTree == null) return;
+
+    final visibleFields = traverseFieldsVisible(fieldsTree, responses);
+    final visibleNames = <String>{};
+    for (var f in visibleFields) {
+      final name = f['name']?.toString();
+      if (name != null) visibleNames.add(name);
+    }
+
+    final toRemove = responses.keys.where((k) => !visibleNames.contains(k)).toList();
+    for (var name in toRemove) {
+      responses.remove(name);
     }
   }
 
@@ -319,8 +353,10 @@ class _FormFillPageState extends State<FormFillPage> {
                                     ),
                                   ],
                                   if (formData!['fields'] != null)
-                                    ...(formData!['fields'] as List)
-                                        .map((field) => _buildField(field)),
+                                    ...traverseFieldsVisible(
+                                          formData!['fields'] as List,
+                                          responses,
+                                        ).map((field) => _buildField(field)),
                                 ],
                               ),
                             ),
@@ -423,6 +459,8 @@ class _FormFillPageState extends State<FormFillPage> {
         return _buildSelectField(field, label, name, required, hint, true);
       case 'geometry':
         return _buildGeometryField(field, label, name, required, hint);
+      case 'matrix':
+        return _buildMatrixField(field, label, name, required, hint);
       default:
         return const SizedBox.shrink();
     }
@@ -442,20 +480,33 @@ class _FormFillPageState extends State<FormFillPage> {
             hintText: hint.isNotEmpty ? hint : 'Enter $label',
             prefixIcon: const Icon(Icons.text_fields),
             isDense: true,
+            contentPadding: EdgeInsets.symmetric(
+              vertical: MediaQuery.of(context).size.height * 0.015,
+              horizontal: MediaQuery.of(context).size.width * 0.03,
+            ),
           ),
-          validator: required
-              ? (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'This field is required';
-                  }
-                  return null;
-                }
-              : null,
+          validator: (value) {
+            // Only validate if field is visible
+            final isVisible = evaluateFieldVisibility(
+              field,
+              responses,
+              flattenFields(formData?['fields'] as List? ?? []),
+            );
+            if (!isVisible) return null; // Don't validate hidden fields
+            
+            if (required && (value == null || value.trim().isEmpty)) {
+              return 'This field is required';
+            }
+            return null;
+          },
           onSaved: (value) {
             responses[name] = value?.trim();
           },
           onChanged: (value) {
-            responses[name] = value.trim();
+            setState(() {
+              responses[name] = value.trim();
+              _clearHiddenFieldValues();
+            });
           },
         ),
       ),
@@ -476,21 +527,34 @@ class _FormFillPageState extends State<FormFillPage> {
             hintText: hint.isNotEmpty ? hint : 'Enter $label',
             prefixIcon: const Icon(Icons.notes),
             isDense: true,
+            contentPadding: EdgeInsets.symmetric(
+              vertical: MediaQuery.of(context).size.height * 0.015,
+              horizontal: MediaQuery.of(context).size.width * 0.03,
+            ),
           ),
           maxLines: 4,
-          validator: required
-              ? (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'This field is required';
-                  }
-                  return null;
-                }
-              : null,
+          validator: (value) {
+            // Only validate if field is visible
+            final isVisible = evaluateFieldVisibility(
+              field,
+              responses,
+              flattenFields(formData?['fields'] as List? ?? []),
+            );
+            if (!isVisible) return null; // Don't validate hidden fields
+            
+            if (required && (value == null || value.trim().isEmpty)) {
+              return 'This field is required';
+            }
+            return null;
+          },
           onSaved: (value) {
             responses[name] = value?.trim();
           },
           onChanged: (value) {
-            responses[name] = value.trim();
+            setState(() {
+              responses[name] = value.trim();
+              _clearHiddenFieldValues();
+            });
           },
         ),
       ),
@@ -511,33 +575,45 @@ class _FormFillPageState extends State<FormFillPage> {
             hintText: hint.isNotEmpty ? hint : 'Enter $label',
             prefixIcon: const Icon(Icons.numbers),
             isDense: true,
+            contentPadding: EdgeInsets.symmetric(
+              vertical: MediaQuery.of(context).size.height * 0.015,
+              horizontal: MediaQuery.of(context).size.width * 0.03,
+            ),
           ),
           keyboardType:
               TextInputType.numberWithOptions(decimal: type != 'integer'),
-          validator: required
-              ? (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'This field is required';
-                  }
-                  final num = type == 'integer'
-                      ? int.tryParse(value)
-                      : double.tryParse(value);
-                  if (num == null) {
-                    return 'Please enter a valid ${type == 'integer' ? 'integer' : 'number'}';
-                  }
-                  return null;
+          validator: (value) {
+            // Only validate if field is visible
+            final isVisible = evaluateFieldVisibility(
+              field,
+              responses,
+              flattenFields(formData?['fields'] as List? ?? []),
+            );
+            if (!isVisible) return null; // Don't validate hidden fields
+            
+            if (required) {
+              if (value == null || value.trim().isEmpty) {
+                return 'This field is required';
+              }
+              final num = type == 'integer'
+                  ? int.tryParse(value)
+                  : double.tryParse(value);
+              if (num == null) {
+                return 'Please enter a valid ${type == 'integer' ? 'integer' : 'number'}';
+              }
+              return null;
+            } else {
+              if (value != null && value.trim().isNotEmpty) {
+                final num = type == 'integer'
+                    ? int.tryParse(value)
+                    : double.tryParse(value);
+                if (num == null) {
+                  return 'Please enter a valid ${type == 'integer' ? 'integer' : 'number'}';
                 }
-              : (value) {
-                  if (value != null && value.trim().isNotEmpty) {
-                    final num = type == 'integer'
-                        ? int.tryParse(value)
-                        : double.tryParse(value);
-                    if (num == null) {
-                      return 'Please enter a valid ${type == 'integer' ? 'integer' : 'number'}';
-                    }
-                  }
-                  return null;
-                },
+              }
+              return null;
+            }
+          },
           onSaved: (value) {
             if (value != null && value.trim().isNotEmpty) {
               responses[name] =
@@ -545,14 +621,17 @@ class _FormFillPageState extends State<FormFillPage> {
             }
           },
           onChanged: (value) {
-            if (value.trim().isNotEmpty) {
-              final num = type == 'integer'
-                  ? int.tryParse(value)
-                  : double.tryParse(value);
-              if (num != null) {
-                responses[name] = num;
+            setState(() {
+              if (value.trim().isNotEmpty) {
+                final num = type == 'integer'
+                    ? int.tryParse(value)
+                    : double.tryParse(value);
+                if (num != null) {
+                  responses[name] = num;
+                }
               }
-            }
+              _clearHiddenFieldValues();
+            });
           },
         ),
       ),
@@ -579,6 +658,7 @@ class _FormFillPageState extends State<FormFillPage> {
             if (date != null) {
               setState(() {
                 responses[name] = date.toIso8601String().split('T')[0];
+                _clearHiddenFieldValues();
               });
             }
           },
@@ -593,11 +673,17 @@ class _FormFillPageState extends State<FormFillPage> {
                       onPressed: () {
                         setState(() {
                           responses.remove(name);
+                          _clearHiddenFieldValues();
                         });
                       },
                     )
                   : null,
               errorText: required &&
+                      evaluateFieldVisibility(
+                        field,
+                        responses,
+                        flattenFields(formData?['fields'] as List? ?? []),
+                      ) &&
                       (responses[name] == null ||
                           responses[name].toString().isEmpty)
                   ? 'This field is required'
@@ -656,6 +742,7 @@ class _FormFillPageState extends State<FormFillPage> {
                 );
                 setState(() {
                   responses[name] = dateTime.toIso8601String();
+                  _clearHiddenFieldValues();
                 });
               }
             }
@@ -671,11 +758,17 @@ class _FormFillPageState extends State<FormFillPage> {
                       onPressed: () {
                         setState(() {
                           responses.remove(name);
+                          _clearHiddenFieldValues();
                         });
                       },
                     )
                   : null,
               errorText: required &&
+                      evaluateFieldVisibility(
+                        field,
+                        responses,
+                        flattenFields(formData?['fields'] as List? ?? []),
+                      ) &&
                       (responses[name] == null ||
                           responses[name].toString().isEmpty)
                   ? 'This field is required'
@@ -700,32 +793,102 @@ class _FormFillPageState extends State<FormFillPage> {
 
   Widget _buildBooleanField(
       Map<String, dynamic> field, String label, String name, bool required) {
+    // Convert boolean response to "Yes"/"No" string for dropdown
+    String? currentValue;
+    if (responses[name] != null) {
+      if (responses[name] == true ||
+          responses[name] == 'true' ||
+          responses[name] == 'Yes' ||
+          responses[name] == 'yes' ||
+          responses[name] == 1 ||
+          responses[name] == '1') {
+        currentValue = 'Yes';
+      } else if (responses[name] == false ||
+          responses[name] == 'false' ||
+          responses[name] == 'No' ||
+          responses[name] == 'no' ||
+          responses[name] == 0 ||
+          responses[name] == '0') {
+        currentValue = 'No';
+      }
+    }
+
     return Card(
       margin:
           EdgeInsets.only(bottom: MediaQuery.of(context).size.height * 0.02),
       child: Padding(
         padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.04),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                label + (required ? ' *' : ''),
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
+        child: DropdownButtonFormField<String>(
+          decoration: InputDecoration(
+            labelText: label + (required ? ' *' : ''),
+            hintText: 'Select an option',
+            prefixIcon: const Icon(Icons.check_circle_outline),
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(
+              vertical: MediaQuery.of(context).size.height * 0.015,
+              horizontal: MediaQuery.of(context).size.width * 0.03,
+            ),
+          ),
+          isExpanded: true,
+          value: currentValue,
+          items: const [
+            DropdownMenuItem<String>(
+              value: 'Yes',
+              child: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green, size: 20),
+                  SizedBox(width: 8),
+                  Text('Yes'),
+                ],
               ),
             ),
-            Switch(
-              value: responses[name] ?? false,
-              onChanged: (value) {
-                setState(() {
-                  responses[name] = value;
-                });
-              },
-              activeThumbColor: AppTheme.primaryMain,
+            DropdownMenuItem<String>(
+              value: 'No',
+              child: Row(
+                children: [
+                  Icon(Icons.cancel, color: Colors.red, size: 20),
+                  SizedBox(width: 8),
+                  Text('No'),
+                ],
+              ),
             ),
           ],
+          validator: (value) {
+            // Only validate if field is visible
+            final isVisible = evaluateFieldVisibility(
+              field,
+              responses,
+              flattenFields(formData?['fields'] as List? ?? []),
+            );
+            if (!isVisible) return null; // Don't validate hidden fields
+            
+            if (required && (value == null || value.isEmpty)) {
+              return 'Please select an option';
+            }
+            return null;
+          },
+          onChanged: (value) {
+            setState(() {
+              if (value == 'Yes') {
+                responses[name] = true;
+              } else if (value == 'No') {
+                responses[name] = false;
+              } else {
+                responses.remove(name);
+              }
+              _clearHiddenFieldValues();
+            });
+          },
+          style: TextStyle(
+            fontSize: MediaQuery.of(context).size.width * 0.04,
+            color: AppTheme.textPrimary,
+          ),
+          dropdownColor: Colors.white,
+          icon: Icon(
+            Icons.arrow_drop_down,
+            color: AppTheme.primaryMain,
+          ),
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
     );
@@ -751,6 +914,11 @@ class _FormFillPageState extends State<FormFillPage> {
                     ),
                   ),
                   if (required &&
+                      evaluateFieldVisibility(
+                        field,
+                        responses,
+                        flattenFields(formData?['fields'] as List? ?? []),
+                      ) &&
                       (responses[name] == null ||
                           (responses[name] is List &&
                               (responses[name] as List).isEmpty)))
@@ -766,15 +934,26 @@ class _FormFillPageState extends State<FormFillPage> {
                     ),
                   const SizedBox(height: 12),
                   Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+                    spacing: 10,
+                    runSpacing: 10,
                     children: options.map<Widget>((option) {
                       final optionValue = option.toString();
                       final selected = (responses[name] as List?)
                               ?.any((item) => item.toString() == optionValue) ??
                           false;
                       return FilterChip(
-                        label: Text(optionValue),
+                        label: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: MediaQuery.of(context).size.width * 0.02,
+                          ),
+                          child: Text(
+                            optionValue,
+                            style: TextStyle(
+                              fontSize: MediaQuery.of(context).size.width * 0.035,
+                              fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                            ),
+                          ),
+                        ),
                         selected: selected,
                         onSelected: (selected) {
                           setState(() {
@@ -791,11 +970,23 @@ class _FormFillPageState extends State<FormFillPage> {
                               list.removeWhere(
                                   (item) => item.toString() == optionValue);
                             }
+                            _clearHiddenFieldValues();
                           });
                         },
                         selectedColor:
                             AppTheme.primaryMain.withValues(alpha: 0.2),
                         checkmarkColor: AppTheme.primaryMain,
+                        backgroundColor: Colors.grey[100],
+                        side: BorderSide(
+                          color: selected
+                              ? AppTheme.primaryMain
+                              : Colors.grey[300]!,
+                          width: selected ? 2 : 1,
+                        ),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: MediaQuery.of(context).size.width * 0.03,
+                          vertical: MediaQuery.of(context).size.height * 0.01,
+                        ),
                       );
                     }).toList(),
                   ),
@@ -807,9 +998,13 @@ class _FormFillPageState extends State<FormFillPage> {
                   hintText: hint.isNotEmpty ? hint : 'Select $label',
                   prefixIcon: const Icon(Icons.list),
                   isDense: true,
+                  contentPadding: EdgeInsets.symmetric(
+                    vertical: MediaQuery.of(context).size.height * 0.015,
+                    horizontal: MediaQuery.of(context).size.width * 0.03,
+                  ),
                 ),
                 isExpanded: true,
-                initialValue: responses[name]?.toString(),
+                value: responses[name]?.toString(),
                 items: options.map<DropdownMenuItem<String>>((option) {
                   final optionValue = option.toString();
                   return DropdownMenuItem<String>(
@@ -818,22 +1013,43 @@ class _FormFillPageState extends State<FormFillPage> {
                       optionValue,
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
+                      style: TextStyle(
+                        fontSize: MediaQuery.of(context).size.width * 0.04,
+                        color: AppTheme.textPrimary,
+                      ),
                     ),
                   );
                 }).toList(),
-                validator: required
-                    ? (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please select an option';
-                        }
-                        return null;
-                      }
-                    : null,
+                validator: (value) {
+                  // Only validate if field is visible
+                  final isVisible = evaluateFieldVisibility(
+                    field,
+                    responses,
+                    flattenFields(formData?['fields'] as List? ?? []),
+                  );
+                  if (!isVisible) return null; // Don't validate hidden fields
+                  
+                  if (required && (value == null || value.isEmpty)) {
+                    return 'Please select an option';
+                  }
+                  return null;
+                },
                 onChanged: (value) {
                   setState(() {
                     responses[name] = value;
+                    _clearHiddenFieldValues();
                   });
                 },
+                style: TextStyle(
+                  fontSize: MediaQuery.of(context).size.width * 0.04,
+                  color: AppTheme.textPrimary,
+                ),
+                dropdownColor: Colors.white,
+                icon: Icon(
+                  Icons.arrow_drop_down,
+                  color: AppTheme.primaryMain,
+                ),
+                borderRadius: BorderRadius.circular(12),
               ),
       ),
     );
@@ -870,6 +1086,7 @@ class _FormFillPageState extends State<FormFillPage> {
                     onPressed: () {
                       setState(() {
                         responses.remove(name);
+                        _clearHiddenFieldValues();
                       });
                     },
                     tooltip: 'Clear selection',
@@ -903,6 +1120,7 @@ class _FormFillPageState extends State<FormFillPage> {
                       onGeometrySelected: (geometry) {
                         setState(() {
                           responses[name] = geometry;
+                          _clearHiddenFieldValues();
                         });
                       },
                       isPreview: true,
@@ -927,6 +1145,7 @@ class _FormFillPageState extends State<FormFillPage> {
                             if (result != null && mounted) {
                               setState(() {
                                 responses[name] = result;
+                                _clearHiddenFieldValues();
                               });
                             } else if (result == null &&
                                 mounted &&
@@ -934,6 +1153,7 @@ class _FormFillPageState extends State<FormFillPage> {
                               // User cancelled, clear if no initial geometry
                               setState(() {
                                 responses.remove(name);
+                                _clearHiddenFieldValues();
                               });
                             }
                           },
@@ -1002,7 +1222,13 @@ class _FormFillPageState extends State<FormFillPage> {
                 ),
               ),
             ),
-            if (required && existingGeometry == null)
+            if (required &&
+                evaluateFieldVisibility(
+                  field,
+                  responses,
+                  flattenFields(formData?['fields'] as List? ?? []),
+                ) &&
+                existingGeometry == null)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
@@ -1042,6 +1268,127 @@ class _FormFillPageState extends State<FormFillPage> {
                 ),
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMatrixField(Map<String, dynamic> field, String label,
+      String name, bool required, String hint) {
+    final rows = (field['rows'] as List?)?.map((e) => e.toString()).toList() ?? [];
+    final columns = (field['columns'] as List?)?.map((e) => e.toString()).toList() ?? [];
+
+    // responses[name] is Map<String, Map<String, String>>: row -> (col -> value)
+    Map<String, dynamic> current = const {};
+    try {
+      final r = responses[name];
+      if (r is Map) {
+        current = Map<String, dynamic>.from(r);
+      } else if (r is String && r.trim().isNotEmpty) {
+        current = Map<String, dynamic>.from(jsonDecode(r) as Map);
+      }
+    } catch (_) {}
+
+    return Card(
+      margin: EdgeInsets.only(bottom: MediaQuery.of(context).size.height * 0.02),
+      child: Padding(
+        padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.04),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label + (required ? ' *' : ''),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            if (hint.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                hint,
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
+            ],
+            const SizedBox(height: 12),
+            if (rows.isEmpty || columns.isEmpty)
+              Text(
+                'No rows or columns defined',
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              )
+            else
+              ...rows.map((row) {
+                final rowMap = (current[row] is Map)
+                    ? Map<String, String>.from(current[row] as Map)
+                    : <String, String>{};
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        row,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.primaryMain,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: columns.map((col) {
+                          final key = col;
+                          final value = rowMap[key] ?? '';
+                          return SizedBox(
+                            width: 100,
+                            child: TextFormField(
+                              initialValue: value,
+                              decoration: InputDecoration(
+                                labelText: col,
+                                isDense: true,
+                                border: const OutlineInputBorder(),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 8),
+                              ),
+                              onChanged: (v) {
+                                setState(() {
+                                  final r = responses[name];
+                                  Map<String, dynamic> copy = r is Map
+                                      ? Map<String, dynamic>.from(r)
+                                      : {};
+                                  if (copy[row] is! Map) copy[row] = <String, String>{};
+                                  (copy[row] as Map)[key] = v;
+                                  responses[name] = copy;
+                                  _clearHiddenFieldValues();
+                                });
+                              },
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            if (required &&
+                evaluateFieldVisibility(
+                  field,
+                  responses,
+                  flattenFields(formData?['fields'] as List? ?? []),
+                ) &&
+                (responses[name] == null ||
+                    (responses[name] is Map &&
+                        (responses[name] as Map).isEmpty)))
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  'This field is required',
+                  style: TextStyle(fontSize: 12, color: AppTheme.errorMain),
+                ),
+              ),
           ],
         ),
       ),
