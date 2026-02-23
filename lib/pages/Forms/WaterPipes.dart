@@ -169,7 +169,7 @@ class _WaterPipesState extends State<WaterPipes> {
                     ),
                     MyTextInput(
                       lines: 1,
-                      value: '',
+                      value: linename,
                       type: TextInputType.text,
                       onSubmit: (value) {
                         setState(() {
@@ -237,7 +237,7 @@ class _WaterPipesState extends State<WaterPipes> {
                     ),
                     MyTextInput(
                       lines: 1,
-                      value: '',
+                      value: intake,
                       type: TextInputType.numberWithOptions(decimal: true),
                       onSubmit: (value) {
                         setState(() {
@@ -269,7 +269,7 @@ class _WaterPipesState extends State<WaterPipes> {
                     ),
                     MyTextInput(
                       lines: 1,
-                      value: '',
+                      value: route,
                       type: TextInputType.text,
                       onSubmit: (value) {
                         setState(() {
@@ -314,7 +314,7 @@ class _WaterPipesState extends State<WaterPipes> {
                     ),
                     MyTextInput(
                       lines: 1,
-                      value: '',
+                      value: remarks,
                       type: TextInputType.text,
                       onSubmit: (value) {
                         setState(() {
