@@ -118,7 +118,7 @@ class _SewerLinesState extends State<SewerLines> {
                     ),
                     MyTextInput(
                       lines: 1,
-                      value: '',
+                      value: material,
                       type: TextInputType.text,
                       onSubmit: (value) {
                         setState(() {
@@ -144,7 +144,7 @@ class _SewerLinesState extends State<SewerLines> {
                     ),
                     MyTextInput(
                       lines: 1,
-                      value: '',
+                      value: route,
                       type: TextInputType.text,
                       onSubmit: (value) {
                         setState(() {
@@ -206,7 +206,7 @@ class _SewerLinesState extends State<SewerLines> {
                     ),
                     MyTextInput(
                       lines: 1,
-                      value: '',
+                      value: size,
                       type: TextInputType.text,
                       onSubmit: (value) {
                         setState(() {
@@ -231,7 +231,7 @@ class _SewerLinesState extends State<SewerLines> {
                     ),
                     MyTextInput(
                       lines: 1,
-                      value: '',
+                      value: remarks,
                       type: TextInputType.text,
                       onSubmit: (value) {
                         setState(() {
