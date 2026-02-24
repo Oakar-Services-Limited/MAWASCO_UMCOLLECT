@@ -30,6 +30,7 @@ import 'package:http/http.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:um_collect/pages/stafflogin.dart';
+import 'package:um_collect/pages/customer_supply_feedback.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -235,6 +236,10 @@ class _HomeState extends State<Home> {
                     _buildSectionTitle("Incidence Tracking"),
                     const SizedBox(height: 15),
                     _buildIncidenceCards(),
+                    const SizedBox(height: 25),
+                    _buildSectionTitle("Customer Feedback"),
+                    const SizedBox(height: 15),
+                    _buildCustomerFeedbackCard(),
                   ]),
                 ),
               ),
@@ -476,6 +481,74 @@ class _HomeState extends State<Home> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildCustomerFeedbackCard() {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      child: InkWell(
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(
+          builder: (context) => const CustomerSupplyFeedback(),
+        )),
+        borderRadius: BorderRadius.circular(15),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(
+              color: const Color(0xff0288D1).withValues(alpha: 0.1),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xff0288D1).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.feedback_outlined,
+                  color: Color(0xff0288D1),
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Share customer feedback',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xff0288D1),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Help us improve our service',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 14,
+                color: Colors.grey[400],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

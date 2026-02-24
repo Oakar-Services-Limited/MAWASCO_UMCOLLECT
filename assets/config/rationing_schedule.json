@@ -1,0 +1,15 @@
+[
+  { "zone": "018 Tumutumu-87", "area": "Kiangoma", "days": ["Monday", "Sunday"] },
+  { "zone": "018 Tumutumu-87", "area": "Ngurumo", "days": ["Sunday"] },
+  { "zone": "018 Tumutumu-87", "area": "Karogoto", "days": ["Wednesday", "Thursday"] },
+  { "zone": "022 92", "area": "Mukangu-Checheni", "days": ["Tuesday", "Wednesday", "Thursday"] },
+  { "zone": "022 92", "area": "Kanyage", "days": ["Wednesday"] },
+  { "zone": "022 92", "area": "Gathugu-Gathagana", "days": ["Tuesday", "Thursday", "Saturday", "Sunday"] },
+  { "zone": "022 92", "area": "Gatwe", "days": ["Thursday", "Friday"] },
+  { "zone": "022 92", "area": "Kahutiini", "days": ["Thursday", "Friday"] },
+  { "zone": "022 92", "area": "Gitumbi", "days": ["Wednesday", "Thursday", "Friday"] },
+  { "zone": "022 92", "area": "Kiangogoyo", "days": ["Tuesday", "Wednesday", "Thursday"] },
+  { "zone": "014 85", "area": "Kiamucheru", "days": ["Thursday", "Sunday"] },
+  { "zone": "016 87", "area": "Rititi", "days": ["Thursday"] },
+  { "zone": "015 86", "area": "Ruthagati", "days": ["Friday"] }
+]

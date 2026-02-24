@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/pages/home.dart';
+import 'package:um_collect/services/rationing_schedule_service.dart';
 import 'dart:async';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
@@ -30,6 +31,9 @@ Future<void> main() async {
   } catch (e) {
     // Continue without Firebase for now
   }
+
+  // Load rationing schedule into memory for Customer Supply Feedback
+  await RationingScheduleService.load();
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(

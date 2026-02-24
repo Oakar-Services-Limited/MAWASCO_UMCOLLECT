@@ -5,9 +5,9 @@ import 'package:http/http.dart' as http;
 
 String getUrl() {
   // return "http://192.168.1.136:3003/api/";
-  // return "http://192.168.1.121:3003/api/";
+  return "http://192.168.1.121:3003/api/";
 
-  return "https://api-utilitymanager.mawasco.co.ke/api/";
+  // return "https://api-utilitymanager.mawasco.co.ke/api/";
 //
 }
 
@@ -165,9 +165,11 @@ const int _masterMeterNamesCacheMaxAgeSeconds = 300;
 
 /// If cache is valid, returns it; otherwise null. Use so the page can show list immediately with no loading.
 List<String>? getMasterMeterNamesCached() {
-  if (_masterMeterNamesCache.isEmpty || _masterMeterNamesCacheTime == null) return null;
+  if (_masterMeterNamesCache.isEmpty || _masterMeterNamesCacheTime == null)
+    return null;
   final now = DateTime.now();
-  if (now.difference(_masterMeterNamesCacheTime!).inSeconds >= _masterMeterNamesCacheMaxAgeSeconds) {
+  if (now.difference(_masterMeterNamesCacheTime!).inSeconds >=
+      _masterMeterNamesCacheMaxAgeSeconds) {
     return null;
   }
   return List.from(_masterMeterNamesCache);
@@ -194,7 +196,9 @@ Future<List<String>> getMasterMeterNames() async {
 Future<List<String>> _fetchMasterMeterNamesFromApi() async {
   final response = await http.get(
     Uri.parse("${getUrl()}wt/master-meters?limit=1000&namesOnly=1"),
-    headers: <String, String>{'Content-Type': 'application/json; charset=UTF-8'},
+    headers: <String, String>{
+      'Content-Type': 'application/json; charset=UTF-8'
+    },
   );
 
   if (response.statusCode != 200) {
