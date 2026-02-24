@@ -87,7 +87,7 @@ class FeedbackController extends ChangeNotifier {
   }
 
   /// Fetch customers from API when zone and area are selected.
-  /// Uses GET /wt/customer-meters?zone=... then filters by area locally.
+  /// API filters by zone only (wt_customer_meters has no area column); list is used as-is.
   Future<void> fetchCustomers() async {
     if (selectedZone.isEmpty || selectedArea.isEmpty) return;
     isLoadingCustomers = true;
@@ -145,48 +145,10 @@ class FeedbackController extends ChangeNotifier {
         if (kDebugMode) {
           debugPrint(
               '[fetchCustomers] raw list length=${list.length} body.success=${body is Map ? body['success'] : "n/a"}');
-          if (list.isNotEmpty && list.first is Map) {
-            final first = list.first as Map;
-            debugPrint(
-                '[fetchCustomers] first item keys=${first.keys.toList()} route=${first['route']} schemeName=${first['schemeName']} location=${first['location']}');
-          }
         }
 
-        // Filter by area locally: case-insensitive match on route, schemeName, location, area, dma
-        final areaLower = selectedArea.toLowerCase();
-        final areaFiltered = list.where((e) {
-          if (e is! Map<String, dynamic>) return false;
-          final map = e;
-          final route = (map['route'] ?? '').toString().trim().toLowerCase();
-          final schemeName = (map['schemeName'] ?? '').toString().trim().toLowerCase();
-          final location = (map['location'] ?? '').toString().trim().toLowerCase();
-          final area = (map['area'] ?? '').toString().trim().toLowerCase();
-          final dma = (map['dma'] ?? '').toString().trim().toLowerCase();
-          return route == areaLower ||
-              schemeName == areaLower ||
-              location == areaLower ||
-              area == areaLower ||
-              dma == areaLower ||
-              route.contains(areaLower) ||
-              schemeName.contains(areaLower) ||
-              location.contains(areaLower);
-        }).toList();
-
-        if (kDebugMode)
-          debugPrint(
-              '[fetchCustomers] after area filter count=${areaFiltered.length}');
-
-        // If area filter matches nothing but API returned rows, show all customers for this zone
-        final listToUse = areaFiltered.isNotEmpty
-            ? areaFiltered
-            : list;
-
-        if (listToUse.isEmpty && list.isNotEmpty && kDebugMode) {
-          debugPrint(
-              '[fetchCustomers] area filter matched 0; falling back to all zone customers (${list.length})');
-        }
-
-        customers = listToUse
+        // Customers filtered by zone only (API); no area column in wt_customer_meters.
+        customers = list
             .map((e) => Customer.fromJson(e as Map<String, dynamic>))
             .toList();
         customersError = null;

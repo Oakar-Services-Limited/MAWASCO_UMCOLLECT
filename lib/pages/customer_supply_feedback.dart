@@ -143,9 +143,9 @@ class _FeedbackFormState extends State<_FeedbackForm> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(15),
         border: Border.all(
-          color: const Color(0xff0288D1).withValues(alpha: 0.3),
+          color: const Color(0xff0288D1).withValues(alpha: 0.1),
         ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -168,9 +168,9 @@ class _FeedbackFormState extends State<_FeedbackForm> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(15),
         border: Border.all(
-          color: const Color(0xff0288D1).withValues(alpha: 0.3),
+          color: const Color(0xff0288D1).withValues(alpha: 0.1),
         ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -199,9 +199,9 @@ class _FeedbackFormState extends State<_FeedbackForm> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(15),
         border: Border.all(
-          color: const Color(0xff0288D1).withValues(alpha: 0.3),
+          color: const Color(0xff0288D1).withValues(alpha: 0.1),
         ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -231,9 +231,9 @@ class _FeedbackFormState extends State<_FeedbackForm> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(15),
           border: Border.all(
-            color: const Color(0xff0288D1).withValues(alpha: 0.3),
+            color: const Color(0xff0288D1).withValues(alpha: 0.1),
           ),
         ),
         child: Text(
@@ -247,9 +247,9 @@ class _FeedbackFormState extends State<_FeedbackForm> {
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(15),
           border: Border.all(
-            color: const Color(0xff0288D1).withValues(alpha: 0.3),
+            color: const Color(0xff0288D1).withValues(alpha: 0.1),
           ),
         ),
         child: Center(
@@ -265,7 +265,7 @@ class _FeedbackFormState extends State<_FeedbackForm> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(15),
           border: Border.all(color: Colors.red.withValues(alpha: 0.5)),
         ),
         child: Row(
@@ -287,9 +287,9 @@ class _FeedbackFormState extends State<_FeedbackForm> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(15),
           border: Border.all(
-            color: const Color(0xff0288D1).withValues(alpha: 0.3),
+            color: const Color(0xff0288D1).withValues(alpha: 0.1),
           ),
         ),
         child: Text(
@@ -301,9 +301,9 @@ class _FeedbackFormState extends State<_FeedbackForm> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(15),
         border: Border.all(
-          color: const Color(0xff0288D1).withValues(alpha: 0.3),
+          color: const Color(0xff0288D1).withValues(alpha: 0.1),
         ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -329,9 +329,9 @@ class _FeedbackFormState extends State<_FeedbackForm> {
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(15),
         border: Border.all(
-          color: const Color(0xff0288D1).withValues(alpha: 0.3),
+          color: const Color(0xff0288D1).withValues(alpha: 0.1),
         ),
       ),
       child: Row(
@@ -363,9 +363,9 @@ class _FeedbackFormState extends State<_FeedbackForm> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(15),
         border: Border.all(
-          color: const Color(0xff0288D1).withValues(alpha: 0.3),
+          color: const Color(0xff0288D1).withValues(alpha: 0.1),
         ),
       ),
       child: Column(
@@ -394,10 +394,10 @@ class _FeedbackFormState extends State<_FeedbackForm> {
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(15),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(15),
           borderSide: const BorderSide(color: Color(0xff0288D1)),
         ),
       ),
@@ -413,7 +413,7 @@ class _FeedbackFormState extends State<_FeedbackForm> {
           backgroundColor: const Color(0xff0288D1),
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(15),
           ),
         ),
         child: const Text('Submit Feedback', style: TextStyle(fontSize: 16)),
@@ -453,9 +453,9 @@ class _FeedbackFormState extends State<_FeedbackForm> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Feedback submitted successfully. Thank you!'),
-        backgroundColor: Color(0xff0288D1),
+        backgroundColor: Colors.green,
       ),
     );
-    Navigator.pop(context);
+    // Don't pop; user taps Back to return so success snackbar stays visible.
   }
 }
