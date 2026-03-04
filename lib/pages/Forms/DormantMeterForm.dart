@@ -1,8 +1,10 @@
 // ignore_for_file: use_build_context_synchronously, non_constant_identifier_names, file_names, prefer_typing_uninitialized_variables
 
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:um_collect/components/MySelectInput.dart';
 import 'package:um_collect/components/MyTextInput.dart';
 import 'package:um_collect/components/StaffDrawer.dart';
@@ -58,12 +60,35 @@ class _DormantMeterFormState extends State<DormantMeterForm> {
   String userid = '';
 
   var isLoading;
+  late File? _image;
+  final ImagePicker imagePicker = ImagePicker();
+  String myimage = '';
 
   @override
   void initState() {
     super.initState();
+    _image = null;
     getLocation();
     _fetchUserAndPrefill();
+  }
+
+  Future<String> convertFileToBase64(XFile file) async {
+    final bytes = await file.readAsBytes();
+    return base64Encode(bytes);
+  }
+
+  Future<void> takePhoto() async {
+    final pickedFile = await imagePicker.pickImage(
+      source: ImageSource.camera,
+    );
+
+    if (pickedFile != null) {
+      final base64Image = await convertFileToBase64(pickedFile);
+      setState(() {
+        _image = File(pickedFile.path);
+        myimage = base64Image;
+      });
+    }
   }
 
   Future<void> getLocation() async {
@@ -143,7 +168,7 @@ class _DormantMeterFormState extends State<DormantMeterForm> {
 
     try {
       final token = await storage.read(key: "mwstaffjwt");
-      final payload = {
+      final payload = <String, dynamic>{
         'name': name,
         'phone': phone,
         'accountNo': accnum,
@@ -167,6 +192,9 @@ class _DormantMeterFormState extends State<DormantMeterForm> {
         'latitude': lat.toString(),
         'longitude': long.toString(),
       };
+      if (myimage.isNotEmpty) {
+        payload['image'] = myimage;
+      }
 
       final response = await http.post(
         Uri.parse("${getUrl()}wt/customer-meters"),
@@ -252,6 +280,77 @@ class _DormantMeterFormState extends State<DormantMeterForm> {
                     height: 220,
                     width: double.infinity,
                     child: MyMap(lat: lat, lon: long, acc: acc),
+                  ),
+                  const SizedBox(height: 12),
+                  Column(
+                    children: [
+                      const Text(
+                        'Take a Photo',
+                        style: TextStyle(
+                          color: Color(0xff0288D1),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 22,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Card(
+                        elevation: 2,
+                        clipBehavior: Clip.hardEdge,
+                        child: Stack(
+                          children: [
+                            SizedBox(
+                              height: 250,
+                              width: double.infinity,
+                              child: _image == null
+                                  ? const Align(
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        "No image selected",
+                                        style: TextStyle(
+                                          color:
+                                              Color.fromARGB(255, 28, 100, 140),
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    )
+                                  : GestureDetector(
+                                      onTap: () {
+                                        showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return Dialog(
+                                              child: Container(
+                                                color: Colors.black,
+                                                child: InteractiveViewer(
+                                                  child: Image.file(_image!),
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        );
+                                      },
+                                      child: Image.file(
+                                        _image!,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                            ),
+                            Align(
+                              alignment: Alignment.bottomCenter,
+                              child: IconButton(
+                                icon: const Icon(
+                                  Icons.photo_camera,
+                                  size: 50,
+                                  color: Color(0xff0288D1),
+                                ),
+                                onPressed: () => takePhoto(),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   MyTextInput(
