@@ -21,6 +21,7 @@ import 'package:um_collect/pages/Forms/ConsumerLine.dart';
 import 'package:um_collect/pages/Forms/CustomerChambers%20.dart';
 import 'package:um_collect/pages/Forms/CustomerLines.dart';
 import 'package:um_collect/pages/Forms/CustomerMeters.dart';
+import 'package:um_collect/pages/Forms/DormantMeterForm.dart';
 import 'package:um_collect/pages/Forms/ManHoles.dart';
 import 'package:um_collect/pages/Forms/MasterMeters.dart';
 import 'package:um_collect/pages/Forms/NewSanConn.dart';
@@ -62,6 +63,7 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
 
   List<SearchProductionMeter> bmentries = <SearchProductionMeter>[];
   List<SearchDMAMeter> dmaentries = <SearchDMAMeter>[];
+  List<Map<String, dynamic>> dormantEntries = <Map<String, dynamic>>[];
 
   late GlobalKey<_DataCollectorsDialogState> dialogKey;
 
@@ -87,7 +89,54 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
       ccentries.clear();
       bmentries.clear();
       dmaentries.clear();
+      dormantEntries.clear();
     });
+
+    if (widget.assetName == 'Dormant Meters') {
+      if (v.toString().trim().isEmpty) {
+        setState(() {
+          dormantEntries.clear();
+          isLoading = null;
+          error = "Enter an account number to search dormant accounts.";
+        });
+        return;
+      }
+      try {
+        final searchTerm = v.toString().trim();
+        final url =
+            "${getUrl()}bl/customer-billing?accountStatus=Dormant&limit=20&accountNo=${Uri.encodeComponent(searchTerm)}";
+        final response = await get(Uri.parse(url), headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Accept': 'application/json'
+        });
+        if (response.statusCode != 200) {
+          throw Exception(
+              'Server returned ${response.statusCode}: ${response.body}');
+        }
+        var data = json.decode(response.body);
+        setState(() {
+          dormantEntries.clear();
+          isLoading = null;
+          error = "";
+          if (data['success'] == true && data['data'] != null && data['data'] is List) {
+            for (var item in data['data']) {
+              dormantEntries.add(Map<String, dynamic>.from(item));
+            }
+            if (dormantEntries.isEmpty) {
+              error = "No dormant account found with that account number.";
+            }
+          } else {
+            error = "No dormant account found with that account number.";
+          }
+        });
+      } catch (e) {
+        setState(() {
+          isLoading = null;
+          error = "Error searching: ${e.toString()}";
+        });
+      }
+      return;
+    }
 
     switch (widget.assetName) {
       case 'Water Pipes':
@@ -646,6 +695,11 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
           searchItem = "kiosks";
         });
         break;
+      case "Dormant Meters":
+        setState(() {
+          searchItem = "dormant";
+        });
+        break;
       case "Offtakes":
         setState(() {
           searchItem = "offtakes";
@@ -770,34 +824,35 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
               ),
               child: Column(
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            navigateToForm(context, widget.assetName, {});
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xff0288D1),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                  if (widget.assetName != 'Dormant Meters')
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              navigateToForm(context, widget.assetName, {});
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xff0288D1),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
-                          ),
-                          icon: const Icon(Icons.add_circle_outline),
-                          label: const Text(
-                            'New Asset',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+                            icon: const Icon(Icons.add_circle_outline),
+                            label: const Text(
+                              'New Asset',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+                      ],
+                    ),
+                  if (widget.assetName != 'Dormant Meters') const SizedBox(height: 16),
                   Row(
                     children: [
                       Expanded(
@@ -860,7 +915,8 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
                               cmentries.length +
                               ccentries.length +
                               bmentries.length +
-                              dmaentries.length,
+                              dmaentries.length +
+                              dormantEntries.length,
                           itemBuilder: (context, index) {
                             Widget item;
                             if (index < entries.length) {
@@ -910,7 +966,13 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
                                       ccentries.length]
                                   .AccountNumber
                                   .toString());
-                            } else {
+                            } else if (index <
+                                entries.length +
+                                    oentries.length +
+                                    cmentries.length +
+                                    ccentries.length +
+                                    bmentries.length +
+                                    dmaentries.length) {
                               item = _buildAssetItem(dmaentries[index -
                                       entries.length -
                                       oentries.length -
@@ -918,6 +980,16 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
                                       ccentries.length -
                                       bmentries.length]
                                   .DMAName);
+                            } else {
+                              final dormantIndex = index -
+                                  entries.length -
+                                  oentries.length -
+                                  cmentries.length -
+                                  ccentries.length -
+                                  bmentries.length -
+                                  dmaentries.length;
+                              item = _buildDormantItem(
+                                  dormantEntries[dormantIndex]);
                             }
                             return item;
                           },
@@ -1019,6 +1091,84 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
                           ),
                         ],
                       ),
+              ),
+              const Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: Color(0xff0288D1),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDormantItem(Map<String, dynamic> billing) {
+    final accountNo = billing["accountNo"]?.toString() ?? "";
+    final name = billing["name"]?.toString() ?? "";
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: InkWell(
+        onTap: () {
+          if (accountNo.isEmpty) return;
+          // Build prefill map from billing; merge nested customerMeter if present (API includes it)
+          final prefill = Map<String, dynamic>.from(billing);
+          final nested = billing["customerMeter"];
+          if (nested is Map) {
+            for (final e in nested.entries) {
+              if (e.value != null) prefill[e.key] = e.value;
+            }
+          }
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => DormantMeterForm(dormantData: prefill),
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xff0288D1).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.water_drop_outlined,
+                  color: Color(0xff0288D1),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name.isEmpty ? "Account $accountNo" : name,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xff0288D1),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Account: $accountNo (Dormant)",
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const Icon(
                 Icons.arrow_forward_ios,

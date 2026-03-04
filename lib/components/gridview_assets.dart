@@ -83,6 +83,15 @@ class _GridViewAssetsState extends State<GridViewAssets> {
                   )),
         );
         break;
+      case 'Dormant Meters':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => const DataCollectorsDialog(
+                    assetName: 'Dormant Meters',
+                  )),
+        );
+        break;
 
       case 'Sewer Lines':
         Navigator.push(

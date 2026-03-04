@@ -30,6 +30,7 @@ class GridIcons {
       'assets/images/master-meter.png',
       'assets/images/washout.png',
       'assets/images/hydration.png',
+      'assets/images/customer-meter.png',
     ];
   }
 
@@ -42,6 +43,7 @@ class GridIcons {
       'Master Meters',
       'Washouts',
       'Kiosks',
+      'Dormant Meters',
     ];
   }
 
