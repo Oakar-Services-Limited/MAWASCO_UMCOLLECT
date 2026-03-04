@@ -16,12 +16,15 @@ class FeedbackController extends ChangeNotifier {
   String selectedDay = '';
   String selectedZone = '';
   String selectedArea = '';
+  String selectedRoute = '';
   Customer? selectedCustomer;
   bool? waterAvailable; // true = Yes, false = No
   String? satisfaction; // 'Sufficient' | 'Low Pressure' when water available
   String remarks = '';
 
   List<Customer> customers = [];
+  /// Routes for the route dropdown (set on first zone-only fetch, kept when refetching by route).
+  List<String> availableRoutes = [];
   bool isLoadingCustomers = false;
   String? customersError;
 
@@ -32,13 +35,33 @@ class FeedbackController extends ChangeNotifier {
   List<String> get filteredAreas =>
       _schedule.areasForZoneAndDay(selectedZone, selectedDay);
 
+  /// Route options for dropdown: full list from zone when available, else from current customers.
+  List<String> get filteredRoutes =>
+      availableRoutes.isNotEmpty ? availableRoutes : _uniqueRoutesFrom(customers);
+
+  static List<String> _uniqueRoutesFrom(List<Customer> list) {
+    final set = <String>{};
+    for (final c in list) {
+      if (c.route.isNotEmpty) set.add(c.route);
+    }
+    return set.toList()..sort();
+  }
+
+  /// Customers for selected zone (and route when refetched). API filters by zone and route.
+  List<Customer> get filteredCustomers {
+    if (selectedRoute.isEmpty) return [];
+    return customers;
+  }
+
   void updateDay(String value) {
     if (selectedDay == value) return;
     selectedDay = value;
     selectedZone = '';
     selectedArea = '';
+    selectedRoute = '';
     selectedCustomer = null;
     customers = [];
+    availableRoutes = [];
     customersError = null;
     notifyListeners();
   }
@@ -47,8 +70,10 @@ class FeedbackController extends ChangeNotifier {
     if (selectedZone == value) return;
     selectedZone = value;
     selectedArea = '';
+    selectedRoute = '';
     selectedCustomer = null;
     customers = [];
+    availableRoutes = [];
     customersError = null;
     notifyListeners();
   }
@@ -56,11 +81,23 @@ class FeedbackController extends ChangeNotifier {
   void updateArea(String value) {
     if (selectedArea == value) return;
     selectedArea = value;
+    selectedRoute = '';
     selectedCustomer = null;
     customers = [];
+    availableRoutes = [];
     customersError = null;
     notifyListeners();
     if (value.isNotEmpty && selectedZone.isNotEmpty) {
+      fetchCustomers();
+    }
+  }
+
+  void updateRoute(String value) {
+    if (selectedRoute == value) return;
+    selectedRoute = value;
+    selectedCustomer = null;
+    notifyListeners();
+    if (value.isNotEmpty && selectedZone.isNotEmpty && selectedArea.isNotEmpty) {
       fetchCustomers();
     }
   }
@@ -87,7 +124,7 @@ class FeedbackController extends ChangeNotifier {
   }
 
   /// Fetch customers from API when zone and area are selected.
-  /// API filters by zone only (wt_customer_meters has no area column); list is used as-is.
+  /// When route is selected, API filters by zone and route; otherwise zone only (routes come from response).
   Future<void> fetchCustomers() async {
     if (selectedZone.isEmpty || selectedArea.isEmpty) return;
     isLoadingCustomers = true;
@@ -99,7 +136,7 @@ class FeedbackController extends ChangeNotifier {
       final token = await _storage.read(key: 'mwstaffjwt');
       if (kDebugMode) {
         debugPrint(
-            '[fetchCustomers] zone=$selectedZone area=$selectedArea token=${token != null && token.isNotEmpty ? "present" : "null/empty"}');
+            '[fetchCustomers] zone=$selectedZone area=$selectedArea route=$selectedRoute token=${token != null && token.isNotEmpty ? "present" : "null/empty"}');
       }
       if (token == null || token.isEmpty) {
         customersError = 'Not authenticated';
@@ -111,9 +148,12 @@ class FeedbackController extends ChangeNotifier {
 
       // Normalize zone to match DB format (e.g. "018 Tumutumu-87" -> "018 Tumutumu - 87")
       final zoneForApi = _normalizeZoneForApi(selectedZone);
-      final uri = Uri.parse(
-        '${getUrl()}wt/customer-meters?zone=${Uri.encodeComponent(zoneForApi)}&limit=3000&offset=0',
-      );
+      var path =
+          '${getUrl()}wt/customer-meters?zone=${Uri.encodeComponent(zoneForApi)}&limit=3000&offset=0';
+      if (selectedRoute.isNotEmpty) {
+        path += '&route=${Uri.encodeComponent(selectedRoute)}';
+      }
+      final uri = Uri.parse(path);
       if (kDebugMode) debugPrint('[fetchCustomers] GET $uri');
       final response = await http.get(
         uri,
@@ -147,10 +187,12 @@ class FeedbackController extends ChangeNotifier {
               '[fetchCustomers] raw list length=${list.length} body.success=${body is Map ? body['success'] : "n/a"}');
         }
 
-        // Customers filtered by zone only (API); no area column in wt_customer_meters.
         customers = list
             .map((e) => Customer.fromJson(e as Map<String, dynamic>))
             .toList();
+        if (selectedRoute.isEmpty) {
+          availableRoutes = _uniqueRoutesFrom(customers);
+        }
         customersError = null;
       } else {
         if (kDebugMode)
@@ -170,11 +212,12 @@ class FeedbackController extends ChangeNotifier {
     }
   }
 
-  /// Validation: day, zone, area, customer required; if waterAvailable == false, remarks required.
+  /// Validation: day, zone, area, route, customer required; if waterAvailable == false, remarks required.
   String? validate() {
     if (selectedDay.isEmpty) return 'Please select a day';
     if (selectedZone.isEmpty) return 'Please select a zone';
     if (selectedArea.isEmpty) return 'Please select an area';
+    if (selectedRoute.isEmpty) return 'Please select a route';
     if (selectedCustomer == null) return 'Please select a customer';
     if (waterAvailable == null) return 'Please indicate if water was available';
     if (waterAvailable == false && remarks.trim().isEmpty) {
@@ -226,11 +269,13 @@ class FeedbackController extends ChangeNotifier {
     selectedDay = '';
     selectedZone = '';
     selectedArea = '';
+    selectedRoute = '';
     selectedCustomer = null;
     waterAvailable = null;
     satisfaction = null;
     remarks = '';
     customers = [];
+    availableRoutes = [];
     customersError = null;
     notifyListeners();
   }

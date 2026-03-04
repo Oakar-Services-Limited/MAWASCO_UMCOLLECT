@@ -90,22 +90,26 @@ class _FeedbackFormState extends State<_FeedbackForm> {
             const SizedBox(height: 8),
             _areaDropdown(ctrl),
             const SizedBox(height: 24),
-            _sectionTitle('4. Select Customer'),
+            _sectionTitle('4. Select Route'),
+            const SizedBox(height: 8),
+            _routeDropdown(ctrl),
+            const SizedBox(height: 24),
+            _sectionTitle('5. Select Customer'),
             const SizedBox(height: 8),
             _customerSection(context, ctrl),
             const SizedBox(height: 24),
-            _sectionTitle('5. Water Available?'),
+            _sectionTitle('6. Water Available?'),
             const SizedBox(height: 8),
             _waterAvailableRadio(ctrl),
             if (ctrl.waterAvailable == true) ...[
               const SizedBox(height: 16),
-              _sectionTitle('6. Satisfaction'),
+              _sectionTitle('7. Satisfaction'),
               const SizedBox(height: 8),
               _satisfactionRadio(ctrl),
             ],
             const SizedBox(height: 24),
             _sectionTitle(
-                ctrl.waterAvailable == true ? '7. Remarks' : '6. Remarks'),
+                ctrl.waterAvailable == true ? '8. Remarks' : '7. Remarks'),
             const SizedBox(height: 8),
             _remarksField(ctrl),
             if (ctrl.waterAvailable == false)
@@ -225,8 +229,47 @@ class _FeedbackFormState extends State<_FeedbackForm> {
     );
   }
 
+  Widget _routeDropdown(FeedbackController ctrl) {
+    final routes = ctrl.filteredRoutes;
+    final zoneAndAreaSelected =
+        ctrl.selectedZone.isNotEmpty && ctrl.selectedArea.isNotEmpty;
+    String hintText;
+    if (ctrl.isLoadingCustomers && zoneAndAreaSelected) {
+      hintText = 'Loading routes...';
+    } else if (!zoneAndAreaSelected || ctrl.customers.isEmpty) {
+      hintText = 'Select zone and area first to load routes';
+    } else if (routes.isEmpty) {
+      hintText = 'No routes for this zone';
+    } else {
+      hintText = 'Select route';
+    }
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(
+          color: const Color(0xff0288D1).withValues(alpha: 0.1),
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: ctrl.selectedRoute.isEmpty ? null : ctrl.selectedRoute,
+          isExpanded: true,
+          hint: Text(hintText),
+          items: routes
+              .map((r) => DropdownMenuItem(value: r, child: Text(r)))
+              .toList(),
+          onChanged: ctrl.isLoadingCustomers || routes.isEmpty
+              ? null
+              : (v) => ctrl.updateRoute(v ?? ''),
+        ),
+      ),
+    );
+  }
+
   Widget _customerSection(BuildContext context, FeedbackController ctrl) {
-    if (ctrl.selectedArea.isEmpty) {
+    if (ctrl.selectedRoute.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -237,7 +280,7 @@ class _FeedbackFormState extends State<_FeedbackForm> {
           ),
         ),
         child: Text(
-          'Select zone and area first to load customers',
+          'Select zone, area and route first to load customers',
           style: TextStyle(color: Colors.grey[600], fontSize: 14),
         ),
       );
@@ -282,7 +325,7 @@ class _FeedbackFormState extends State<_FeedbackForm> {
         ),
       );
     }
-    if (ctrl.customers.isEmpty) {
+    if (ctrl.filteredCustomers.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -293,7 +336,7 @@ class _FeedbackFormState extends State<_FeedbackForm> {
           ),
         ),
         child: Text(
-          'No customers found for this zone and area',
+          'No customers found for this zone and route',
           style: TextStyle(color: Colors.grey[600], fontSize: 14),
         ),
       );
@@ -312,7 +355,7 @@ class _FeedbackFormState extends State<_FeedbackForm> {
           value: ctrl.selectedCustomer,
           isExpanded: true,
           hint: const Text('Select customer'),
-          items: ctrl.customers
+          items: ctrl.filteredCustomers
               .map((c) => DropdownMenuItem(
                     value: c,
                     child: Text(c.displayName),

@@ -5,9 +5,9 @@ import 'package:http/http.dart' as http;
 
 String getUrl() {
   // return "http://192.168.1.136:3003/api/";
-  // return "http://192.168.1.121:3003/api/";
+  return "http://192.168.1.121:3003/api/";
 
-  return "https://api-utilitymanager.mawasco.co.ke/api/";
+  // return "https://api-utilitymanager.mawasco.co.ke/api/";
 //
 }
 
