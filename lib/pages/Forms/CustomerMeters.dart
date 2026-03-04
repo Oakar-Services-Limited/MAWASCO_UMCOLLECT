@@ -734,7 +734,7 @@ Future<Message> submitData(
   try {
     http.Response response;
 
-    final payload = {
+    final payload = <String, dynamic>{
       'name': name,
       'phone': phone,
       'accountNo': accountnumber,
@@ -758,6 +758,9 @@ Future<Message> submitData(
       'latitude': id == '' ? lat : null,
       'longitude': id == '' ? long : null,
     };
+    if (myimage.isNotEmpty) {
+      payload['image'] = myimage;
+    }
     if (id != '') {
       response = await http.put(
         Uri.parse("${getUrl()}wt/customer-meters/$id"),
