@@ -38,6 +38,7 @@ class _ReportIncidentState extends State<ReportIncident> {
   String description = '';
   String location = '';
   String route = '';
+  String zone = '';
   String phone = '';
   String name = '';
   String reportertype = 'Public';
@@ -704,6 +705,18 @@ class _ReportIncidentState extends State<ReportIncident> {
             MySelectInput(
               onSubmit: (value) {
                 setState(() {
+                  zone = value;
+                });
+              },
+              list: getZones(),
+              label: 'Zone',
+              value: zone,
+              labelFontSize: 18,
+            ),
+            const SizedBox(height: 16),
+            MySelectInput(
+              onSubmit: (value) {
+                setState(() {
                   priority = value;
                 });
               },
@@ -738,6 +751,7 @@ class _ReportIncidentState extends State<ReportIncident> {
               myimage,
               location,
               route,
+              zone,
               userid,
               widget.categoryId,
               long.toString(),
@@ -824,6 +838,7 @@ Future<Message> submitData(
   String myimage,
   String location,
   String route,
+  String zone,
   String userId,
   String categoryId,
   String longitude,
@@ -879,6 +894,7 @@ Future<Message> submitData(
       'image': myimage,
       'location': location,
       'route': route,
+      'zone': zone.isNotEmpty && zone != "--Select--" ? zone : null,
       'userId': reportertype == "Staff" ? userId : null,
       'categoryId': categoryId,
       'longitude': longitude,
