@@ -197,7 +197,7 @@ class _DormantMeterFormState extends State<DormantMeterForm> {
       }
 
       final response = await http.post(
-        Uri.parse("${getUrl()}wt/customer-meters"),
+        Uri.parse("${getUrl()}wt/dormant-customer-meters"),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
           if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
@@ -208,7 +208,7 @@ class _DormantMeterFormState extends State<DormantMeterForm> {
       if (response.statusCode == 201 || response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
         if (responseData['success'] != null) {
-          return Message(token: null, success: "Dormant meter registered as customer meter successfully.", error: null);
+          return Message(token: null, success: "Dormant meter registered successfully.", error: null);
         }
         return Message(
           token: null,
@@ -497,7 +497,7 @@ class _DormantMeterFormState extends State<DormantMeterForm> {
                   Align(
                     alignment: Alignment.bottomCenter,
                     child: SubmitButton(
-                      label: "Submit New Meter",
+                      label: "Register Dormant Meter",
                       onButtonPressed: () async {
                         setState(() {
                           isLoading = LoadingAnimationWidget.staggeredDotsWave(

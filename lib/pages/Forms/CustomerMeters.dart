@@ -30,6 +30,7 @@ class _CustomerMetersState extends State<CustomerMeters> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final storage = const FlutterSecureStorage();
   late Position position;
+  StreamSubscription<Position>? _positionSubscription;
 
   var long = 36.0, lat = -2.0, acc = 100.0;
   String error = '';
@@ -90,11 +91,12 @@ class _CustomerMetersState extends State<CustomerMeters> {
 
     if (pickedFile != null) {
       String base64Image = await convertFileToBase64(pickedFile);
+      if (!mounted) return;
       setState(() {
         _image = File(pickedFile.path);
         myimage = base64Image;
       });
-    } else {}
+    }
   }
 
   @override
@@ -112,34 +114,43 @@ class _CustomerMetersState extends State<CustomerMeters> {
       distanceFilter: 0, // Get all movements
     );
 
-    Geolocator.getPositionStream(locationSettings: locationSettings)
-        .listen((Position position) {
+    _positionSubscription = Geolocator.getPositionStream(locationSettings: locationSettings)
+        .listen((Position pos) {
+      if (!mounted) return;
       setState(() {
-        long = position.longitude;
-        lat = position.latitude;
-        acc = position.accuracy;
-        position = position;
+        long = pos.longitude;
+        lat = pos.latitude;
+        acc = pos.accuracy;
+        position = pos;
       });
     });
+  }
+
+  @override
+  void dispose() {
+    _positionSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> fetchStoredData() async {
     try {
       var token = await storage.read(key: "mwstaffjwt");
       var decoded = parseJwt(token.toString());
+      if (!mounted) return;
       setState(() {
         userid = decoded["id"];
         role = decoded["role"] ?? '';
       });
-      if (widget.customerMeter.isNotEmpty) {
+      if (mounted && widget.customerMeter.isNotEmpty) {
         prefillForm(widget.customerMeter);
-      } else {}
+      }
     } catch (e) {
       // Error handling: silently ignore errors during data fetching
     }
   }
 
   Future<void> prefillForm(data) async {
+    if (!mounted) return;
     setState(() {
       id = data["id"] ?? "";
       accnum = data["accountNo"]?.toString() ?? "";
@@ -588,6 +599,7 @@ class _CustomerMetersState extends State<CustomerMeters> {
                             id,
                           );
 
+                          if (!mounted) return;
                           setState(() {
                             isLoading = null;
                             if (res.success != null) {
@@ -599,7 +611,7 @@ class _CustomerMetersState extends State<CustomerMeters> {
                               _showSnackBar(error, false);
                             }
                           });
-                          if (res.success != null) {
+                          if (res.success != null && mounted) {
                             await storage.write(
                                 key: 'meterid', value: res.token);
 
