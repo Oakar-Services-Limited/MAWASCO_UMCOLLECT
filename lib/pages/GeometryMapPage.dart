@@ -1,12 +1,14 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'dart:async';
-import 'package:flutter/material.dart';
 import 'dart:convert';
-import 'package:um_collect/theme/app_theme.dart';
-import 'package:loading_animation_widget/loading_animation_widget.dart';
+
+import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:um_collect/services/connectivity_helper.dart';
+import 'package:um_collect/theme/app_theme.dart';
 
 class GeometryMapPage extends StatefulWidget {
   final String geometryType;
@@ -37,18 +39,39 @@ class _GeometryMapPageState extends State<GeometryMapPage> {
   Timer? _trackingTimer;
   double _totalDistance = 0.0; // Distance in meters
   Map<String, dynamic>? _currentGeometry;
+  bool _isOnline = true;
+  StreamSubscription<bool>? _connectivitySub;
 
   @override
   void initState() {
     super.initState();
     _getCurrentLocation();
     _loadInitialGeometry();
+    _listenToConnectivity();
   }
 
   @override
   void dispose() {
     _trackingTimer?.cancel();
+    _connectivitySub?.cancel();
     super.dispose();
+  }
+
+  void _listenToConnectivity() {
+    _connectivitySub =
+        ConnectivityHelper().connectivityStream.listen((isOnline) {
+      if (!mounted) return;
+      setState(() {
+        _isOnline = isOnline;
+      });
+    });
+    // Seed initial state
+    ConnectivityHelper().checkConnectivity().then((isOnline) {
+      if (!mounted) return;
+      setState(() {
+        _isOnline = isOnline;
+      });
+    });
   }
 
   double _calculateDistance(LatLng point1, LatLng point2) {
@@ -490,6 +513,44 @@ class _GeometryMapPageState extends State<GeometryMapPage> {
             },
             onTap: _onMapTap,
           ),
+          if (!_isOnline)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 12,
+              left: 12,
+              right: 12,
+              child: Card(
+                color: Colors.amber[100],
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.wifi_off,
+                        color: Colors.amber,
+                      ),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'Offline mode: map tiles and routing may be unavailable, '
+                          'but GPS and drawing geometry still work. Geometry will be '
+                          'saved locally and synced when back online.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           if (_isLoading)
             Container(
               color: Colors.white.withValues(alpha: 0.8),

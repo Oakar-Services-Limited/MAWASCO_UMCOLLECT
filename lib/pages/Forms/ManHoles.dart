@@ -6,11 +6,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:um_collect/components/MySelectInput.dart';
 import 'package:um_collect/components/MyTextInput.dart';
+import 'package:um_collect/components/offline_pending_card.dart';
 import 'package:um_collect/components/StaffDrawer.dart';
 import 'package:um_collect/components/SubmitButton.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/models/Map.dart';
 import 'package:um_collect/pages/Assets.dart';
+import 'package:um_collect/services/connectivity_helper.dart';
+import 'package:um_collect/services/database_helper.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:http/http.dart' as http;
@@ -178,6 +181,10 @@ class _ManHolesState extends State<ManHoles> {
                     const SizedBox(
                       height: 8,
                     ),
+                    const OfflinePendingCard(
+                      types: ['asset_manholes'],
+                      label: 'Manholes',
+                    ),
                     Padding(
                         padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
                         child: SizedBox(
@@ -339,6 +346,55 @@ Future<Message> submitData(
   String staffid,
   String? editing,
 ) async {
+  final db = DatabaseHelper();
+  final isOnline = await ConnectivityHelper().checkConnectivity();
+
+  Future<Message> queueOffline(String reason) async {
+    final payload = editing == 'true'
+        ? {
+            'name': name,
+            'depth': depth,
+            'material': material,
+            'status': status,
+            'route': route,
+            'remarks': remarks,
+            'userId': staffid,
+          }
+        : {
+            'name': name,
+            'depth': depth,
+            'material': material,
+            'status': status,
+            'route': route,
+            'remarks': remarks,
+            'userId': staffid,
+            'latitude': lat,
+            'longitude': long,
+          };
+
+    final endpoint =
+        editing == 'true' ? 'sr/manholes/$manholeID' : 'sr/manholes';
+    final method = editing == 'true' ? 'PUT' : 'POST';
+
+    await db.saveSubmission(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      formId: 'asset_manholes',
+      formName: 'Manholes',
+      responses: {
+        '_type': 'asset_manholes',
+        '_endpoint': endpoint,
+        '_method': method,
+        '_body': payload,
+      },
+    );
+
+    return Message(
+      token: null,
+      success: "Saved offline. Will sync when you have internet. ($reason)",
+      error: null,
+    );
+  }
+
   try {
     // Debug print
     var response;
@@ -363,6 +419,10 @@ Future<Message> submitData(
             'latitude': lat,
             'longitude': long,
           };
+
+    if (!isOnline) {
+      return await queueOffline('Offline');
+    }
 
     if (editing == 'true') {
       response = await http.put(
@@ -409,11 +469,7 @@ Future<Message> submitData(
       }
     }
   } catch (e) {
-    return Message(
-      token: null,
-      success: null,
-      error: "Connection failed! Check your internet connection.",
-    );
+    return await queueOffline('Network error');
   }
 }
 

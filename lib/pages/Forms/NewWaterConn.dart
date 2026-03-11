@@ -8,12 +8,15 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:um_collect/components/MySelectInput.dart';
 import 'package:um_collect/components/MyTextInput.dart';
+import 'package:um_collect/components/offline_pending_card.dart';
 import 'package:um_collect/components/StaffDrawer.dart';
 import 'package:um_collect/components/SubmitButton.dart';
 import 'package:um_collect/components/TextResponse.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/models/Map.dart';
 import 'package:um_collect/pages/Assets.dart';
+import 'package:um_collect/services/connectivity_helper.dart';
+import 'package:um_collect/services/database_helper.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:http/http.dart' as http;
@@ -190,6 +193,10 @@ class _NewWaterConnState extends State<NewWaterConn> {
                     ),
                     const SizedBox(
                       height: 8,
+                    ),
+                    const OfflinePendingCard(
+                      types: ['asset_new_water_conn'],
+                      label: 'New Water Connections',
                     ),
                     Padding(
                         padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
@@ -554,6 +561,73 @@ Future<Message> submitData(
     const storage = FlutterSecureStorage();
     String? update = await storage.read(key: "updateLocation");
 
+    final db = DatabaseHelper();
+    final isOnline = await ConnectivityHelper().checkConnectivity();
+
+    Future<Message> queueOffline(String reason) async {
+      final body = editing == 'true'
+          ? <String, dynamic>{
+              'AccountNo': accountnumber,
+              'MeterSerial': meterserial,
+              'MeterType': metertype,
+              'Size': size,
+              'BrandName': brandname,
+              'Material': material,
+              'MeterLocation': meterlocation,
+              'Status': status,
+              'Sewered': sewered,
+              'OtherMeter': othermeter,
+              'InstallationMode': installationmode,
+              'Latitude': update != null ? lat : null,
+              'Longitude': update != null ? long : null,
+              'Remarks': remarks,
+              'User': user
+            }
+          : <String, dynamic>{
+              'AccountNo': accountnumber,
+              'MeterSerial': meterserial,
+              'MeterType': metertype,
+              'Size': size,
+              'BrandName': brandname,
+              'Material': material,
+              'MeterLocation': meterlocation,
+              'Status': status,
+              'Sewered': sewered,
+              'OtherMeter': othermeter,
+              'InstallationMode': installationmode,
+              'Remarks': remarks,
+              'Latitude': lat,
+              'Longitude': long,
+              'User': user
+            };
+
+      final endpoint =
+          editing == 'true' ? 'water/$userid' : 'water/create';
+      final method = editing == 'true' ? 'PUT' : 'POST';
+
+      await db.saveSubmission(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        formId: 'asset_new_water_conn',
+        formName: 'New Water Connections',
+        responses: {
+          '_type': 'asset_new_water_conn',
+          '_endpoint': endpoint,
+          '_method': method,
+          '_body': body,
+        },
+      );
+
+      return Message(
+        token: null,
+        success: "Saved offline. Will sync when you have internet. ($reason)",
+        error: null,
+      );
+    }
+
+    if (!isOnline) {
+      return await queueOffline('Offline');
+    }
+
     if (editing == 'true') {
       response = await http.put(
         Uri.parse("${getUrl()}water/$userid"),
@@ -614,10 +688,41 @@ Future<Message> submitData(
       );
     }
   } catch (e) {
+    final db = DatabaseHelper();
+    final body = <String, dynamic>{
+      'AccountNo': accountnumber,
+      'MeterSerial': meterserial,
+      'MeterType': metertype,
+      'Size': size,
+      'BrandName': brandname,
+      'Material': material,
+      'MeterLocation': meterlocation,
+      'Status': status,
+      'Sewered': sewered,
+      'OtherMeter': othermeter,
+      'InstallationMode': installationmode,
+      'Remarks': remarks,
+      'Latitude': lat,
+      'Longitude': long,
+      'User': user
+    };
+    final endpoint = editing == 'true' ? 'water/$userid' : 'water/create';
+    final method = editing == 'true' ? 'PUT' : 'POST';
+    await db.saveSubmission(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      formId: 'asset_new_water_conn',
+      formName: 'New Water Connections',
+      responses: {
+        '_type': 'asset_new_water_conn',
+        '_endpoint': endpoint,
+        '_method': method,
+        '_body': body,
+      },
+    );
     return Message(
       token: null,
-      success: null,
-      error: "Connection failed! Check your internet connection.!",
+      success: "Saved offline. Will sync when you have internet. (Network error)",
+      error: null,
     );
   }
 }

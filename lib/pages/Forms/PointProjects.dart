@@ -6,11 +6,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:um_collect/components/MySelectInput.dart';
 import 'package:um_collect/components/MyTextInput.dart';
+import 'package:um_collect/components/offline_pending_card.dart';
 import 'package:um_collect/components/StaffDrawer.dart';
 import 'package:um_collect/components/SubmitButton.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/models/Map.dart';
 import 'package:um_collect/pages/Assets.dart';
+import 'package:um_collect/services/connectivity_helper.dart';
+import 'package:um_collect/services/database_helper.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:http/http.dart' as http;
@@ -172,6 +175,10 @@ class _PointProjectsState extends State<PointProjects> {
                     ),
                     const SizedBox(
                       height: 8,
+                    ),
+                    const OfflinePendingCard(
+                      types: ['asset_point_project'],
+                      label: 'Point Projects',
                     ),
                     Padding(
                         padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
@@ -591,16 +598,74 @@ Future<Message> submitData(
     String? editing) async {
   debugPrint(
       'projectType: $projectType, assetType: $assetType, name: $name, zone: $zone, route: $route, phone: $phone, size: $size, location: $location, remarks: $remarks, staffid: $staffid, editing: $editing');
+  final db = DatabaseHelper();
+  final isOnline = await ConnectivityHelper().checkConnectivity();
+
+  Future<Message> queueOffline(String reason) async {
+    final payload = <String, dynamic>{
+      'projectType': projectType,
+      'assetType': assetType,
+      'name': name,
+      'userId': staffid,
+      'latitude': lat,
+      'longitude': long,
+    };
+
+    if (assetType == 'Customer Meter') {
+      payload['phone'] = phone;
+      payload['zone'] = zone;
+      payload['route'] = route;
+    } else if (assetType == 'Tank') {
+      payload['zone'] = zone;
+      payload['location'] = location;
+    } else if (assetType == 'Master Meter') {
+      payload['size'] = size;
+      payload['route'] = route;
+      payload['zone'] = zone;
+      payload['location'] = location;
+    } else if (assetType == 'Washout') {
+      payload['size'] = size;
+      payload['route'] = route;
+      payload['zone'] = zone;
+      payload['location'] = location;
+    } else if (assetType == 'Manhole') {
+      payload['route'] = route;
+      payload['zone'] = zone;
+      payload['remarks'] = remarks;
+    }
+
+    // For simplicity, queue as POST for both create/update
+    final endpoint = editing == 'true'
+        ? 'pj/points/$pointID'
+        : 'pj/points';
+    final method = editing == 'true' ? 'PUT' : 'POST';
+
+    await db.saveSubmission(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      formId: 'asset_point_project',
+      formName: 'Point Project',
+      responses: {
+        '_type': 'asset_point_project',
+        '_endpoint': endpoint,
+        '_method': method,
+        '_body': payload,
+      },
+    );
+
+    return Message(
+      token: null,
+      success:
+          "Saved offline. Will sync when you have internet. ($reason)",
+      error: null,
+    );
+  }
+
   try {
     final storage = const FlutterSecureStorage();
     final token = await storage.read(key: "mwstaffjwt");
 
     if (token == null) {
-      return Message(
-        token: null,
-        success: null,
-        error: "Authentication token not found. Please login again.",
-      );
+      return await queueOffline('No auth token');
     }
 
     // Build request body
@@ -638,6 +703,10 @@ Future<Message> submitData(
     }
 
     // Make API request
+    if (!isOnline) {
+      return await queueOffline('Offline');
+    }
+
     http.Response response;
     if (editing == 'true') {
       response = await http.put(
@@ -697,11 +766,7 @@ Future<Message> submitData(
       }
     }
   } catch (e) {
-    return Message(
-      token: null,
-      success: null,
-      error: "Connection failed! Check your internet connection.",
-    );
+    return await queueOffline('Network error');
   }
 }
 

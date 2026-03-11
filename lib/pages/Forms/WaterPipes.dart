@@ -7,8 +7,11 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:um_collect/components/MyDrawer.dart';
 import 'package:um_collect/components/MySelectInput.dart';
 import 'package:um_collect/components/MyTextInput.dart';
+import 'package:um_collect/components/offline_pending_card.dart';
 import 'package:um_collect/components/SubmitButton.dart';
 import 'package:um_collect/components/Utils.dart';
+import 'package:um_collect/services/connectivity_helper.dart';
+import 'package:um_collect/services/database_helper.dart';
 import 'package:um_collect/pages/Assets.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
@@ -166,6 +169,10 @@ class _WaterPipesState extends State<WaterPipes> {
                     ),
                     const SizedBox(
                       height: 8,
+                    ),
+                    const OfflinePendingCard(
+                      types: ['asset_water_pipes'],
+                      label: 'Water Pipes',
                     ),
                     MyTextInput(
                       lines: 1,
@@ -413,6 +420,46 @@ Future<Message> submitData(
     String status,
     String remarks,
     String staffid) async {
+  final db = DatabaseHelper();
+  final isOnline = await ConnectivityHelper().checkConnectivity();
+
+  Future<Message> queueOffline(String reason) async {
+    final payload = <String, dynamic>{
+      'LineName': linename,
+      'Material': material,
+      'Intake': intake,
+      'Function': function,
+      'DMA': dma,
+      'Route': route,
+      'SchemeName': schemename,
+      'Zone': zone,
+      'Size': size,
+      'Status': status,
+      'Remarks': remarks,
+      'userId': staffid,
+      'coordinates': coordinates,
+    };
+
+    await db.saveSubmission(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      formId: 'asset_water_pipes',
+      formName: 'Water Pipe',
+      responses: {
+        '_type': 'asset_water_pipes',
+        '_endpoint': 'wt/water-pipes',
+        '_method': 'POST',
+        '_body': payload,
+      },
+    );
+
+    return Message(
+      token: null,
+      success:
+          "Saved offline. Will sync when you have internet. ($reason)",
+      error: null,
+    );
+  }
+
   try {
     // Validate required fields
     if (linename.isEmpty) {
@@ -439,6 +486,10 @@ Future<Message> submitData(
     }
     if (status == "--Select--" || status.isEmpty) {
       return Message(token: null, success: null, error: "Status is required");
+    }
+
+    if (!isOnline) {
+      return await queueOffline('Offline');
     }
 
     var response = await http.post(
@@ -487,11 +538,7 @@ Future<Message> submitData(
       );
     }
   } catch (e) {
-    return Message(
-      token: null,
-      success: null,
-      error: "Connection failed! Check your internet connection. Error: $e",
-    );
+    return await queueOffline('Network error');
   }
 }
 

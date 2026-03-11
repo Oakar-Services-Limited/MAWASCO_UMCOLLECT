@@ -8,12 +8,15 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:um_collect/components/MySelectInput.dart';
 import 'package:um_collect/components/MyTextInput.dart';
+import 'package:um_collect/components/offline_pending_card.dart';
 import 'package:um_collect/components/StaffDrawer.dart';
 import 'package:um_collect/components/SubmitButton.dart';
 import 'package:um_collect/components/TextResponse.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/models/Map.dart';
 import 'package:um_collect/pages/Assets.dart';
+import 'package:um_collect/services/connectivity_helper.dart';
+import 'package:um_collect/services/database_helper.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:http/http.dart' as http;
@@ -192,6 +195,10 @@ class _OfftakesState extends State<Offtakes> {
                     ),
                     const SizedBox(
                       height: 8,
+                    ),
+                    const OfflinePendingCard(
+                      types: ['asset_offtakers'],
+                      label: 'Offtakes',
                     ),
                     Padding(
                         padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
@@ -606,10 +613,76 @@ Future<Message> submitData(
   String user,
   String? editing,
 ) async {
+  final db = DatabaseHelper();
+  final isOnline = await ConnectivityHelper().checkConnectivity();
+
   try {
     http.Response response;
     const storage = FlutterSecureStorage();
     String? update = await storage.read(key: "updateLocation");
+
+    Future<Message> queueOffline(String reason) async {
+      final body = editing == 'true'
+          ? <String, dynamic>{
+              'Latitude': update != null ? lat : null,
+              'Longitude': update != null ? lon : null,
+              "BrandName": brandname,
+              "Diameter": diameter,
+              "MeterSerial": meterserial,
+              "MeterType": metertype,
+              "AccountName": accountname,
+              "AccountNumber": accountnum,
+              "Zone": zone,
+              "Subzone": subzone,
+              "Status": status,
+              "YearOfInstallation": year,
+              "Remarks": remarks,
+              'User': user
+            }
+          : <String, dynamic>{
+              'Latitude': lat,
+              'Longitude': lon,
+              "BrandName": brandname,
+              "Diameter": diameter,
+              "MeterSerial": meterserial,
+              "MeterType": metertype,
+              "AccountName": accountname,
+              "AccountNumber": accountnum,
+              "Zone": zone,
+              "Subzone": subzone,
+              "Status": status,
+              "YearOfInstallation": year,
+              "Remarks": remarks,
+              "Photo": myimage,
+              'User': user
+            };
+
+      final endpoint =
+          editing == 'true' ? 'offtakes/$offtakersID' : 'offtakes/create';
+      final method = editing == 'true' ? 'PUT' : 'POST';
+
+      await db.saveSubmission(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        formId: 'asset_offtakers',
+        formName: 'Offtakes',
+        responses: {
+          '_type': 'asset_offtakers',
+          '_endpoint': endpoint,
+          '_method': method,
+          '_body': body,
+        },
+      );
+
+      return Message(
+        token: null,
+        success: "Saved offline. Will sync when you have internet. ($reason)",
+        error: null,
+      );
+    }
+
+    if (!isOnline) {
+      return await queueOffline('Offline');
+    }
 
     if (editing == 'true') {
       response = await http.put(
@@ -670,10 +743,61 @@ Future<Message> submitData(
       );
     }
   } catch (e) {
+    final body = editing == 'true'
+        ? <String, dynamic>{
+            'Latitude': null,
+            'Longitude': null,
+            "BrandName": brandname,
+            "Diameter": diameter,
+            "MeterSerial": meterserial,
+            "MeterType": metertype,
+            "AccountName": accountname,
+            "AccountNumber": accountnum,
+            "Zone": zone,
+            "Subzone": subzone,
+            "Status": status,
+            "YearOfInstallation": year,
+            "Remarks": remarks,
+            'User': user
+          }
+        : <String, dynamic>{
+            'Latitude': lat,
+            'Longitude': lon,
+            "BrandName": brandname,
+            "Diameter": diameter,
+            "MeterSerial": meterserial,
+            "MeterType": metertype,
+            "AccountName": accountname,
+            "AccountNumber": accountnum,
+            "Zone": zone,
+            "Subzone": subzone,
+            "Status": status,
+            "YearOfInstallation": year,
+            "Remarks": remarks,
+            "Photo": myimage,
+            'User': user
+          };
+
+    final endpoint =
+        editing == 'true' ? 'offtakes/$offtakersID' : 'offtakes/create';
+    final method = editing == 'true' ? 'PUT' : 'POST';
+
+    await db.saveSubmission(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      formId: 'asset_offtakers',
+      formName: 'Offtakes',
+      responses: {
+        '_type': 'asset_offtakers',
+        '_endpoint': endpoint,
+        '_method': method,
+        '_body': body,
+      },
+    );
+
     return Message(
       token: null,
-      success: null,
-      error: "Connection failed! Check your internet connection.!",
+      success: "Saved offline. Will sync when you have internet. (Network error)",
+      error: null,
     );
   }
 }

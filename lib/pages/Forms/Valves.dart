@@ -6,11 +6,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:um_collect/components/MySelectInput.dart';
 import 'package:um_collect/components/MyTextInput.dart';
+import 'package:um_collect/components/offline_pending_card.dart';
 import 'package:um_collect/components/StaffDrawer.dart';
 import 'package:um_collect/components/SubmitButton.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/models/Map.dart';
 import 'package:um_collect/pages/Assets.dart';
+import 'package:um_collect/services/connectivity_helper.dart';
+import 'package:um_collect/services/database_helper.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:http/http.dart' as http;
@@ -182,6 +185,10 @@ class _ValvesState extends State<Valves> {
                     ),
                     const SizedBox(
                       height: 8,
+                    ),
+                    const OfflinePendingCard(
+                      types: ['asset_valves'],
+                      label: 'Valves',
                     ),
                     Padding(
                         padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
@@ -385,10 +392,57 @@ Future<Message> submitData(
     String remarks,
     String staffid,
     String? editing) async {
+  final db = DatabaseHelper();
+  final isOnline = await ConnectivityHelper().checkConnectivity();
+
+  Future<Message> queueOffline(String reason) async {
+    final payload = <String, dynamic>{
+      'type': type,
+      'dma': dma,
+      'status': status,
+      'size': size,
+      'schemeName': schemename,
+      'zone': zone,
+      'route': route,
+      'location': location,
+      'remarks': remarks,
+      'userId': staffid,
+      'latitude': lat,
+      'longitude': long,
+    };
+
+    final endpoint =
+        editing == 'true' ? 'wt/valves/$valveID' : 'wt/valves';
+    final method = editing == 'true' ? 'PUT' : 'POST';
+
+    await db.saveSubmission(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      formId: 'asset_valves',
+      formName: 'Valves',
+      responses: {
+        '_type': 'asset_valves',
+        '_endpoint': endpoint,
+        '_method': method,
+        '_body': payload,
+      },
+    );
+
+    return Message(
+      token: null,
+      success:
+          "Saved offline. Will sync when you have internet. ($reason)",
+      error: null,
+    );
+  }
+
   try {
     http.Response response;
     const storage = FlutterSecureStorage();
-    String? update = await storage.read(key: "updateLocation");
+    await storage.read(key: "updateLocation");
+
+    if (!isOnline) {
+      return await queueOffline('Offline');
+    }
 
     if (editing == 'true') {
       response = await http.put(
@@ -458,11 +512,7 @@ Future<Message> submitData(
       );
     }
   } catch (e) {
-    return Message(
-      token: null,
-      success: null,
-      error: "Connection failed! Check your internet connection. Error: $e",
-    );
+    return await queueOffline('Network error');
   }
 }
 

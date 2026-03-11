@@ -1,17 +1,22 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:um_collect/components/Utils.dart';
-import 'package:um_collect/theme/app_theme.dart';
-import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:intl/intl.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:uuid/uuid.dart';
+
+import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/pages/GeometryMapPage.dart';
+import 'package:um_collect/services/connectivity_helper.dart';
+import 'package:um_collect/services/database_helper.dart';
+import 'package:um_collect/theme/app_theme.dart';
 import 'package:um_collect/utils/form_logic.dart'
     show evaluateFieldVisibility, flattenFields, traverseFieldsVisible;
 
@@ -34,6 +39,7 @@ class _FormFillPageState extends State<FormFillPage> {
   bool isLoading = true;
   bool isSubmitting = false;
   String? error;
+  final _db = DatabaseHelper();
 
   @override
   void initState() {
@@ -99,19 +105,46 @@ class _FormFillPageState extends State<FormFillPage> {
             }
           }
         });
+
+        // Cache form definition for offline use
+        if (data is Map<String, dynamic>) {
+          await _db.saveForm(
+              Map<String, dynamic>.from(data)..['id'] = widget.formId);
+        }
       } else {
+        // Try loading cached form instead
+        final cached = await _db.getForm(widget.formId);
         if (!mounted) return;
+        if (cached != null) {
+          setState(() {
+            formData = cached;
+            isLoading = false;
+            error = 'Failed to refresh form. Showing last saved version.';
+          });
+        } else {
+          setState(() {
+            error = 'Failed to load form. Please try again.';
+            isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      // On network errors, fall back to cached form if available
+      final cached = await _db.getForm(widget.formId);
+      if (!mounted) return;
+      if (cached != null) {
         setState(() {
-          error = 'Failed to load form. Please try again.';
+          formData = cached;
+          isLoading = false;
+          error =
+              'Connection error. Showing last saved form. Please check your internet.';
+        });
+      } else {
+        setState(() {
+          error = 'Connection error. Please check your internet.';
           isLoading = false;
         });
       }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        error = 'Connection error. Please check your internet.';
-        isLoading = false;
-      });
     }
   }
 
@@ -165,52 +198,106 @@ class _FormFillPageState extends State<FormFillPage> {
       isSubmitting = true;
     });
 
+    final uuid = const Uuid();
+    final submissionId = uuid.v4();
+    final formName = (formData?['name'] ?? 'Form').toString();
+
+    Future<void> queueOfflineSubmission(String reason) async {
+      await _db.saveSubmission(
+        id: submissionId,
+        formId: widget.formId,
+        formName: formName,
+        responses: {
+          '_type': 'dynamic_form',
+          '_endpoint': 'forms/${widget.formId}/submit',
+          '_method': 'POST',
+          '_body': {
+            'responses': responses,
+          },
+        },
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.cloud_off, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Saved offline. Will sync when connected. ($reason)',
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: AppTheme.primaryMain,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+        ),
+      );
+      Navigator.pop(context, true);
+    }
+
     try {
-      final token = await storage.read(key: "mwstaffjwt");
-      if (token == null) {
-        _showError('Authentication required');
-        return;
-      }
+      final isOnline = await ConnectivityHelper().checkConnectivity();
 
-      final response = await http
-          .post(
-            Uri.parse("${getUrl()}forms/${widget.formId}/submit"),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $token',
-            },
-            body: jsonEncode({
-              'responses': responses,
-            }),
-          )
-          .timeout(const Duration(seconds: 30));
+      if (isOnline) {
+        final token = await storage.read(key: "mwstaffjwt");
+        if (token == null) {
+          await queueOfflineSubmission('No auth token available');
+          return;
+        }
 
-      if (response.statusCode == 201 || response.statusCode == 200) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Row(
-                children: [
-                  Icon(Icons.check_circle, color: Colors.white),
-                  SizedBox(width: 12),
-                  Text('Form submitted successfully!'),
-                ],
-              ),
-              backgroundColor: Colors.green,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
-            ),
-          );
-          Navigator.pop(context, true);
+        try {
+          final response = await http
+              .post(
+                Uri.parse("${getUrl()}forms/${widget.formId}/submit"),
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer $token',
+                },
+                body: jsonEncode({
+                  'responses': responses,
+                }),
+              )
+              .timeout(const Duration(seconds: 30));
+
+          if (response.statusCode == 201 || response.statusCode == 200) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Row(
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.white),
+                      SizedBox(width: 12),
+                      Text('Form submitted successfully!'),
+                    ],
+                  ),
+                  backgroundColor: Colors.green,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                ),
+              );
+              Navigator.pop(context, true);
+            }
+          } else {
+            // If server rejects, keep current online behavior
+            final errorData = jsonDecode(response.body);
+            _showError(errorData['message'] ?? 'Failed to submit form');
+          }
+        } catch (e) {
+          // Network failure while "online" – queue for later
+          await queueOfflineSubmission('Network error');
         }
       } else {
-        final errorData = jsonDecode(response.body);
-        _showError(errorData['message'] ?? 'Failed to submit form');
+        // Fully offline – queue immediately
+        await queueOfflineSubmission('Offline');
       }
-    } catch (e) {
-      _showError('Connection error. Please check your internet.');
     } finally {
       if (mounted) {
         setState(() {

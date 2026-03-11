@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+
 import 'package:um_collect/components/Utils.dart';
+import 'package:um_collect/services/database_helper.dart';
 import 'package:um_collect/theme/app_theme.dart';
 import 'package:um_collect/pages/FormFillPage.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
@@ -34,6 +36,8 @@ class _FormsListPageState extends State<FormsListPage> {
       isLoading = true;
       error = null;
     });
+
+    final db = DatabaseHelper();
 
     try {
       final token = await storage.read(key: "mwstaffjwt");
@@ -69,6 +73,11 @@ class _FormsListPageState extends State<FormsListPage> {
             isLoading = false;
             error = null;
           });
+
+          // Cache forms offline for later use
+          if (data is List) {
+            await db.saveForms(List<Map<String, dynamic>>.from(data));
+          }
         } catch (e) {
           print('[FORMS DEBUG] JSON parse error: $e');
           if (!mounted) return;
@@ -91,18 +100,39 @@ class _FormsListPageState extends State<FormsListPage> {
           // If JSON parsing fails, use default message
         }
         print('[FORMS DEBUG] Setting error: $errorMessage');
+        // Try loading cached forms instead of just failing
+        final cached = await db.getForms();
         if (!mounted) return;
+        if (cached.isNotEmpty) {
+          setState(() {
+            forms = cached;
+            isLoading = false;
+            error = '$errorMessage Showing last available list.';
+          });
+        } else {
+          setState(() {
+            error = errorMessage;
+            isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      // On network errors, fall back to cached forms if available
+      final cached = await db.getForms();
+      if (!mounted) return;
+      if (cached.isNotEmpty) {
         setState(() {
-          error = errorMessage;
+          forms = cached;
+          isLoading = false;
+          error =
+              'Connection error. Showing last available list. Please check your internet.';
+        });
+      } else {
+        setState(() {
+          error = 'Connection error. Please check your internet.';
           isLoading = false;
         });
       }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        error = 'Connection error. Please check your internet.';
-        isLoading = false;
-      });
     }
   }
 

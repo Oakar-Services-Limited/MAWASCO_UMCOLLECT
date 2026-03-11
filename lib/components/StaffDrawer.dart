@@ -178,8 +178,8 @@ class _StaffDrawerState extends State<StaffDrawer> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(30),
       ),
-      tileColor: Colors.white.withValues(alpha:0.1),
-      hoverColor: Colors.white.withValues(alpha:0.2),
+      tileColor: Colors.white.withValues(alpha: 0.1),
+      hoverColor: Colors.white.withValues(alpha: 0.2),
     );
   }
 }

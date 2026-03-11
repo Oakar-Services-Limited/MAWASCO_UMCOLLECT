@@ -7,12 +7,15 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:um_collect/components/MySelectInput.dart';
 import 'package:um_collect/components/MyTextInput.dart';
+import 'package:um_collect/components/offline_pending_card.dart';
 import 'package:um_collect/components/StaffDrawer.dart';
 import 'package:um_collect/components/SubmitButton.dart';
 import 'package:um_collect/components/TextResponse.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/models/Map.dart';
 import 'package:um_collect/pages/Assets.dart';
+import 'package:um_collect/services/connectivity_helper.dart';
+import 'package:um_collect/services/database_helper.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:http/http.dart' as http;
@@ -166,6 +169,28 @@ class _DormantMeterFormState extends State<DormantMeterForm> {
       return Message(token: null, success: null, error: "Name must be filled!");
     }
 
+    final db = DatabaseHelper();
+    final isOnline = await ConnectivityHelper().checkConnectivity();
+
+    Future<Message> queueOffline(Map<String, dynamic> payload, String reason) async {
+      await db.saveSubmission(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        formId: 'asset_dormant_meter_register',
+        formName: 'Dormant meter registration',
+        responses: {
+          '_type': 'asset_dormant_meter_register',
+          '_endpoint': 'wt/dormant-customer-meters',
+          '_method': 'POST',
+          '_body': payload,
+        },
+      );
+      return Message(
+        token: null,
+        success: "Saved offline. Will sync when you have internet. ($reason)",
+        error: null,
+      );
+    }
+
     try {
       final token = await storage.read(key: "mwstaffjwt");
       final payload = <String, dynamic>{
@@ -196,6 +221,10 @@ class _DormantMeterFormState extends State<DormantMeterForm> {
         payload['image'] = myimage;
       }
 
+      if (!isOnline) {
+        return await queueOffline(payload, 'Offline');
+      }
+
       final response = await http.post(
         Uri.parse("${getUrl()}wt/dormant-customer-meters"),
         headers: <String, String>{
@@ -223,11 +252,41 @@ class _DormantMeterFormState extends State<DormantMeterForm> {
         error: responseBody['error']?.toString() ?? "Server error. Please try again.",
       );
     } catch (e) {
-      return Message(
-        token: null,
-        success: null,
-        error: "Connection failed. Error: $e",
-      );
+      // Network error: queue for later
+      try {
+        final payload = <String, dynamic>{
+          'name': name,
+          'phone': phone,
+          'accountNo': accnum,
+          'meterNo': meterserial,
+          'accountStatus': accstatus.isEmpty ? 'ACTIVE' : accstatus,
+          'accountType': acctype,
+          'institution': instituteMeterType,
+          'meterStatus': status,
+          'brand': brandname,
+          'material': material,
+          'meterClass': meterclass,
+          'schemeName': schemename,
+          'zone': zone,
+          'route': route,
+          'dma': dma,
+          'location': location,
+          'parcelNo': parcelno,
+          'meterSize': size,
+          'remarks': remarks,
+          'userId': userid,
+          'latitude': lat.toString(),
+          'longitude': long.toString(),
+          if (myimage.isNotEmpty) 'image': myimage,
+        };
+        return await queueOffline(payload, 'Network error');
+      } catch (_) {
+        return Message(
+          token: null,
+          success: null,
+          error: "Connection failed. Error: $e",
+        );
+      }
     }
   }
 
@@ -276,6 +335,10 @@ class _DormantMeterFormState extends State<DormantMeterForm> {
                     style: TextStyle(fontSize: 14, color: Colors.black87),
                   ),
                   const SizedBox(height: 12),
+                  const OfflinePendingCard(
+                    types: ['asset_dormant_meter_register'],
+                    label: 'Dormant meter registrations',
+                  ),
                   SizedBox(
                     height: 220,
                     width: double.infinity,

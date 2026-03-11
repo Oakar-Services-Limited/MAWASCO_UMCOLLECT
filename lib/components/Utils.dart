@@ -4,10 +4,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 String getUrl() {
+  // return "http://192.168.1.121:3003/api/";
   // return "http://192.168.1.136:3003/api/";
-  return "http://192.168.1.136:3003/api/";
 
-  // return "https://api-utilitymanager.mawasco.co.ke/api/";
+  return "https://api-utilitymanager.mawasco.co.ke/api/";
 //
 }
 
@@ -194,12 +194,18 @@ Future<List<String>> getMasterMeterNames() async {
 }
 
 Future<List<String>> _fetchMasterMeterNamesFromApi() async {
-  final response = await http.get(
-    Uri.parse("${getUrl()}wt/master-meters?limit=1000&namesOnly=1"),
-    headers: <String, String>{
-      'Content-Type': 'application/json; charset=UTF-8'
-    },
-  );
+  http.Response response;
+  try {
+    response = await http.get(
+      Uri.parse("${getUrl()}wt/master-meters?limit=1000&namesOnly=1"),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8'
+      },
+    );
+  } catch (e) {
+    // Covers DNS failures (Failed host lookup), no internet, etc.
+    return List.from(_masterMeterNamesCache); // keep previous cache on error
+  }
 
   if (response.statusCode != 200) {
     return List.from(_masterMeterNamesCache); // keep previous cache on error

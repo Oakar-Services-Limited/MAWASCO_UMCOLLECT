@@ -7,8 +7,11 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:um_collect/components/MyDrawer.dart';
 import 'package:um_collect/components/MySelectInput.dart';
 import 'package:um_collect/components/MyTextInput.dart';
+import 'package:um_collect/components/offline_pending_card.dart';
 import 'package:um_collect/components/SubmitButton.dart';
 import 'package:um_collect/components/Utils.dart';
+import 'package:um_collect/services/connectivity_helper.dart';
+import 'package:um_collect/services/database_helper.dart';
 import 'package:um_collect/pages/Assets.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
@@ -115,6 +118,10 @@ class _SewerLinesState extends State<SewerLines> {
                     ),
                     const SizedBox(
                       height: 8,
+                    ),
+                    const OfflinePendingCard(
+                      types: ['asset_sewer_lines'],
+                      label: 'Sewer Lines',
                     ),
                     MyTextInput(
                       lines: 1,
@@ -340,6 +347,43 @@ Future<Message> submitData(
     String status,
     String remarks,
     String staffid) async {
+  final db = DatabaseHelper();
+  final isOnline = await ConnectivityHelper().checkConnectivity();
+
+  Future<Message> queueOffline(String reason) async {
+    final payload = {
+      'material': material,
+      'type': type,
+      'route': route,
+      'schemeName': schemename,
+      'zone': zone,
+      'size': size,
+      'status': status,
+      'remarks': remarks,
+      'userId': staffid,
+      'coordinates': coordinates
+    };
+
+    await db.saveSubmission(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      formId: 'asset_sewer_lines',
+      formName: 'Sewer Line',
+      responses: {
+        '_type': 'asset_sewer_lines',
+        '_endpoint': 'sr/sewer-lines',
+        '_method': 'POST',
+        '_body': payload,
+      },
+    );
+
+    return Message(
+      token: null,
+      success:
+          "Saved offline. Will sync when you have internet. ($reason)",
+      error: null,
+    );
+  }
+
   try {
     final requestBody = {
       'material': material,
@@ -353,6 +397,10 @@ Future<Message> submitData(
       'userId': staffid,
       'coordinates': coordinates
     };
+
+    if (!isOnline) {
+      return await queueOffline('Offline');
+    }
 
     var response = await http.post(
       Uri.parse("${getUrl()}sr/sewer-lines"),
@@ -390,11 +438,7 @@ Future<Message> submitData(
       }
     }
   } catch (e) {
-    return Message(
-      token: null,
-      success: null,
-      error: "Connection failed! Check your internet connection.",
-    );
+    return await queueOffline('Network error');
   }
 }
 

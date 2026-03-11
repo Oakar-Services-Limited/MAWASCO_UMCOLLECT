@@ -7,9 +7,12 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:um_collect/components/MyDrawer.dart';
 import 'package:um_collect/components/MySelectInput.dart';
 import 'package:um_collect/components/MyTextInput.dart';
+import 'package:um_collect/components/offline_pending_card.dart';
 import 'package:um_collect/components/SubmitButton.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/pages/Assets.dart';
+import 'package:um_collect/services/connectivity_helper.dart';
+import 'package:um_collect/services/database_helper.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:http/http.dart' as http;
@@ -139,6 +142,10 @@ class _LineProjectsState extends State<LineProjects> {
                     ),
                     const SizedBox(
                       height: 8,
+                    ),
+                    const OfflinePendingCard(
+                      types: ['asset_line_projects'],
+                      label: 'Line Projects',
                     ),
                     MySelectInput(
                       onSubmit: (value) {
@@ -366,6 +373,47 @@ Future<Message> submitData(
     String size,
     String staffid,
     String? editing) async {
+  final db = DatabaseHelper();
+  final isOnline = await ConnectivityHelper().checkConnectivity();
+
+  Future<Message> queueOffline(String reason) async {
+    final payload = <String, dynamic>{
+      'projectType': projectType,
+      'lineName': linename,
+      'lineType': lineType,
+      'zone': zone,
+      'route': route,
+      'size': size,
+      'userId': staffid,
+      'coordinates': coordinates,
+    };
+    if (lineType == 'Water Pipes') {
+      payload['intake'] = intake;
+    }
+
+    final endpoint =
+        editing == 'true' ? 'pj/lines/$lineprojectID' : 'pj/lines';
+    final method = editing == 'true' ? 'PUT' : 'POST';
+
+    await db.saveSubmission(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      formId: 'asset_line_projects',
+      formName: 'Line Projects',
+      responses: {
+        '_type': 'asset_line_projects',
+        '_endpoint': endpoint,
+        '_method': method,
+        '_body': payload,
+      },
+    );
+
+    return Message(
+      token: null,
+      success: "Saved offline. Will sync when you have internet. ($reason)",
+      error: null,
+    );
+  }
+
   debugPrint(
       'projectType: $projectType, lineName: $linename, lineType: $lineType, zone: $zone, route: $route, size: $size, staffid: $staffid, coordinates: $coordinates, intake: $intake');
   try {
@@ -385,6 +433,10 @@ Future<Message> submitData(
     // Add intake only for Water Pipes
     if (lineType == 'Water Pipes') {
       requestBody['intake'] = intake;
+    }
+
+    if (!isOnline) {
+      return await queueOffline('Offline');
     }
 
     if (editing == 'true') {
@@ -434,11 +486,7 @@ Future<Message> submitData(
       }
     }
   } catch (e) {
-    return Message(
-      token: null,
-      success: null,
-      error: "Connection failed! Check your internet connection.",
-    );
+    return await queueOffline('Network error');
   }
 }
 

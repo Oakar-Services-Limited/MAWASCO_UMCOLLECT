@@ -4,16 +4,20 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:um_collect/components/MySelectInput.dart';
 import 'package:um_collect/components/MyTextInput.dart';
+import 'package:um_collect/components/offline_pending_card.dart';
 import 'package:um_collect/components/StaffDrawer.dart';
 import 'package:um_collect/components/SubmitButton.dart';
 import 'package:um_collect/components/TextResponse.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/models/Map.dart';
 import 'package:um_collect/pages/Assets.dart';
+import 'package:um_collect/services/connectivity_helper.dart';
+import 'package:um_collect/services/database_helper.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:http/http.dart' as http;
@@ -52,6 +56,7 @@ class _CustomerMetersState extends State<CustomerMeters> {
   String remarks = '';
   late File? _image;
   final imagePicker = ImagePicker();
+  bool _isPickingImage = false;
   String myimage = '';
   String user = '';
   String userid = '';
@@ -85,17 +90,32 @@ class _CustomerMetersState extends State<CustomerMeters> {
   }
 
   Future<void> takePhoto() async {
-    final pickedFile = await imagePicker.pickImage(
-      source: ImageSource.camera, // Open the camera to take a photo
-    );
+    if (_isPickingImage) return;
+    _isPickingImage = true;
+    if (mounted) setState(() {});
 
-    if (pickedFile != null) {
-      String base64Image = await convertFileToBase64(pickedFile);
-      if (!mounted) return;
-      setState(() {
-        _image = File(pickedFile.path);
-        myimage = base64Image;
-      });
+    try {
+      final pickedFile = await imagePicker.pickImage(
+        source: ImageSource.camera, // Open the camera to take a photo
+      );
+
+      if (pickedFile != null) {
+        String base64Image = await convertFileToBase64(pickedFile);
+        if (!mounted) return;
+        setState(() {
+          _image = File(pickedFile.path);
+          myimage = base64Image;
+        });
+      }
+    } on PlatformException catch (e) {
+      if (e.code != 'already_active' && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message ?? 'Image picker error')),
+        );
+      }
+    } finally {
+      _isPickingImage = false;
+      if (mounted) setState(() {});
     }
   }
 
@@ -239,6 +259,10 @@ class _CustomerMetersState extends State<CustomerMeters> {
                     const SizedBox(
                       height: 8,
                     ),
+                    const OfflinePendingCard(
+                      types: ['asset_customer_meters'],
+                      label: 'Customer Meters',
+                    ),
                     Padding(
                         padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
                         child: SizedBox(
@@ -320,7 +344,7 @@ class _CustomerMetersState extends State<CustomerMeters> {
                                           size: 50,
                                           color: Color(0xff0288D1),
                                         ),
-                                        onPressed: () => takePhoto(),
+                                        onPressed: _isPickingImage ? null : () => takePhoto(),
                                       ),
                                     ),
                                   ],
@@ -731,10 +755,14 @@ Future<Message> submitData(
     );
   }
 
+  final db = DatabaseHelper();
+  final isOnline = await ConnectivityHelper().checkConnectivity();
+  late final Map<String, dynamic> payload;
+
   try {
     http.Response response;
 
-    final payload = <String, dynamic>{
+    payload = <String, dynamic>{
       'name': name,
       'phone': phone,
       'accountNo': accountnumber,
@@ -758,9 +786,47 @@ Future<Message> submitData(
       'latitude': id == '' ? lat : null,
       'longitude': id == '' ? long : null,
     };
-    if (myimage.isNotEmpty) {
+    final hasImage = myimage.isNotEmpty;
+
+    Future<Message> queueOffline(String reason) async {
+      // Avoid storing large base64 images in SQLite queue (can fail due to size).
+      final offlinePayload = Map<String, dynamic>.from(payload);
+
+      final endpoint = (id != null && id.isNotEmpty)
+          ? 'wt/customer-meters/$id'
+          : 'wt/customer-meters';
+      final method = (id != null && id.isNotEmpty) ? 'PUT' : 'POST';
+
+      await db.saveSubmission(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        formId: 'asset_customer_meters',
+        formName: 'Customer Meters',
+        responses: {
+          '_type': 'asset_customer_meters',
+          '_endpoint': endpoint,
+          '_method': method,
+          '_body': offlinePayload,
+        },
+      );
+
+      return Message(
+        token: null,
+        success: hasImage
+            ? "Saved offline (without photo). Will sync when you have internet. ($reason)"
+            : "Saved offline. Will sync when you have internet. ($reason)",
+        error: null,
+      );
+    }
+
+    if (!isOnline) {
+      return await queueOffline('Offline');
+    }
+
+    // Online submit can include image as base64.
+    if (hasImage) {
       payload['image'] = myimage;
     }
+
     if (id != '') {
       response = await http.put(
         Uri.parse("${getUrl()}wt/customer-meters/$id"),
@@ -803,11 +869,40 @@ Future<Message> submitData(
       );
     }
   } catch (e) {
-    return Message(
-      token: null,
-      success: null,
-      error: "Connection failed! Check your internet connection. Error: $e",
-    );
+    try {
+      // If we failed after including image, don't store image in offline queue.
+      final offlinePayload = Map<String, dynamic>.from(payload);
+      offlinePayload.remove('image');
+
+      final endpoint = (id != null && id.isNotEmpty)
+          ? 'wt/customer-meters/$id'
+          : 'wt/customer-meters';
+      final method = (id != null && id.isNotEmpty) ? 'PUT' : 'POST';
+      await db.saveSubmission(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        formId: 'asset_customer_meters',
+        formName: 'Customer Meters',
+        responses: {
+          '_type': 'asset_customer_meters',
+          '_endpoint': endpoint,
+          '_method': method,
+          '_body': offlinePayload,
+        },
+      );
+      return Message(
+        token: null,
+        success: myimage.isNotEmpty
+            ? "Saved offline (without photo). Will sync when you have internet. (Network error)"
+            : "Saved offline. Will sync when you have internet. (Network error)",
+        error: null,
+      );
+    } catch (_) {
+      return Message(
+        token: null,
+        success: null,
+        error: "Connection failed! Check your internet connection. Error: $e",
+      );
+    }
   }
 }
 

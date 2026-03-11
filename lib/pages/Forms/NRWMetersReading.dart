@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:um_collect/components/MySelectInput.dart';
 import 'package:um_collect/components/MyTextInput.dart';
 import 'package:um_collect/components/MyTextInputII.dart';
+import 'package:um_collect/components/offline_pending_card.dart';
 import 'package:um_collect/components/StaffDrawer.dart';
 import 'package:um_collect/components/SubmitButton.dart';
 import 'package:um_collect/components/TextResponse.dart';
@@ -16,6 +17,8 @@ import 'package:um_collect/components/Utils.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:um_collect/models/Map.dart';
 import 'package:um_collect/pages/NRW.dart';
+import 'package:um_collect/services/connectivity_helper.dart';
+import 'package:um_collect/services/database_helper.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:http/http.dart' as http;
 
@@ -198,6 +201,9 @@ class _NRWMeterReadingState extends State<NRWMeterReading> {
     String seconddate,
     String myimage,
   ) async {
+    final db = DatabaseHelper();
+    final isOnline = await ConnectivityHelper().checkConnectivity();
+
     // For Second Reading
     if (interval == "Second Reading") {
       if (account.isEmpty) {
@@ -232,17 +238,38 @@ class _NRWMeterReadingState extends State<NRWMeterReading> {
         );
       }
 
+      final body = <String, dynamic>{
+        'AccountNo': account,
+        'SecondReading': secondreading,
+        'SR_Image': myimage,
+      };
+
+      if (!isOnline) {
+        await db.saveSubmission(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          formId: 'asset_nrw_meter_reading',
+          formName: 'NRW meter reading (second)',
+          responses: {
+            '_type': 'asset_nrw_meter_reading',
+            '_endpoint': 'nrw_dmareadings/update/secondreading',
+            '_method': 'PUT',
+            '_body': body,
+          },
+        );
+        return Message(
+          token: null,
+          success: "Saved offline. Will sync when you have internet. (Offline)",
+          error: null,
+        );
+      }
+
       try {
         final response = await http.put(
           Uri.parse("${getUrl()}nrw_dmareadings/update/secondreading"),
           headers: <String, String>{
             'Content-Type': 'application/json; charset=UTF-8',
           },
-          body: jsonEncode(<String, dynamic>{
-            'AccountNo': account,
-            'SecondReading': secondreading,
-            'SR_Image': myimage,
-          }),
+          body: jsonEncode(body),
         );
 
         if (response.statusCode == 200 || response.statusCode == 203) {
@@ -255,10 +282,22 @@ class _NRWMeterReadingState extends State<NRWMeterReading> {
           );
         }
       } catch (e) {
+        await db.saveSubmission(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          formId: 'asset_nrw_meter_reading',
+          formName: 'NRW meter reading (second)',
+          responses: {
+            '_type': 'asset_nrw_meter_reading',
+            '_endpoint': 'nrw_dmareadings/update/secondreading',
+            '_method': 'PUT',
+            '_body': body,
+          },
+        );
         return Message(
           token: null,
-          success: null,
-          error: "Connection failed! Check your internet connection.",
+          success:
+              "Saved offline. Will sync when you have internet. (Network error)",
+          error: null,
         );
       }
     }
@@ -321,17 +360,37 @@ class _NRWMeterReadingState extends State<NRWMeterReading> {
       );
     }
 
+    final requestBody = {
+      'dma_name': dmaname,
+      'units': firstreading,
+      'meter_status': meterstatus,
+      'remarks': remarks,
+      'date': firstdate,
+      'image': myimage,
+      'user_id': staffid,
+    };
+
+    if (!isOnline) {
+      await db.saveSubmission(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        formId: 'asset_nrw_meter_reading',
+        formName: 'NRW meter reading (first)',
+        responses: {
+          '_type': 'asset_nrw_meter_reading',
+          '_endpoint': 'nrw_dmareadings/',
+          '_method': 'POST',
+          '_body': requestBody,
+        },
+      );
+      return Message(
+        token: null,
+        success: "Saved offline. Will sync when you have internet. (Offline)",
+        error: null,
+      );
+    }
+
     try {
       // Prepare the request body
-      final requestBody = {
-        'dma_name': dmaname,
-        'units': firstreading,
-        'meter_status': meterstatus,
-        'remarks': remarks,
-        'date': firstdate,
-        'image': myimage,
-        'user_id': staffid,
-      };
       final response = await http.post(
         Uri.parse("${getUrl()}nrw_dmareadings/"),
         headers: <String, String>{
@@ -351,10 +410,22 @@ class _NRWMeterReadingState extends State<NRWMeterReading> {
         );
       }
     } catch (e) {
+      await db.saveSubmission(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        formId: 'asset_nrw_meter_reading',
+        formName: 'NRW meter reading (first)',
+        responses: {
+          '_type': 'asset_nrw_meter_reading',
+          '_endpoint': 'nrw_dmareadings/',
+          '_method': 'POST',
+          '_body': requestBody,
+        },
+      );
       return Message(
         token: null,
-        success: null,
-        error: "Connection failed! Check your internet connection.",
+        success:
+            "Saved offline. Will sync when you have internet. (Network error)",
+        error: null,
       );
     }
   }
@@ -406,6 +477,10 @@ class _NRWMeterReadingState extends State<NRWMeterReading> {
                       ),
                     ),
                     const SizedBox(height: 8),
+                    const OfflinePendingCard(
+                      types: ['asset_nrw_meter_reading'],
+                      label: 'NRW meter readings',
+                    ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
                       child: SizedBox(

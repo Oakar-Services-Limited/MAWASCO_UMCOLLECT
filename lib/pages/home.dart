@@ -32,6 +32,7 @@ import 'package:intl/intl.dart';
 import 'package:um_collect/pages/stafflogin.dart';
 import 'package:um_collect/pages/customer_supply_feedback.dart';
 import 'package:um_collect/pages/FormsListPage.dart';
+import 'package:um_collect/pages/MapCoreServices.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -419,6 +420,13 @@ class _HomeState extends State<Home> {
       crossAxisSpacing: 8,
       childAspectRatio: 0.8,
       children: [
+        _buildServiceCard(
+          'Map',
+          Icons.map,
+          () => Navigator.of(context).push(MaterialPageRoute(
+            builder: (context) => MapCoreServices(staffid: staffid),
+          )),
+        ),
         _buildServiceCard(
           'Mapping',
           Icons.map_outlined,
