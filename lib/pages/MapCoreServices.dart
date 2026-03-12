@@ -80,12 +80,22 @@ class _MapCoreServicesState extends State<MapCoreServices> {
   double _nearbyRadiusMeters = 100;
   String _nearbyUnit = 'm'; // 'm' or 'km'
   String _nearbyText = '100';
+  final TextEditingController _nearbyController =
+      TextEditingController(text: '100');
 
   String _selectedCategory = 'All';
   String? _selectedSearchColumn;
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
   String? _searchError;
+  bool _allLayersRequested = false;
+  bool _allLayersZoomed = false;
+  Timer? _fitDebounce;
+
+  // Toggle to enable verbose debugging logs
+  static const bool _debugMap = true;
+
+  bool _legendOpen = false;
 
   static const List<String> _categories = [
     'All',
@@ -119,11 +129,15 @@ class _MapCoreServicesState extends State<MapCoreServices> {
     super.initState();
     _initLocation();
     _loadZones();
+    // Match admin UX: show everything on "All" without requiring search inputs.
+    _ensureCategoryLoaded('All');
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _nearbyController.dispose();
+    _fitDebounce?.cancel();
     super.dispose();
   }
 
@@ -199,6 +213,12 @@ class _MapCoreServicesState extends State<MapCoreServices> {
         return;
       }
 
+      if (_debugMap &&
+          (type == MapLayerType.waterPipes ||
+              type == MapLayerType.sewerLines)) {
+        debugPrint('[Map] Loading layer ${type.name} url=$uri');
+      }
+
       final token = await _storage.read(key: 'mwstaffjwt');
       final headers = <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
@@ -206,6 +226,15 @@ class _MapCoreServicesState extends State<MapCoreServices> {
       };
 
       final response = await http.get(uri, headers: headers);
+
+      if (_debugMap &&
+          (type == MapLayerType.waterPipes ||
+              type == MapLayerType.sewerLines)) {
+        debugPrint('[Map] Layer ${type.name} status=${response.statusCode}');
+        if (response.statusCode != 200) {
+          debugPrint('[Map] Layer ${type.name} body=${response.body}');
+        }
+      }
 
       if (response.statusCode != 200) {
         setState(() {
@@ -218,11 +247,42 @@ class _MapCoreServicesState extends State<MapCoreServices> {
       final List data =
           decoded is Map<String, dynamic> ? (decoded['data'] ?? []) : decoded;
 
+      if (_debugMap &&
+          (type == MapLayerType.waterPipes ||
+              type == MapLayerType.sewerLines)) {
+        debugPrint('[Map] Layer ${type.name} records=${data.length}');
+        if (data.isNotEmpty && data.first is Map) {
+          final m = (data.first as Map).cast<String, dynamic>();
+          debugPrint('[Map] Layer ${type.name} sample keys=${m.keys.toList()}');
+          debugPrint(
+              '[Map] Layer ${type.name} sample coordinatesType=${m['coordinates']?.runtimeType} len=${(m['coordinates'] is List) ? (m['coordinates'] as List).length : 'n/a'}');
+          debugPrint(
+              '[Map] Layer ${type.name} sample geomType=${(m['geom'] is Map) ? (m['geom'] as Map)['type'] : m['geom']?.runtimeType}');
+        }
+      }
+
       final features = <_MapFeature>[];
       for (final raw in data) {
         if (raw is! Map) continue;
         final f = _parseFeature(type, raw.cast<String, dynamic>());
         if (f != null) features.add(f);
+      }
+
+      if (_debugMap &&
+          (type == MapLayerType.waterPipes ||
+              type == MapLayerType.sewerLines)) {
+        final withLines =
+            features.where((f) => f.line != null && f.line!.length >= 2).length;
+        debugPrint(
+            '[Map] Layer ${type.name} parsedFeatures=${features.length} withLines=$withLines');
+        if (features.isNotEmpty) {
+          final firstLine = features.firstWhere(
+            (f) => f.line != null && f.line!.length >= 2,
+            orElse: () => features.first,
+          );
+          debugPrint(
+              '[Map] Layer ${type.name} sample parsed points=${firstLine.line?.length ?? 0} name="${firstLine.name}"');
+        }
       }
 
       setState(() {
@@ -231,6 +291,7 @@ class _MapCoreServicesState extends State<MapCoreServices> {
       });
       _updateZonesWithAssets();
       _rebuildZonePolygons();
+      _scheduleFitToActiveAssets();
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -307,34 +368,72 @@ class _MapCoreServicesState extends State<MapCoreServices> {
           ?.toString();
 
       if (type == MapLayerType.waterPipes || type == MapLayerType.sewerLines) {
+        final points = <LatLng>[];
+
+        void addLonLatPair(dynamic lonRaw, dynamic latRaw) {
+          final lon = double.tryParse(lonRaw?.toString() ?? '');
+          final lat = double.tryParse(latRaw?.toString() ?? '');
+          if (lat != null && lon != null) {
+            points.add(LatLng(lat, lon));
+          }
+        }
+
+        // Primary: coordinates column (may be null in API, depending on controller)
         final coords = raw['coordinates'];
         if (coords is List && coords.isNotEmpty) {
-          final points = <LatLng>[];
           for (final c in coords) {
             if (c is Map) {
-              final lat = double.tryParse(c['latitude']?.toString() ?? '');
-              final lon = double.tryParse(c['longitude']?.toString() ?? '');
-              if (lat != null && lon != null) {
-                points.add(LatLng(lat, lon));
-              }
+              addLonLatPair(c['longitude'], c['latitude']);
             } else if (c is List && c.length >= 2) {
-              // Fallback for [lon, lat] style arrays
-              final lon = double.tryParse(c[0].toString());
-              final lat = double.tryParse(c[1].toString());
-              if (lat != null && lon != null) {
-                points.add(LatLng(lat, lon));
+              addLonLatPair(c[0], c[1]); // [lon, lat]
+            }
+          }
+        }
+
+        // Fallback: PostGIS geometry returned by Sequelize in `geom`
+        // Expected shapes:
+        // - { type: "LineString", coordinates: [[lon,lat], ...] }
+        // - { type: "MultiLineString", coordinates: [[[lon,lat], ...], ...] }
+        if (points.length < 2) {
+          final geom = raw['geom'];
+          if (geom is Map) {
+            final gType = geom['type']?.toString();
+            final gCoords = geom['coordinates'];
+            if (gType == 'LineString' && gCoords is List) {
+              for (final c in gCoords) {
+                if (c is List && c.length >= 2) addLonLatPair(c[0], c[1]);
+              }
+            } else if (gType == 'MultiLineString' && gCoords is List) {
+              for (final line in gCoords) {
+                if (line is List) {
+                  for (final c in line) {
+                    if (c is List && c.length >= 2) addLonLatPair(c[0], c[1]);
+                  }
+                  // Only take the first part for display (keeps polyline simple)
+                  if (points.length >= 2) break;
+                }
               }
             }
           }
-          if (points.length >= 2) {
-            return _MapFeature(
-              id: id,
-              name: name,
-              type: type,
-              line: points,
-              zoneId: zoneId,
-            );
+        }
+
+        if (points.length >= 2) {
+          if (_debugMap && type == MapLayerType.sewerLines) {
+            debugPrint(
+                '[Map] Parsed sewer line id=$id points=${points.length} geomType=${(raw['geom'] is Map) ? (raw['geom'] as Map)['type'] : raw['geom']?.runtimeType}');
           }
+          return _MapFeature(
+            id: id,
+            name: name,
+            type: type,
+            line: points,
+            zoneId: zoneId,
+          );
+        }
+
+        if (_debugMap && type == MapLayerType.sewerLines) {
+          debugPrint(
+              '[Map] Skipping sewer line id=$id: no drawable points. coordinates=${raw['coordinates']?.runtimeType} geom=${raw['geom']?.runtimeType}');
         }
         return null;
       }
@@ -410,7 +509,7 @@ class _MapCoreServicesState extends State<MapCoreServices> {
 
     if (allPoints.isEmpty) {
       if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('No assets loaded for nearby search.'),
         ),
@@ -489,6 +588,8 @@ class _MapCoreServicesState extends State<MapCoreServices> {
   }
 
   void _openBufferSheet() {
+    // Keep controller in sync with current stored text.
+    _nearbyController.text = _nearbyText;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -538,7 +639,7 @@ class _MapCoreServicesState extends State<MapCoreServices> {
                           border: OutlineInputBorder(),
                           isDense: true,
                         ),
-                        controller: TextEditingController(text: _nearbyText),
+                        controller: _nearbyController,
                         onChanged: (value) {
                           setState(() {
                             _nearbyText = value;
@@ -604,6 +705,123 @@ class _MapCoreServicesState extends State<MapCoreServices> {
     );
   }
 
+  void _openLegendSheet() {
+    if (_legendOpen) return;
+    _legendOpen = true;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        final items = <MapEntry<String, Widget>>[
+          MapEntry('Customer Meters',
+              _legendDot(_legendColor(MapLayerType.customerMeters))),
+          MapEntry('Valves', _legendDot(_legendColor(MapLayerType.valves))),
+          MapEntry('Master Meters',
+              _legendDot(_legendColor(MapLayerType.masterMeters))),
+          MapEntry(
+              'Water Tanks', _legendDot(_legendColor(MapLayerType.waterTanks))),
+          MapEntry('Washouts', _legendDot(_legendColor(MapLayerType.washouts))),
+          MapEntry('Kiosks', _legendDot(_legendColor(MapLayerType.kiosks))),
+          MapEntry('Dormant Meters',
+              _legendDot(_legendColor(MapLayerType.dormantMeters))),
+          MapEntry('Manholes', _legendDot(_legendColor(MapLayerType.manholes))),
+          MapEntry('Water Pipes',
+              _legendLine(_legendColor(MapLayerType.waterPipes))),
+          MapEntry('Sewer Lines',
+              _legendLine(_legendColor(MapLayerType.sewerLines))),
+        ];
+
+        return SafeArea(
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(24),
+                topRight: Radius.circular(24),
+              ),
+            ),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Legend',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.primaryMain,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Marker and line colors by asset type.',
+                  style: TextStyle(fontSize: 13, color: Colors.black87),
+                ),
+                const SizedBox(height: 12),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 420),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: items.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final e = items[index];
+                      return ListTile(
+                        dense: true,
+                        leading: e.value,
+                        title: Text(
+                          e.key,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    ).whenComplete(() {
+      _legendOpen = false;
+    });
+  }
+
+  Widget _legendDot(Color color) {
+    return Container(
+      width: 14,
+      height: 14,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.black.withValues(alpha: 0.15)),
+      ),
+    );
+  }
+
+  Widget _legendLine(Color color) {
+    return Container(
+      width: 22,
+      height: 6,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(3),
+      ),
+    );
+  }
+
   void _toggleMapType() {
     setState(() {
       _mapType =
@@ -654,6 +872,35 @@ class _MapCoreServicesState extends State<MapCoreServices> {
             left: 12,
             right: 12,
             child: _buildTopFilterPanel(),
+          ),
+          Positioned(
+            left: 12,
+            bottom: 12 + MediaQuery.of(context).padding.bottom,
+            child: Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: _openLegendSheet,
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.legend_toggle, color: AppTheme.primaryMain),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Legend',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
           if (_isLoadingLocation || _isLoadingLayers)
             Positioned(
@@ -767,7 +1014,9 @@ class _MapCoreServicesState extends State<MapCoreServices> {
               zoneFeatures.add(_ZoneFeature(zoneId: zoneId, points: pts));
             }
           }
-        } else if (type == 'MultiPolygon' && coords is List && coords.isNotEmpty) {
+        } else if (type == 'MultiPolygon' &&
+            coords is List &&
+            coords.isNotEmpty) {
           for (final poly in coords) {
             if (poly is List && poly.isNotEmpty) {
               final ring = poly[0];
@@ -866,8 +1115,8 @@ class _MapCoreServicesState extends State<MapCoreServices> {
     var idx = 0;
 
     for (final z in _zoneFeatures) {
-      final hasAssets = z.zoneId != null &&
-          _zonesWithAssets.contains(z.zoneId!.trim());
+      final hasAssets =
+          z.zoneId != null && _zonesWithAssets.contains(z.zoneId!.trim());
 
       final strokeColor = hasAssets
           ? const Color(0xFF00E5FF)
@@ -936,12 +1185,7 @@ class _MapCoreServicesState extends State<MapCoreServices> {
                           : AppTheme.primaryMain.withValues(alpha: 0.35),
                     ),
                     onSelected: (_) {
-                      setState(() {
-                        _selectedCategory = cat;
-                        _selectedSearchColumn = null;
-                        _searchError = null;
-                        _searchController.clear();
-                      });
+                      _onCategorySelected(cat);
                     },
                   );
                 },
@@ -951,6 +1195,49 @@ class _MapCoreServicesState extends State<MapCoreServices> {
         ),
       ),
     );
+  }
+
+  void _onCategorySelected(String cat) {
+    setState(() {
+      _selectedCategory = cat;
+      _selectedSearchColumn = null;
+      _searchError = null;
+      _searchController.clear();
+    });
+    _ensureCategoryLoaded(cat);
+  }
+
+  void _ensureCategoryLoaded(String cat) {
+    if (cat == 'All') {
+      if (!_allLayersRequested) {
+        _allLayersRequested = true;
+        _allLayersZoomed = false;
+        // Load all layers in background, then auto-fit to their combined extent.
+        Future.wait(MapLayerType.values.map(_loadLayer)).then((_) {
+          if (!mounted) return;
+          _zoomToAllLoadedAssets();
+        });
+      } else {
+        // Re-selecting ALL: if assets already loaded, fit immediately.
+        _zoomToAllLoadedAssets();
+      }
+      return;
+    }
+
+    final layer = _categoryToLayer[cat];
+    if (layer == null) return;
+
+    // If already loaded, just zoom to it for immediate feedback.
+    final alreadyLoaded = (_layerData[layer]?.isNotEmpty ?? false);
+    if (alreadyLoaded) {
+      _zoomToLayer(layer);
+      return;
+    }
+
+    // Otherwise load unfiltered data then zoom.
+    _loadLayer(layer).then((_) {
+      _zoomToLayer(layer);
+    });
   }
 
   Widget _buildSearchControls() {
@@ -1169,6 +1456,31 @@ class _MapCoreServicesState extends State<MapCoreServices> {
     }
   }
 
+  Color _legendColor(MapLayerType type) {
+    switch (type) {
+      case MapLayerType.customerMeters:
+        return const Color(0xFF2196F3);
+      case MapLayerType.waterTanks:
+        return const Color(0xFF00BCD4);
+      case MapLayerType.valves:
+        return const Color(0xFF4CAF50);
+      case MapLayerType.masterMeters:
+        return const Color(0xFFFF9800);
+      case MapLayerType.washouts:
+        return const Color(0xFFF44336);
+      case MapLayerType.kiosks:
+        return const Color(0xFFE91E63);
+      case MapLayerType.dormantMeters:
+        return const Color(0xFF9C27B0);
+      case MapLayerType.manholes:
+        return const Color(0xFFFFC107);
+      case MapLayerType.waterPipes:
+        return Colors.blueAccent;
+      case MapLayerType.sewerLines:
+        return Colors.tealAccent.shade700;
+    }
+  }
+
   Future<void> _handleSearchWithFilter() async {
     final layer = _categoryToLayer[_selectedCategory];
     if (layer == null) {
@@ -1212,14 +1524,77 @@ class _MapCoreServicesState extends State<MapCoreServices> {
     final features = _layerData[layer] ?? const [];
     if (features.isEmpty) return;
 
+    final bounds = _computeBoundsForActiveAssets(activeLayer: layer);
+    if (bounds == null) return;
+
+    final safeBounds = _safeBounds(bounds);
+
+    await _fitBoundsWithRetry(safeBounds, padding: 60);
+  }
+
+  Future<void> _zoomToAllLoadedAssets() async {
+    if (_allLayersZoomed) return;
+
+    // Prefer densest cluster so we zoom to where assets are many.
+    final bounds = _computeDensestClusterBounds(activeLayer: null) ??
+        _computeBoundsForActiveAssets(activeLayer: null);
+    if (bounds == null) return;
+
+    final safeBounds = _safeBounds(bounds);
+    final ok = await _fitBoundsWithRetry(safeBounds, padding: 70);
+    if (ok) _allLayersZoomed = true;
+  }
+
+  Future<bool> _fitBoundsWithRetry(LatLngBounds bounds,
+      {required double padding}) async {
+    try {
+      final controller = await _controller.future;
+      await controller.animateCamera(
+        CameraUpdate.newLatLngBounds(bounds, padding),
+      );
+      return true;
+    } catch (_) {
+      // Often fails if called before the map has a size; retry shortly.
+      try {
+        await Future.delayed(const Duration(milliseconds: 350));
+        final controller = await _controller.future;
+        await controller.animateCamera(
+          CameraUpdate.newLatLngBounds(bounds, padding),
+        );
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+  }
+
+  void _scheduleFitToActiveAssets() {
+    // Debounce so fit happens after render settles.
+    _fitDebounce?.cancel();
+    _fitDebounce = Timer(const Duration(milliseconds: 450), () {
+      if (!mounted) return;
+      final activeLayer = _categoryToLayer[_selectedCategory];
+      if (_selectedCategory == 'All') {
+        // Keep ALL view fitted as new layers arrive.
+        _allLayersZoomed = false;
+        _zoomToAllLoadedAssets();
+      } else if (activeLayer != null) {
+        _zoomToLayer(activeLayer);
+      }
+    });
+  }
+
+  LatLngBounds? _computeBoundsForActiveAssets(
+      {required MapLayerType? activeLayer}) {
     LatLngBounds? bounds;
 
     void extendBounds(LatLng p) {
       if (bounds == null) {
         bounds = LatLngBounds(southwest: p, northeast: p);
       } else {
-        final sw = bounds!.southwest;
-        final ne = bounds!.northeast;
+        final b = bounds!;
+        final sw = b.southwest;
+        final ne = b.northeast;
         bounds = LatLngBounds(
           southwest: LatLng(
             p.latitude < sw.latitude ? p.latitude : sw.latitude,
@@ -1233,27 +1608,99 @@ class _MapCoreServicesState extends State<MapCoreServices> {
       }
     }
 
-    for (final f in features) {
-      if (f.point != null) {
-        extendBounds(f.point!);
-      }
-      if (f.line != null) {
-        for (final p in f.line!) {
-          extendBounds(p);
+    _layerData.forEach((type, features) {
+      if (activeLayer != null && activeLayer != type) return;
+      for (final f in features) {
+        if (f.point != null) extendBounds(f.point!);
+        final line = f.line;
+        if (line != null) {
+          for (final p in line) {
+            extendBounds(p);
+          }
         }
       }
+    });
+
+    return bounds;
+  }
+
+  LatLngBounds? _computeDensestClusterBounds(
+      {required MapLayerType? activeLayer}) {
+    // Bin points into a fixed lat/lon grid and choose the busiest cell.
+    // This is a lightweight alternative to full clustering and gives an
+    // admin-like "zoom to where assets are many" behavior.
+    const cellSizeDeg = 0.01; // ~1km grid
+    final bins = <String, List<LatLng>>{};
+
+    void addPoint(LatLng p) {
+      final gx = (p.longitude / cellSizeDeg).floor();
+      final gy = (p.latitude / cellSizeDeg).floor();
+      final key = '$gx:$gy';
+      (bins[key] ??= <LatLng>[]).add(p);
     }
 
-    if (bounds == null) return;
+    _layerData.forEach((type, features) {
+      if (activeLayer != null && activeLayer != type) return;
+      for (final f in features) {
+        if (f.point != null) addPoint(f.point!);
+      }
+    });
 
-    try {
-      final controller = await _controller.future;
-      await controller.animateCamera(
-        CameraUpdate.newLatLngBounds(bounds!, 60),
-      );
-    } catch (_) {
-      // Fallback: center on current location if bounds fail
-      await _animateTo(_currentLocation);
+    if (bins.isEmpty) return null;
+
+    String? bestKey;
+    var bestCount = 0;
+    bins.forEach((k, pts) {
+      if (pts.length > bestCount) {
+        bestKey = k;
+        bestCount = pts.length;
+      }
+    });
+
+    // If not enough points to be considered a "cluster", fall back to full extent.
+    if (bestKey == null || bestCount < 5) return null;
+
+    final pts = bins[bestKey]!;
+    LatLngBounds? bounds;
+    for (final p in pts) {
+      if (bounds == null) {
+        bounds = LatLngBounds(southwest: p, northeast: p);
+      } else {
+        final b = bounds;
+        final sw = b.southwest;
+        final ne = b.northeast;
+        bounds = LatLngBounds(
+          southwest: LatLng(
+            p.latitude < sw.latitude ? p.latitude : sw.latitude,
+            p.longitude < sw.longitude ? p.longitude : sw.longitude,
+          ),
+          northeast: LatLng(
+            p.latitude > ne.latitude ? p.latitude : ne.latitude,
+            p.longitude > ne.longitude ? p.longitude : ne.longitude,
+          ),
+        );
+      }
     }
+    return bounds;
+  }
+
+  LatLngBounds _safeBounds(LatLngBounds b) {
+    // GoogleMap can throw if bounds are too small (same SW/NE). Expand slightly.
+    const eps = 0.0005; // ~50m-ish; good enough for camera fit stability
+    final sw = b.southwest;
+    final ne = b.northeast;
+    final sameLat = (sw.latitude - ne.latitude).abs() < 1e-12;
+    final sameLon = (sw.longitude - ne.longitude).abs() < 1e-12;
+    if (!sameLat && !sameLon) return b;
+    return LatLngBounds(
+      southwest: LatLng(
+        sw.latitude - (sameLat ? eps : 0),
+        sw.longitude - (sameLon ? eps : 0),
+      ),
+      northeast: LatLng(
+        ne.latitude + (sameLat ? eps : 0),
+        ne.longitude + (sameLon ? eps : 0),
+      ),
+    );
   }
 }
