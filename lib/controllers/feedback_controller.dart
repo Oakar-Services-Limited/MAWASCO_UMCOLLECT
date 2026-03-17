@@ -1,17 +1,22 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/models/customer.dart';
-import 'package:um_collect/models/customer_feedback.dart';
 import 'package:um_collect/services/rationing_schedule_service.dart';
 
 class FeedbackController extends ChangeNotifier {
   final _schedule = RationingScheduleService.instance;
   final _storage = const FlutterSecureStorage();
+  final _imagePicker = ImagePicker();
 
   String selectedDay = '';
   String selectedZone = '';
@@ -21,6 +26,12 @@ class FeedbackController extends ChangeNotifier {
   bool? waterAvailable; // true = Yes, false = No
   String? satisfaction; // 'Sufficient' | 'Low Pressure' when water available
   String remarks = '';
+
+  // Optional evidence
+  XFile? photo;
+  double? latitude;
+  double? longitude;
+  double? locationAccuracy;
 
   List<Customer> customers = [];
   /// Routes for the route dropdown (set on first zone-only fetch, kept when refetching by route).
@@ -109,7 +120,12 @@ class FeedbackController extends ChangeNotifier {
 
   void updateWaterAvailable(bool? value) {
     waterAvailable = value;
-    if (value == false) satisfaction = null;
+    if (value == false) {
+      satisfaction = null;
+    } else {
+      // Photo is only applicable when water was NOT available
+      photo = null;
+    }
     notifyListeners();
   }
 
@@ -120,6 +136,69 @@ class FeedbackController extends ChangeNotifier {
 
   void updateRemarks(String value) {
     remarks = value;
+    notifyListeners();
+  }
+
+  Future<void> capturePhoto() async {
+    // Mirror other pages: call ImagePicker directly and handle platform errors.
+    try {
+      final picked = await _imagePicker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
+        maxWidth: 1920,
+        maxHeight: 1080,
+      );
+      if (picked == null) return;
+      photo = picked;
+      notifyListeners();
+    } on PlatformException catch (e) {
+      // Common when camera is already open
+      if (e.code == 'already_active') return;
+      if (kDebugMode) {
+        debugPrint('[capturePhoto] PlatformException: ${e.code} ${e.message}');
+      }
+      return;
+    } catch (e) {
+      if (kDebugMode) debugPrint('[capturePhoto] error: $e');
+      return;
+    }
+  }
+
+  void clearPhoto() {
+    photo = null;
+    notifyListeners();
+  }
+
+  Future<void> captureCurrentLocation() async {
+    final status = await Permission.locationWhenInUse.request();
+    if (!status.isGranted) return;
+
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) return;
+
+    final locPerm = await Geolocator.checkPermission();
+    LocationPermission effective = locPerm;
+    if (locPerm == LocationPermission.denied) {
+      effective = await Geolocator.requestPermission();
+    }
+    if (effective == LocationPermission.denied ||
+        effective == LocationPermission.deniedForever) {
+      return;
+    }
+
+    final pos = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+    latitude = pos.latitude;
+    longitude = pos.longitude;
+    locationAccuracy = pos.accuracy;
+    notifyListeners();
+  }
+
+  void clearLocation() {
+    latitude = null;
+    longitude = null;
+    locationAccuracy = null;
     notifyListeners();
   }
 
@@ -235,25 +314,39 @@ class FeedbackController extends ChangeNotifier {
       final token = await _storage.read(key: 'mwstaffjwt');
       if (token == null || token.isEmpty) return 'Not authenticated';
 
-      final feedback = CustomerFeedback(
-        day: selectedDay,
-        zone: selectedZone,
-        area: selectedArea,
-        customerId: selectedCustomer!.id,
-        waterAvailable: waterAvailable!,
-        satisfaction: waterAvailable! ? satisfaction : null,
-        remarks: remarks.trim(),
-        timestamp: DateTime.now(),
-      );
+      // Always use multipart endpoint so we can include optional photo + GPS.
+      final uri = Uri.parse('${getUrl()}customer-feedback/with-media');
+      final req = http.MultipartRequest('POST', uri);
+      req.headers['Authorization'] = 'Bearer $token';
 
-      final response = await http.post(
-        Uri.parse('${getUrl()}customer-feedback'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: json.encode(feedback.toJson()),
-      );
+      req.fields['day'] = selectedDay;
+      req.fields['zone'] = selectedZone;
+      req.fields['area'] = selectedArea;
+      req.fields['customerId'] = selectedCustomer!.id;
+      req.fields['waterAvailable'] = waterAvailable! ? 'true' : 'false';
+      if (waterAvailable! && satisfaction != null) {
+        req.fields['satisfaction'] = satisfaction!;
+      }
+      if (remarks.trim().isNotEmpty) {
+        req.fields['remarks'] = remarks.trim();
+      }
+      req.fields['timestamp'] = DateTime.now().toIso8601String();
+
+      if (latitude != null && longitude != null) {
+        req.fields['latitude'] = latitude.toString();
+        req.fields['longitude'] = longitude.toString();
+      }
+      if (locationAccuracy != null) {
+        req.fields['locationAccuracy'] = locationAccuracy.toString();
+      }
+
+      if (waterAvailable == false && photo != null) {
+        final file = File(photo!.path);
+        req.files.add(await http.MultipartFile.fromPath('photo', file.path));
+      }
+
+      final streamed = await req.send();
+      final response = await http.Response.fromStream(streamed);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         resetForm();
@@ -274,6 +367,10 @@ class FeedbackController extends ChangeNotifier {
     waterAvailable = null;
     satisfaction = null;
     remarks = '';
+    photo = null;
+    latitude = null;
+    longitude = null;
+    locationAccuracy = null;
     customers = [];
     availableRoutes = [];
     customersError = null;

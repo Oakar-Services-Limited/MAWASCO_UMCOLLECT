@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
@@ -123,6 +124,16 @@ class _FeedbackFormState extends State<_FeedbackForm> {
                   ),
                 ),
               ),
+            const SizedBox(height: 24),
+            _sectionTitle('9. Current Location (optional)'),
+            const SizedBox(height: 8),
+            _locationSection(ctrl),
+            if (ctrl.waterAvailable == false) ...[
+              const SizedBox(height: 24),
+              _sectionTitle('10. Photo (optional)'),
+              const SizedBox(height: 8),
+              _photoSection(ctrl),
+            ],
             const SizedBox(height: 32),
             _submitButton(context, ctrl),
             const SizedBox(height: 24),
@@ -500,5 +511,120 @@ class _FeedbackFormState extends State<_FeedbackForm> {
       ),
     );
     // Don't pop; user taps Back to return so success snackbar stays visible.
+  }
+
+  Widget _locationSection(FeedbackController ctrl) {
+    final hasLocation = ctrl.latitude != null && ctrl.longitude != null;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(
+          color: const Color(0xff0288D1).withValues(alpha: 0.1),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (hasLocation)
+            Text(
+              'Lat: ${ctrl.latitude!.toStringAsFixed(6)}, Lng: ${ctrl.longitude!.toStringAsFixed(6)}'
+              '${ctrl.locationAccuracy != null ? ' (±${ctrl.locationAccuracy!.toStringAsFixed(0)}m)' : ''}',
+              style: TextStyle(color: Colors.grey[800]),
+            )
+          else
+            Text(
+              'No location captured',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => ctrl.captureCurrentLocation(),
+                  icon: const Icon(Icons.my_location, size: 18),
+                  label: const Text('Use current location'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xff0288D1),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              IconButton(
+                onPressed: hasLocation ? ctrl.clearLocation : null,
+                icon: const Icon(Icons.delete_outline),
+                color: Colors.red[700],
+                tooltip: 'Clear location',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _photoSection(FeedbackController ctrl) {
+    final hasPhoto = ctrl.photo != null;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(
+          color: const Color(0xff0288D1).withValues(alpha: 0.1),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (hasPhoto)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.file(
+                File(ctrl.photo!.path),
+                height: 180,
+                fit: BoxFit.cover,
+              ),
+            )
+          else
+            Text(
+              'No photo captured',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => ctrl.capturePhoto(),
+                  icon: const Icon(Icons.camera_alt, size: 18),
+                  label: Text(hasPhoto ? 'Retake photo' : 'Capture photo'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xff0288D1),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              IconButton(
+                onPressed: hasPhoto ? ctrl.clearPhoto : null,
+                icon: const Icon(Icons.delete_outline),
+                color: Colors.red[700],
+                tooltip: 'Remove photo',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }

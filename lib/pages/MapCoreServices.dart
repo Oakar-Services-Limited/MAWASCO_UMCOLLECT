@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -23,6 +25,8 @@ enum MapLayerType {
   manholes,
 }
 
+enum _MeasureInputMode { currentLocation, mapTap }
+
 class _MapFeature {
   final String id;
   final String name;
@@ -30,6 +34,7 @@ class _MapFeature {
   final LatLng? point;
   final List<LatLng>? line;
   final String? zoneId;
+  final Map<String, dynamic> props;
 
   _MapFeature({
     required this.id,
@@ -38,7 +43,8 @@ class _MapFeature {
     this.point,
     this.line,
     this.zoneId,
-  });
+    Map<String, dynamic>? props,
+  }) : props = props ?? const {};
 }
 
 class _ZoneFeature {
@@ -64,6 +70,13 @@ class MapCoreServices extends StatefulWidget {
   State<MapCoreServices> createState() => _MapCoreServicesState();
 }
 
+class _NearbyResult {
+  final _MapFeature feature;
+  final double distanceMeters;
+
+  const _NearbyResult({required this.feature, required this.distanceMeters});
+}
+
 class _MapCoreServicesState extends State<MapCoreServices> {
   final Completer<GoogleMapController> _controller = Completer();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
@@ -82,6 +95,15 @@ class _MapCoreServicesState extends State<MapCoreServices> {
   String _nearbyText = '100';
   final TextEditingController _nearbyController =
       TextEditingController(text: '100');
+
+  bool _measuring = false;
+  _MeasureInputMode? _measureMode;
+  bool _measurePolygon = false;
+  final List<LatLng> _measurePoints = [];
+  double _measureTotalMeters = 0;
+  double _measureAreaSqm = 0;
+  final Map<String, BitmapDescriptor> _measureIconCache = {};
+  final Set<String> _measureIconBuilding = {};
 
   String _selectedCategory = 'All';
   String? _selectedSearchColumn;
@@ -422,12 +444,17 @@ class _MapCoreServicesState extends State<MapCoreServices> {
             debugPrint(
                 '[Map] Parsed sewer line id=$id points=${points.length} geomType=${(raw['geom'] is Map) ? (raw['geom'] as Map)['type'] : raw['geom']?.runtimeType}');
           }
+
+          final props =
+              _extractProps(raw, keys: _relevantKeysForType(type).toList());
+
           return _MapFeature(
             id: id,
             name: name,
             type: type,
             line: points,
             zoneId: zoneId,
+            props: props,
           );
         }
 
@@ -448,9 +475,163 @@ class _MapCoreServicesState extends State<MapCoreServices> {
         type: type,
         point: LatLng(lat, lon),
         zoneId: zoneId,
+        props: _extractProps(raw, keys: _relevantKeysForType(type).toList()),
       );
     } catch (_) {
       return null;
+    }
+  }
+
+  Map<String, dynamic> _extractProps(
+    Map<String, dynamic> raw, {
+    required List<String> keys,
+  }) {
+    final out = <String, dynamic>{};
+    for (final k in keys) {
+      if (!raw.containsKey(k)) continue;
+      final v = raw[k];
+      if (v == null) continue;
+      final s = v.toString().trim();
+      if (s.isEmpty || s == 'null') continue;
+      out[k] = v;
+    }
+    return out;
+  }
+
+  Iterable<String> _relevantKeysForType(MapLayerType type) {
+    // Keep this intentionally small: show only the fields staff need most.
+    switch (type) {
+      case MapLayerType.customerMeters:
+        return const [
+          'accountNo',
+          'meterNo',
+          'name',
+          'status',
+          'zone',
+          'dma',
+          'route',
+          'location',
+        ];
+      case MapLayerType.dormantMeters:
+        return const [
+          'accountNo',
+          'meterNo',
+          'name',
+          'status',
+          'zone',
+          'dma',
+          'route',
+          'location',
+        ];
+      case MapLayerType.valves:
+        return const [
+          'objectId',
+          'type',
+          'size',
+          'status',
+          'zone',
+          'dma',
+          'route',
+          'schemeName',
+          'location',
+        ];
+      case MapLayerType.masterMeters:
+        return const [
+          'name',
+          'serial',
+          'status',
+          'zone',
+          'dma',
+          'route',
+          'location',
+        ];
+      case MapLayerType.waterTanks:
+        return const [
+          'name',
+          'status',
+          'zone',
+          'schemeName',
+          'location',
+        ];
+      case MapLayerType.washouts:
+        return const [
+          'name',
+          'status',
+          'zone',
+          'dma',
+          'route',
+          'location',
+        ];
+      case MapLayerType.kiosks:
+        return const [
+          'name',
+          'status',
+          'zone',
+          'route',
+          'location',
+        ];
+      case MapLayerType.manholes:
+        return const [
+          'ObjectID',
+          'name',
+          'status',
+          'zone',
+          'route',
+          'location',
+        ];
+      case MapLayerType.waterPipes:
+        return const [
+          'lineName',
+          'lineType',
+          'material',
+          'size',
+          'diameter',
+          'status',
+          'zone',
+          'dma',
+          'route',
+          'schemeName',
+        ];
+      case MapLayerType.sewerLines:
+        return const [
+          'type',
+          'material',
+          'size',
+          'diameter',
+          'status',
+          'zone',
+          'route',
+          'schemeName',
+        ];
+    }
+  }
+
+  String _labelForKey(String key) {
+    switch (key) {
+      case 'accountNo':
+        return 'Account No';
+      case 'meterNo':
+        return 'Meter No';
+      case 'lineName':
+        return 'Line Name';
+      case 'lineType':
+        return 'Line Type';
+      case 'schemeName':
+        return 'Scheme';
+      case 'ObjectID':
+        return 'Object ID';
+      case 'objectId':
+        return 'Object ID';
+      case 'dma':
+        return 'DMA';
+      default:
+        if (key.isEmpty) return key;
+        // Basic humanization: status -> Status, createdAt -> Created At
+        final spaced = key.replaceAllMapped(
+          RegExp(r'([a-z])([A-Z])'),
+          (m) => '${m[1]} ${m[2]}',
+        );
+        return spaced[0].toUpperCase() + spaced.substring(1);
     }
   }
 
@@ -469,11 +650,142 @@ class _MapCoreServicesState extends State<MapCoreServices> {
             position: f.point!,
             infoWindow: InfoWindow(title: f.name),
             icon: BitmapDescriptor.defaultMarkerWithHue(_markerHue(type)),
+            onTap: () => _openAssetDetailsSheet(f),
           ),
         );
       }
     });
     return markers;
+  }
+
+  Set<Marker> get _measureMarkers {
+    final markers = <Marker>{};
+    for (var i = 0; i < _measurePoints.length; i++) {
+      final p = _measurePoints[i];
+      final idx = i + 1;
+      String? snippet;
+      if (i > 0) {
+        final prev = _measurePoints[i - 1];
+        final seg = Geolocator.distanceBetween(
+          prev.latitude,
+          prev.longitude,
+          p.latitude,
+          p.longitude,
+        );
+        snippet = 'Segment: ${_formatMeters(seg)}';
+      }
+      markers.add(
+        Marker(
+          markerId: MarkerId('measure_$idx'),
+          position: p,
+          // Use a custom generated icon so measurement points are visually
+          // distinct from asset markers.
+          icon: _measureIconFor(i),
+          infoWindow: InfoWindow(title: 'Point $idx', snippet: snippet),
+        ),
+      );
+    }
+    return markers;
+  }
+
+  BitmapDescriptor _measureIconFor(int index) {
+    final isStart = index == 0;
+    final isEnd = index == _measurePoints.length - 1;
+    final key = isStart ? 'start' : (isEnd ? 'end' : 'mid');
+    final cached = _measureIconCache[key];
+    if (cached != null) return cached;
+    _ensureMeasureIconsBuilt();
+    return BitmapDescriptor.defaultMarker;
+  }
+
+  void _ensureMeasureIconsBuilt() {
+    for (final key in const ['start', 'mid', 'end']) {
+      if (_measureIconCache.containsKey(key)) continue;
+      if (_measureIconBuilding.contains(key)) continue;
+      _measureIconBuilding.add(key);
+      final isStart = key == 'start';
+      final isEnd = key == 'end';
+      _buildMeasureIcon(isStart: isStart, isEnd: isEnd).then((icon) {
+        if (!mounted) return;
+        setState(() {
+          _measureIconCache[key] = icon;
+          _measureIconBuilding.remove(key);
+        });
+      }).catchError((_) {
+        _measureIconBuilding.remove(key);
+      });
+    }
+  }
+
+  Future<BitmapDescriptor> _buildMeasureIcon({
+    required bool isStart,
+    required bool isEnd,
+  }) async {
+    const size = 56.0; // px (smaller + faster)
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    final center = const Offset(size / 2, size / 2);
+
+    final bgColor = isStart
+        ? const Color(0xFF2E7D32) // green
+        : isEnd
+            ? const Color(0xFFC62828) // red
+            : AppTheme.primaryMain;
+
+    // Outer shadow ring
+    final shadowPaint = Paint()
+      ..color = Colors.black.withValues(alpha: 0.18)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(center.translate(1, 2), 20, shadowPaint);
+
+    // Main circle
+    final fillPaint = Paint()
+      ..color = bgColor
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(center, 18, fillPaint);
+
+    // White border
+    final borderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4;
+    canvas.drawCircle(center, 18, borderPaint);
+
+    // Pin tip (small triangle)
+    final tipPath = Path()
+      ..moveTo(center.dx, center.dy + 28)
+      ..lineTo(center.dx - 7, center.dy + 12)
+      ..lineTo(center.dx + 7, center.dy + 12)
+      ..close();
+    canvas.drawPath(tipPath, fillPaint);
+    canvas.drawPath(tipPath, borderPaint);
+
+    // Simple symbol: S (start) / E (end) / • (middle).
+    final symbol = isStart ? 'S' : (isEnd ? 'E' : '•');
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: symbol,
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: isStart || isEnd ? 18 : 28,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+      textAlign: TextAlign.center,
+      textDirection: TextDirection.ltr,
+    )..layout();
+    textPainter.paint(
+      canvas,
+      Offset(
+        center.dx - textPainter.width / 2,
+        center.dy - textPainter.height / 2 - 1,
+      ),
+    );
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(size.toInt(), size.toInt());
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    return BitmapDescriptor.bytes(bytes!.buffer.asUint8List());
   }
 
   Set<Polyline> get _polylines {
@@ -492,6 +804,8 @@ class _MapCoreServicesState extends State<MapCoreServices> {
                 ? Colors.blueAccent
                 : Colors.tealAccent.shade700,
             width: 4,
+            consumeTapEvents: true,
+            onTap: () => _openLineDetailsSheet(f),
           ),
         );
       }
@@ -499,15 +813,407 @@ class _MapCoreServicesState extends State<MapCoreServices> {
     return lines;
   }
 
+  Set<Polyline> get _measurePolylines {
+    if (_measurePoints.length < 2) return {};
+    return {
+      Polyline(
+        polylineId: const PolylineId('measure_polyline'),
+        points: List<LatLng>.from(_measurePoints),
+        color: Colors.deepOrange,
+        width: 4,
+      ),
+    };
+  }
+
+  Set<Polygon> get _measurePolygons {
+    if (!_measurePolygon) return {};
+    if (_measurePoints.length < 3) return {};
+    return {
+      Polygon(
+        polygonId: const PolygonId('measure_polygon'),
+        points: List<LatLng>.from(_measurePoints),
+        strokeColor: Colors.deepOrange,
+        strokeWidth: 3,
+        fillColor: Colors.deepOrange.withValues(alpha: 0.18),
+      ),
+    };
+  }
+
+  void _recomputeMeasureTotal() {
+    var total = 0.0;
+    for (var i = 0; i < _measurePoints.length - 1; i++) {
+      final a = _measurePoints[i];
+      final b = _measurePoints[i + 1];
+      total += Geolocator.distanceBetween(
+        a.latitude,
+        a.longitude,
+        b.latitude,
+        b.longitude,
+      );
+    }
+    _measureTotalMeters = total;
+    _measureAreaSqm =
+        (_measurePolygon && _measurePoints.length >= 3) ? _polygonAreaSqm(_measurePoints) : 0;
+  }
+
+  String _formatMeters(double meters) {
+    if (meters >= 1000) return '${(meters / 1000).toStringAsFixed(2)} km';
+    return '${meters.toStringAsFixed(0)} m';
+  }
+
+  String _formatArea(double sqm) {
+    if (sqm >= 1000000) return '${(sqm / 1000000).toStringAsFixed(2)} km²';
+    if (sqm >= 10000) return '${(sqm / 10000).toStringAsFixed(2)} ha';
+    return '${sqm.toStringAsFixed(0)} m²';
+  }
+
+  double _polygonAreaSqm(List<LatLng> pts) {
+    // Spherical excess area approximation (good for small polygons).
+    const r = 6378137.0;
+    if (pts.length < 3) return 0;
+    double area = 0;
+    for (var i = 0; i < pts.length; i++) {
+      final p1 = pts[i];
+      final p2 = pts[(i + 1) % pts.length];
+      final lon1 = p1.longitude * (math.pi / 180);
+      final lon2 = p2.longitude * (math.pi / 180);
+      final lat1 = p1.latitude * (math.pi / 180);
+      final lat2 = p2.latitude * (math.pi / 180);
+      area += (lon2 - lon1) * (2 + math.sin(lat1) + math.sin(lat2));
+    }
+    area = area * (r * r) / 2.0;
+    return area.abs();
+  }
+
+  void _toggleMeasure() {
+    if (_measuring) {
+      setState(() {
+        _measuring = false;
+      });
+      return;
+    }
+    _openMeasureStartSheet();
+  }
+
+  void _openMeasureStartSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return SafeArea(
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(24),
+                topRight: Radius.circular(24),
+              ),
+            ),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Start measuring',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.primaryMain,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Choose how you want to capture measurement points.',
+                  style: TextStyle(fontSize: 13, color: Colors.black87),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _measureChoiceCard(
+                        icon: Icons.my_location,
+                        title: 'Current location',
+                        subtitle:
+                            'Pick start/end by pressing “Add point” as you move.',
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          setState(() {
+                            _measuring = true;
+                            _measureMode = _MeasureInputMode.currentLocation;
+                            _measurePolygon = false;
+                            _clearMeasureState();
+                          });
+                          _ensureMeasureIconsBuilt();
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _measureChoiceCard(
+                        icon: Icons.touch_app,
+                        title: 'Place markers',
+                        subtitle: 'Tap on the map to drop points.',
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          setState(() {
+                            _measuring = true;
+                            _measureMode = _MeasureInputMode.mapTap;
+                            _measurePolygon = false;
+                            _clearMeasureState();
+                          });
+                          _ensureMeasureIconsBuilt();
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Tip: You can switch to Area (polygon) after starting.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.black.withValues(alpha: 0.65),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _measureChoiceCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: AppTheme.primaryMain),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.black.withValues(alpha: 0.7),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _addMeasurePoint(LatLng p) {
+    setState(() {
+      _measurePoints.add(p);
+      _recomputeMeasureTotal();
+    });
+  }
+
+  void _addMeasureMyLocation() {
+    _addMeasurePoint(_currentLocation);
+    _animateTo(_currentLocation, zoom: 18);
+  }
+
+  void _undoMeasurePoint() {
+    if (_measurePoints.isEmpty) return;
+    setState(() {
+      _measurePoints.removeLast();
+      _recomputeMeasureTotal();
+    });
+  }
+
+  void _clearMeasureState() {
+    _measurePoints.clear();
+    _measureTotalMeters = 0;
+    _measureAreaSqm = 0;
+  }
+
+  void _clearMeasure() {
+    setState(() {
+      _clearMeasureState();
+      _measureIconCache.clear();
+      _measureIconBuilding.clear();
+    });
+  }
+
+  void _openLineDetailsSheet(_MapFeature f) {
+    _openAssetDetailsSheet(f);
+  }
+
+  void _openAssetDetailsSheet(_MapFeature f) {
+    final title = (f.name.trim().isEmpty) ? '${f.type.name} ${f.id}' : f.name;
+    final entries = f.props.entries.toList();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return SafeArea(
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(24),
+                topRight: Radius.circular(24),
+              ),
+            ),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Icon(Icons.timeline, color: AppTheme.primaryMain),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _typeLabel(f.type),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black.withValues(alpha: 0.65),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 520),
+                  child: entries.isEmpty
+                      ? const Text(
+                          'No attributes available for this feature.',
+                          style: TextStyle(color: Colors.black87),
+                        )
+                      : ListView.separated(
+                          shrinkWrap: true,
+                          itemCount: entries.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (context, index) {
+                            final e = entries[index];
+                            return ListTile(
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
+                              title: Text(
+                                _labelForKey(e.key),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              subtitle: Text(
+                                e.value.toString(),
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+                const SizedBox(height: 6),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _typeLabel(MapLayerType type) {
+    switch (type) {
+      case MapLayerType.customerMeters:
+        return 'Customer Meter';
+      case MapLayerType.waterPipes:
+        return 'Water Pipe';
+      case MapLayerType.waterTanks:
+        return 'Water Tank';
+      case MapLayerType.valves:
+        return 'Valve';
+      case MapLayerType.masterMeters:
+        return 'Master Meter';
+      case MapLayerType.washouts:
+        return 'Washout';
+      case MapLayerType.kiosks:
+        return 'Kiosk';
+      case MapLayerType.dormantMeters:
+        return 'Dormant Meter';
+      case MapLayerType.sewerLines:
+        return 'Sewer Line';
+      case MapLayerType.manholes:
+        return 'Manhole';
+    }
+  }
+
   Future<void> _findNearby() async {
-    final allPoints = <_MapFeature>[];
+    final activeLayer = _categoryToLayer[_selectedCategory];
+
+    // If the user is on a specific category and it's not loaded yet, load it
+    // so nearby search works without requiring a manual search/filter step.
+    if (activeLayer != null && (_layerData[activeLayer]?.isEmpty ?? true)) {
+      await _loadLayer(activeLayer);
+    }
+
+    final candidates = <_MapFeature>[];
     _layerData.forEach((type, features) {
-      final activeLayer = _categoryToLayer[_selectedCategory];
       if (activeLayer != null && activeLayer != type) return;
-      allPoints.addAll(features.where((f) => f.point != null));
+      candidates.addAll(features);
     });
 
-    if (allPoints.isEmpty) {
+    if (candidates.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -517,23 +1223,28 @@ class _MapCoreServicesState extends State<MapCoreServices> {
       return;
     }
 
-    final nearby = <_MapFeature>[];
-    for (final f in allPoints) {
-      final p = f.point!;
-      final d = Geolocator.distanceBetween(
-        _currentLocation.latitude,
-        _currentLocation.longitude,
-        p.latitude,
-        p.longitude,
-      );
-      if (d <= _nearbyRadiusMeters) {
-        nearby.add(f);
+    final results = <_NearbyResult>[];
+    for (final f in candidates) {
+      double? d;
+      if (f.point != null) {
+        final p = f.point!;
+        d = Geolocator.distanceBetween(
+          _currentLocation.latitude,
+          _currentLocation.longitude,
+          p.latitude,
+          p.longitude,
+        );
+      } else if (f.line != null && f.line!.length >= 2) {
+        d = _distancePointToPolylineMeters(_currentLocation, f.line!);
+      }
+      if (d != null && d <= _nearbyRadiusMeters) {
+        results.add(_NearbyResult(feature: f, distanceMeters: d));
       }
     }
 
     if (!mounted) return;
 
-    if (nearby.isEmpty) {
+    if (results.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content:
@@ -542,6 +1253,8 @@ class _MapCoreServicesState extends State<MapCoreServices> {
       );
       return;
     }
+
+    results.sort((a, b) => a.distanceMeters.compareTo(b.distanceMeters));
 
     showModalBottomSheet(
       context: context,
@@ -563,17 +1276,30 @@ class _MapCoreServicesState extends State<MapCoreServices> {
               SizedBox(
                 height: 300,
                 child: ListView.builder(
-                  itemCount: nearby.length,
+                  itemCount: results.length,
                   itemBuilder: (context, index) {
-                    final f = nearby[index];
+                    final r = results[index];
+                    final f = r.feature;
+                    final isLine = f.line != null && (f.line?.length ?? 0) >= 2;
+                    final distanceLabel = r.distanceMeters >= 1000
+                        ? '${(r.distanceMeters / 1000).toStringAsFixed(2)} km'
+                        : '${r.distanceMeters.toStringAsFixed(0)} m';
                     return ListTile(
-                      leading: Icon(Icons.place, color: AppTheme.primaryMain),
+                      leading: Icon(
+                        isLine ? Icons.timeline : Icons.place,
+                        color: AppTheme.primaryMain,
+                      ),
                       title: Text(f.name.isEmpty ? f.id : f.name),
-                      subtitle: Text(f.type.name),
+                      subtitle: Text('${_typeLabel(f.type)} • $distanceLabel'),
                       onTap: () {
                         Navigator.pop(context);
                         if (f.point != null) {
                           _animateTo(f.point!, zoom: 18);
+                        } else if (f.line != null && f.line!.length >= 2) {
+                          final b = _boundsForLine(f.line!);
+                          if (b != null) {
+                            _fitBoundsWithRetry(_safeBounds(b), padding: 70);
+                          }
                         }
                       },
                     );
@@ -585,6 +1311,84 @@ class _MapCoreServicesState extends State<MapCoreServices> {
         );
       },
     );
+  }
+
+  LatLngBounds? _boundsForLine(List<LatLng> pts) {
+    if (pts.isEmpty) return null;
+    var minLat = pts.first.latitude;
+    var maxLat = pts.first.latitude;
+    var minLon = pts.first.longitude;
+    var maxLon = pts.first.longitude;
+    for (final p in pts) {
+      if (p.latitude < minLat) minLat = p.latitude;
+      if (p.latitude > maxLat) maxLat = p.latitude;
+      if (p.longitude < minLon) minLon = p.longitude;
+      if (p.longitude > maxLon) maxLon = p.longitude;
+    }
+    return LatLngBounds(
+      southwest: LatLng(minLat, minLon),
+      northeast: LatLng(maxLat, maxLon),
+    );
+  }
+
+  double _distancePointToPolylineMeters(LatLng p, List<LatLng> line) {
+    // Local tangent-plane approximation (equirectangular projection) around p.
+    // Accurate enough for small radii (meters to a few km), and fast.
+    if (line.length < 2) return double.infinity;
+    var best = double.infinity;
+    for (var i = 0; i < line.length - 1; i++) {
+      final d = _distancePointToSegmentMeters(p, line[i], line[i + 1]);
+      if (d < best) best = d;
+    }
+    return best;
+  }
+
+  double _distancePointToSegmentMeters(LatLng p, LatLng a, LatLng b) {
+    // Convert to local meters.
+    final pm = _toLocalMeters(p, p);
+    final am = _toLocalMeters(a, p);
+    final bm = _toLocalMeters(b, p);
+
+    final ax = am.$1;
+    final ay = am.$2;
+    final bx = bm.$1;
+    final by = bm.$2;
+    final px = pm.$1;
+    final py = pm.$2;
+
+    final abx = bx - ax;
+    final aby = by - ay;
+    final apx = px - ax;
+    final apy = py - ay;
+
+    final abLen2 = abx * abx + aby * aby;
+    if (abLen2 == 0) {
+      final dx = px - ax;
+      final dy = py - ay;
+      return math.sqrt(dx * dx + dy * dy);
+    }
+
+    var t = (apx * abx + apy * aby) / abLen2;
+    if (t < 0) t = 0;
+    if (t > 1) t = 1;
+    final cx = ax + t * abx;
+    final cy = ay + t * aby;
+    final dx = px - cx;
+    final dy = py - cy;
+    return math.sqrt(dx * dx + dy * dy);
+  }
+
+  (double, double) _toLocalMeters(LatLng ll, LatLng origin) {
+    const earthRadius = 6378137.0; // meters
+    final lat0 = origin.latitude * (3.141592653589793 / 180.0);
+    final x = (ll.longitude - origin.longitude) *
+        (3.141592653589793 / 180.0) *
+        earthRadius *
+        math.cos(lat0);
+    final y = (ll.latitude - origin.latitude) *
+        (3.141592653589793 / 180.0) *
+        earthRadius;
+    return (x, y);
   }
 
   void _openBufferSheet() {
@@ -839,6 +1643,7 @@ class _MapCoreServicesState extends State<MapCoreServices> {
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
       appBar: AppBar(
@@ -860,9 +1665,14 @@ class _MapCoreServicesState extends State<MapCoreServices> {
             myLocationEnabled: true,
             myLocationButtonEnabled: false,
             zoomControlsEnabled: false,
-            markers: _markers,
-            polylines: _polylines,
-            polygons: _zonePolygons,
+            markers: {..._markers, ..._measureMarkers},
+            polylines: {..._polylines, ..._measurePolylines},
+            polygons: {..._zonePolygons, ..._measurePolygons},
+            onTap: (p) {
+              if (_measuring && _measureMode == _MeasureInputMode.mapTap) {
+                _addMeasurePoint(p);
+              }
+            },
             onMapCreated: (controller) {
               _controller.complete(controller);
             },
@@ -875,7 +1685,7 @@ class _MapCoreServicesState extends State<MapCoreServices> {
           ),
           Positioned(
             left: 12,
-            bottom: 12 + MediaQuery.of(context).padding.bottom,
+            bottom: 12 + bottomPadding,
             child: Card(
               elevation: 4,
               shape: RoundedRectangleBorder(
@@ -902,6 +1712,13 @@ class _MapCoreServicesState extends State<MapCoreServices> {
               ),
             ),
           ),
+          if (_measuring)
+            Positioned(
+              left: 12,
+              right: 12,
+              bottom: 12 + bottomPadding,
+              child: _buildMeasurePanel(),
+            ),
           if (_isLoadingLocation || _isLoadingLayers)
             Positioned(
               top: 16,
@@ -966,7 +1783,187 @@ class _MapCoreServicesState extends State<MapCoreServices> {
             foregroundColor: Colors.white,
             child: const Icon(Icons.radar),
           ),
+          const SizedBox(height: 12),
+          FloatingActionButton(
+            heroTag: 'measure_fab',
+            mini: true,
+            onPressed: _toggleMeasure,
+            backgroundColor: _measuring ? Colors.deepOrange : Colors.white,
+            foregroundColor: _measuring ? Colors.white : AppTheme.primaryMain,
+            child: const Icon(Icons.straighten),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMeasurePanel() {
+    final mode = _measureMode;
+    final modeLabel = mode == _MeasureInputMode.currentLocation
+        ? 'Current location'
+        : 'Place markers';
+    // Add right padding so the FAB stack (satellite/buffer/etc) doesn't
+    // cover the measuring panel content.
+    return Padding(
+      padding: const EdgeInsets.only(right: 78),
+      child: Card(
+        elevation: 6,
+        color: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.straighten, color: AppTheme.primaryMain),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Measuring',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 1),
+                        Text(
+                          '${modeLabel}${_measurePolygon ? ' • Area' : ' • Distance'}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.black.withValues(alpha: 0.65),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    _formatMeters(_measureTotalMeters),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                      color: AppTheme.primaryMain,
+                    ),
+                  ),
+                ],
+              ),
+              if (_measurePolygon && _measurePoints.length >= 3)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    'Area: ${_formatArea(_measureAreaSqm)}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.primaryMain,
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: SegmentedButton<_MeasureInputMode>(
+                      segments: const [
+                        ButtonSegment(
+                          value: _MeasureInputMode.currentLocation,
+                          label: Text('Location'),
+                          icon: Icon(Icons.my_location),
+                        ),
+                        ButtonSegment(
+                          value: _MeasureInputMode.mapTap,
+                          label: Text('Tap map'),
+                          icon: Icon(Icons.touch_app),
+                        ),
+                      ],
+                      selected: {mode ?? _MeasureInputMode.mapTap},
+                      onSelectionChanged: (s) {
+                        final v = s.first;
+                        setState(() {
+                          _measureMode = v;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FilterChip(
+                    selected: _measurePolygon,
+                    label: const Text(
+                      'Area',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    onSelected: (v) {
+                      setState(() {
+                        _measurePolygon = v;
+                        _recomputeMeasureTotal();
+                      });
+                    },
+                    selectedColor: AppTheme.primaryMain,
+                    checkmarkColor: Colors.white,
+                    labelStyle: TextStyle(
+                      color: _measurePolygon
+                          ? Colors.white
+                          : AppTheme.primaryMain,
+                    ),
+                    side: BorderSide(
+                      color: AppTheme.primaryMain.withValues(alpha: 0.45),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  if (_measureMode == _MeasureInputMode.currentLocation)
+                    FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppTheme.primaryMain,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: _addMeasureMyLocation,
+                      icon: const Icon(Icons.add_location_alt, size: 18),
+                      label: const Text('Add point'),
+                    ),
+                  OutlinedButton.icon(
+                    onPressed: _measurePoints.isEmpty ? null : _undoMeasurePoint,
+                    icon: const Icon(Icons.undo, size: 18),
+                    label: const Text('Undo'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: _measurePoints.isEmpty ? null : _clearMeasure,
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: const Text('Clear'),
+                  ),
+                  FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppTheme.primaryMain,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: _toggleMeasure,
+                    icon: const Icon(Icons.check, size: 18),
+                    label: const Text('Done'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _measureMode == _MeasureInputMode.currentLocation
+                    ? 'Press “Add point” to capture your current location as you move.'
+                    : 'Tap the map to add points.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.black.withValues(alpha: 0.65),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

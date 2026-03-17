@@ -340,7 +340,8 @@ class _FormFillPageState extends State<FormFillPage> {
       if (name != null) visibleNames.add(name);
     }
 
-    final toRemove = responses.keys.where((k) => !visibleNames.contains(k)).toList();
+    final toRemove =
+        responses.keys.where((k) => !visibleNames.contains(k)).toList();
     for (var name in toRemove) {
       responses.remove(name);
     }
@@ -445,9 +446,9 @@ class _FormFillPageState extends State<FormFillPage> {
                             ],
                             if (formData!['fields'] != null)
                               ...traverseFieldsVisible(
-                                    formData!['fields'] as List,
-                                    responses,
-                                  ).map((field) => _buildField(field)),
+                                formData!['fields'] as List,
+                                responses,
+                              ).map((field) => _buildField(field)),
                             const SizedBox(height: 32),
                             SizedBox(
                               height: 50,
@@ -751,9 +752,8 @@ class _FormFillPageState extends State<FormFillPage> {
                     .format(DateTime.parse(responses[name]))
                 : 'Select date',
             style: TextStyle(
-              color: responses[name] != null
-                  ? Colors.black87
-                  : Colors.grey[600],
+              color:
+                  responses[name] != null ? Colors.black87 : Colors.grey[600],
             ),
           ),
         ),
@@ -833,9 +833,8 @@ class _FormFillPageState extends State<FormFillPage> {
                     .format(DateTime.parse(responses[name]))
                 : 'Select date and time',
             style: TextStyle(
-              color: responses[name] != null
-                  ? Colors.black87
-                  : Colors.grey[600],
+              color:
+                  responses[name] != null ? Colors.black87 : Colors.grey[600],
             ),
           ),
         ),
@@ -871,7 +870,8 @@ class _FormFillPageState extends State<FormFillPage> {
           label: label,
           hint: 'Select an option',
           required: required,
-          prefixIcon: const Icon(Icons.check_circle_outline, color: _formPrimary),
+          prefixIcon:
+              const Icon(Icons.check_circle_outline, color: _formPrimary),
         ),
         isExpanded: true,
         value: currentValue,
@@ -1073,218 +1073,217 @@ class _FormFillPageState extends State<FormFillPage> {
 
     return _wrapField(
       Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    label + (required ? ' *' : ''),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: _formPrimary,
-                    ),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label + (required ? ' *' : ''),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: _formPrimary,
                   ),
                 ),
-                if (existingGeometry != null)
-                  IconButton(
-                    icon: const Icon(Icons.clear, size: 20),
-                    onPressed: () {
+              ),
+              if (existingGeometry != null)
+                IconButton(
+                  icon: const Icon(Icons.clear, size: 20),
+                  onPressed: () {
+                    setState(() {
+                      responses.remove(name);
+                      _clearHiddenFieldValues();
+                    });
+                  },
+                  tooltip: 'Clear selection',
+                ),
+            ],
+          ),
+          if (hint.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              hint,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Container(
+            height: MediaQuery.of(context).size.height * 0.4,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: _formPrimary.withValues(alpha: 0.1)),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(15),
+              child: Stack(
+                children: [
+                  _GeometryMapWidget(
+                    geometryType: geometryType,
+                    initialGeometry: existingGeometry,
+                    onGeometrySelected: (geometry) {
                       setState(() {
-                        responses.remove(name);
+                        responses[name] = geometry;
                         _clearHiddenFieldValues();
                       });
                     },
-                    tooltip: 'Clear selection',
+                    isPreview: true,
                   ),
-              ],
-            ),
-            if (hint.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                hint,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
-              ),
-            ],
-            const SizedBox(height: 12),
-            Container(
-              height: MediaQuery.of(context).size.height * 0.4,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(
-                    color: _formPrimary.withValues(alpha: 0.1)),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(15),
-                child: Stack(
-                  children: [
-                    _GeometryMapWidget(
-                      geometryType: geometryType,
-                      initialGeometry: existingGeometry,
-                      onGeometrySelected: (geometry) {
-                        setState(() {
-                          responses[name] = geometry;
-                          _clearHiddenFieldValues();
-                        });
-                      },
-                      isPreview: true,
-                    ),
-                    Positioned.fill(
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () async {
-                            final result =
-                                await Navigator.push<Map<String, dynamic>>(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => GeometryMapPage(
-                                  geometryType: geometryType,
-                                  initialGeometry:
-                                      existingGeometry ?? responses[name],
-                                  fieldLabel: label,
-                                ),
+                  Positioned.fill(
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () async {
+                          final result =
+                              await Navigator.push<Map<String, dynamic>>(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => GeometryMapPage(
+                                geometryType: geometryType,
+                                initialGeometry:
+                                    existingGeometry ?? responses[name],
+                                fieldLabel: label,
                               ),
-                            );
-                            if (result != null && mounted) {
-                              setState(() {
-                                responses[name] = result;
-                                _clearHiddenFieldValues();
-                              });
-                            } else if (result == null &&
-                                mounted &&
-                                existingGeometry == null) {
-                              // User cancelled, clear if no initial geometry
-                              setState(() {
-                                responses.remove(name);
-                                _clearHiddenFieldValues();
-                              });
-                            }
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.05),
-                              borderRadius: BorderRadius.circular(15),
                             ),
-                            child: Center(
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal:
-                                      MediaQuery.of(context).size.width * 0.06,
-                                  vertical: MediaQuery.of(context).size.height *
-                                      0.015,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: _formPrimary,
-                                  borderRadius: BorderRadius.circular(24),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color:
-                                          Colors.black.withValues(alpha: 0.2),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      existingGeometry != null
-                                          ? Icons.edit_location
-                                          : Icons.add_location,
+                          );
+                          if (result != null && mounted) {
+                            setState(() {
+                              responses[name] = result;
+                              _clearHiddenFieldValues();
+                            });
+                          } else if (result == null &&
+                              mounted &&
+                              existingGeometry == null) {
+                            // User cancelled, clear if no initial geometry
+                            setState(() {
+                              responses.remove(name);
+                              _clearHiddenFieldValues();
+                            });
+                          }
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: Center(
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal:
+                                    MediaQuery.of(context).size.width * 0.06,
+                                vertical:
+                                    MediaQuery.of(context).size.height * 0.015,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _formPrimary,
+                                borderRadius: BorderRadius.circular(24),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.2),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    existingGeometry != null
+                                        ? Icons.edit_location
+                                        : Icons.add_location,
+                                    color: Colors.white,
+                                    size: MediaQuery.of(context).size.width *
+                                        0.05,
+                                  ),
+                                  SizedBox(
+                                      width: MediaQuery.of(context).size.width *
+                                          0.02),
+                                  Text(
+                                    existingGeometry != null
+                                        ? 'Edit Location'
+                                        : 'Select Location',
+                                    style: TextStyle(
                                       color: Colors.white,
-                                      size: MediaQuery.of(context).size.width *
-                                          0.05,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize:
+                                          (MediaQuery.of(context).size.width *
+                                                  0.038)
+                                              .clamp(14.0, 16.0),
                                     ),
-                                    SizedBox(
-                                        width:
-                                            MediaQuery.of(context).size.width *
-                                                0.02),
-                                    Text(
-                                      existingGeometry != null
-                                          ? 'Edit Location'
-                                          : 'Select Location',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize:
-                                            (MediaQuery.of(context).size.width *
-                                                    0.038)
-                                                .clamp(14.0, 16.0),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (required &&
+              evaluateFieldVisibility(
+                field,
+                responses,
+                flattenFields(formData?['fields'] as List? ?? []),
+              ) &&
+              existingGeometry == null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                'This field is required',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.red[700],
                 ),
               ),
             ),
-            if (required &&
-                evaluateFieldVisibility(
-                  field,
-                  responses,
-                  flattenFields(formData?['fields'] as List? ?? []),
-                ) &&
-                existingGeometry == null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  'This field is required',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.red[700],
-                  ),
-                ),
+          if (existingGeometry != null) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _formPrimary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
               ),
-            if (existingGeometry != null) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: _formPrimary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.check_circle,
-                      size: 16,
-                      color: _formPrimary,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Location selected',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: _formPrimary,
-                        ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.check_circle,
+                    size: 16,
+                    color: _formPrimary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Location selected',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _formPrimary,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ],
-        ),
+        ],
+      ),
     );
   }
 
   Widget _buildMatrixField(Map<String, dynamic> field, String label,
       String name, bool required, String hint) {
-    final rows = (field['rows'] as List?)?.map((e) => e.toString()).toList() ?? [];
-    final columns = (field['columns'] as List?)?.map((e) => e.toString()).toList() ?? [];
+    final rows =
+        (field['rows'] as List?)?.map((e) => e.toString()).toList() ?? [];
+    final columns =
+        (field['columns'] as List?)?.map((e) => e.toString()).toList() ?? [];
 
     // responses[name] is Map<String, Map<String, String>>: row -> (col -> value)
     Map<String, dynamic> current = const {};
@@ -1309,98 +1308,99 @@ class _FormFillPageState extends State<FormFillPage> {
               color: _formPrimary,
             ),
           ),
-            if (hint.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                hint,
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-              ),
-            ],
-            const SizedBox(height: 12),
-            if (rows.isEmpty || columns.isEmpty)
-              Text(
-                'No rows or columns defined',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-              )
-            else
-              ...rows.map((row) {
-                final rowMap = (current[row] is Map)
-                    ? Map<String, String>.from(current[row] as Map)
-                    : <String, String>{};
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        row,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: _formPrimary,
-                        ),
+          if (hint.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              hint,
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+          ],
+          const SizedBox(height: 12),
+          if (rows.isEmpty || columns.isEmpty)
+            Text(
+              'No rows or columns defined',
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            )
+          else
+            ...rows.map((row) {
+              final rowMap = (current[row] is Map)
+                  ? Map<String, String>.from(current[row] as Map)
+                  : <String, String>{};
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      row,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: _formPrimary,
                       ),
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: columns.map((col) {
-                          final key = col;
-                          final value = rowMap[key] ?? '';
-                          return SizedBox(
-                            width: 100,
-                            child: TextFormField(
-                              initialValue: value,
-                              decoration: InputDecoration(
-                                labelText: col,
-                                isDense: true,
-                                filled: true,
-                                fillColor: Colors.white,
-                                border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(15)),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                  borderSide: const BorderSide(color: _formPrimary),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 10),
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: columns.map((col) {
+                        final key = col;
+                        final value = rowMap[key] ?? '';
+                        return SizedBox(
+                          width: 100,
+                          child: TextFormField(
+                            initialValue: value,
+                            decoration: InputDecoration(
+                              labelText: col,
+                              isDense: true,
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(15)),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(15),
+                                borderSide:
+                                    const BorderSide(color: _formPrimary),
                               ),
-                              onChanged: (v) {
-                                setState(() {
-                                  final r = responses[name];
-                                  Map<String, dynamic> copy = r is Map
-                                      ? Map<String, dynamic>.from(r)
-                                      : {};
-                                  if (copy[row] is! Map) copy[row] = <String, String>{};
-                                  (copy[row] as Map)[key] = v;
-                                  responses[name] = copy;
-                                  _clearHiddenFieldValues();
-                                });
-                              },
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 10),
                             ),
-                          );
-                        }).toList(),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-            if (required &&
-                evaluateFieldVisibility(
-                  field,
-                  responses,
-                  flattenFields(formData?['fields'] as List? ?? []),
-                ) &&
-                (responses[name] == null ||
-                    (responses[name] is Map &&
-                        (responses[name] as Map).isEmpty)))
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  'This field is required',
-                  style: TextStyle(fontSize: 12, color: Colors.red[700]),
+                            onChanged: (v) {
+                              setState(() {
+                                final r = responses[name];
+                                Map<String, dynamic> copy = r is Map
+                                    ? Map<String, dynamic>.from(r)
+                                    : {};
+                                if (copy[row] is! Map)
+                                  copy[row] = <String, String>{};
+                                (copy[row] as Map)[key] = v;
+                                responses[name] = copy;
+                                _clearHiddenFieldValues();
+                              });
+                            },
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
                 ),
+              );
+            }),
+          if (required &&
+              evaluateFieldVisibility(
+                field,
+                responses,
+                flattenFields(formData?['fields'] as List? ?? []),
+              ) &&
+              (responses[name] == null ||
+                  (responses[name] is Map && (responses[name] as Map).isEmpty)))
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                'This field is required',
+                style: TextStyle(fontSize: 12, color: Colors.red[700]),
               ),
+            ),
         ],
       ),
     );
