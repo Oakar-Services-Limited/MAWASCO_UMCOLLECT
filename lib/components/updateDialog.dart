@@ -22,6 +22,7 @@ import 'package:um_collect/pages/Forms/CustomerChambers%20.dart';
 import 'package:um_collect/pages/Forms/CustomerLines.dart';
 import 'package:um_collect/pages/Forms/CustomerMeters.dart';
 import 'package:um_collect/pages/Forms/DormantMeterForm.dart';
+import 'package:um_collect/pages/dormant_survey.dart';
 import 'package:um_collect/pages/Forms/ManHoles.dart';
 import 'package:um_collect/pages/Forms/MasterMeters.dart';
 import 'package:um_collect/pages/Forms/NewSanConn.dart';
@@ -1112,72 +1113,106 @@ class _DataCollectorsDialogState extends State<DataCollectorsDialog> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
-      child: InkWell(
-        onTap: () {
-          if (accountNo.isEmpty) return;
-          // Build prefill map from billing; merge nested customerMeter if present (API includes it)
-          final prefill = Map<String, dynamic>.from(billing);
-          final nested = billing["customerMeter"];
-          if (nested is Map) {
-            for (final e in nested.entries) {
-              if (e.value != null) prefill[e.key] = e.value;
-            }
-          }
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => DormantMeterForm(dormantData: prefill),
-            ),
-          );
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
+      child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xff0288D1).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.water_drop_outlined,
-                  color: Color(0xff0288D1),
-                ),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xff0288D1).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.water_drop_outlined,
+                      color: Color(0xff0288D1),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name.isEmpty ? "Account $accountNo" : name,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xff0288D1),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Account: $accountNo (Dormant)",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name.isEmpty ? "Account $accountNo" : name,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xff0288D1),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        if (accountNo.isEmpty) return;
+                        final prefill = Map<String, dynamic>.from(billing);
+                        final nested = billing["customerMeter"];
+                        if (nested is Map) {
+                          for (final e in nested.entries) {
+                            if (e.value != null) prefill[e.key] = e.value;
+                          }
+                        }
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => DormantMeterForm(dormantData: prefill),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.app_registration, size: 18),
+                      label: const Text('Register'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xff0288D1),
+                        side: const BorderSide(color: Color(0xff0288D1)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      "Account: $accountNo (Dormant)",
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (_) => const DormantSurveyPage()),
+                        );
+                      },
+                      icon: const Icon(Icons.fact_check, size: 18),
+                      label: const Text('Dormant Survey'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xff0288D1),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                     ),
-                  ],
-                ),
-              ),
-              const Icon(
-                Icons.arrow_forward_ios,
-                size: 16,
-                color: Color(0xff0288D1),
+                  ),
+                ],
               ),
             ],
           ),
-        ),
       ),
     );
   }

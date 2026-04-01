@@ -1802,20 +1802,29 @@ class _MapCoreServicesState extends State<MapCoreServices> {
     final modeLabel = mode == _MeasureInputMode.currentLocation
         ? 'Current location'
         : 'Place markers';
-    // Add right padding so the FAB stack (satellite/buffer/etc) doesn't
-    // cover the measuring panel content.
-    return Padding(
-      padding: const EdgeInsets.only(right: 78),
-      child: Card(
-        elevation: 6,
-        color: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+    // Responsive sizing: reserve space for the right-side FAB stack and clamp the panel width.
+    final screenWidth = MediaQuery.of(context).size.width;
+    final rightFabReserve = (screenWidth * 0.22).clamp(72.0, 96.0);
+    final maxPanelWidth = (screenWidth - rightFabReserve - 16).clamp(240.0, 520.0);
+
+    return SafeArea(
+      minimum: const EdgeInsets.only(left: 12, bottom: 12),
+      child: Padding(
+        // Keep panel clear of the right FAB stack without hardcoding a single value.
+        padding: EdgeInsets.only(right: rightFabReserve),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxPanelWidth),
+          child: Card(
+            elevation: 6,
+            color: Colors.white,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
               Row(
                 children: [
                   Icon(Icons.straighten, color: AppTheme.primaryMain),
@@ -1961,7 +1970,9 @@ class _MapCoreServicesState extends State<MapCoreServices> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-            ],
+                ],
+              ),
+            ),
           ),
         ),
       ),

@@ -33,6 +33,7 @@ import 'package:um_collect/pages/stafflogin.dart';
 import 'package:um_collect/pages/customer_supply_feedback.dart';
 import 'package:um_collect/pages/FormsListPage.dart';
 import 'package:um_collect/pages/MapCoreServices.dart';
+import 'package:um_collect/pages/dormant_survey.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -256,10 +257,10 @@ class _HomeState extends State<Home> {
                         const SizedBox(width: 15),
                         Expanded(
                           child: _buildServiceCard(
-                            'Forms',
-                            Icons.description_outlined,
+                            'Dormant Verification Exercise',
+                            Icons.fact_check_outlined,
                             () => Navigator.of(context).push(MaterialPageRoute(
-                              builder: (context) => const FormsListPage(),
+                              builder: (context) => const DormantSurveyPage(),
                             )),
                           ),
                         ),

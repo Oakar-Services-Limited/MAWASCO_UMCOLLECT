@@ -22,6 +22,7 @@ class FeedbackController extends ChangeNotifier {
   String selectedZone = '';
   String selectedArea = '';
   String selectedRoute = '';
+  String collectionMode = ''; // Customer Care | Field
   Customer? selectedCustomer;
   bool? waterAvailable; // true = Yes, false = No
   String? satisfaction; // 'Sufficient' | 'Low Pressure' when water available
@@ -62,6 +63,17 @@ class FeedbackController extends ChangeNotifier {
   List<Customer> get filteredCustomers {
     if (selectedRoute.isEmpty) return [];
     return customers;
+  }
+
+  String get selectedCustomerName => selectedCustomer?.name ?? '';
+
+  List<Customer> searchCustomersByAccount(String query) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return filteredCustomers.take(20).toList();
+    return filteredCustomers
+        .where((c) => c.accountNo.toLowerCase().contains(q))
+        .take(20)
+        .toList();
   }
 
   void updateDay(String value) {
@@ -118,13 +130,16 @@ class FeedbackController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateCollectionMode(String value) {
+    collectionMode = value;
+    notifyListeners();
+  }
+
   void updateWaterAvailable(bool? value) {
     waterAvailable = value;
     if (value == false) {
+      // No water: reset satisfaction.
       satisfaction = null;
-    } else {
-      // Photo is only applicable when water was NOT available
-      photo = null;
     }
     notifyListeners();
   }
@@ -160,6 +175,30 @@ class FeedbackController extends ChangeNotifier {
       return;
     } catch (e) {
       if (kDebugMode) debugPrint('[capturePhoto] error: $e');
+      return;
+    }
+  }
+
+  Future<void> pickPhotoFromGallery() async {
+    try {
+      final picked = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+        maxWidth: 1920,
+        maxHeight: 1080,
+      );
+      if (picked == null) return;
+      photo = picked;
+      notifyListeners();
+    } on PlatformException catch (e) {
+      if (e.code == 'already_active') return;
+      if (kDebugMode) {
+        debugPrint(
+            '[pickPhotoFromGallery] PlatformException: ${e.code} ${e.message}');
+      }
+      return;
+    } catch (e) {
+      if (kDebugMode) debugPrint('[pickPhotoFromGallery] error: $e');
       return;
     }
   }
@@ -228,7 +267,7 @@ class FeedbackController extends ChangeNotifier {
       // Normalize zone to match DB format (e.g. "018 Tumutumu-87" -> "018 Tumutumu - 87")
       final zoneForApi = _normalizeZoneForApi(selectedZone);
       var path =
-          '${getUrl()}wt/customer-meters?zone=${Uri.encodeComponent(zoneForApi)}&limit=3000&offset=0';
+          '${getUrl()}wt/customer-meters?zone=${Uri.encodeComponent(zoneForApi)}&accountStatus=${Uri.encodeComponent("Active")}&limit=3000&offset=0';
       if (selectedRoute.isNotEmpty) {
         path += '&route=${Uri.encodeComponent(selectedRoute)}';
       }
@@ -298,6 +337,7 @@ class FeedbackController extends ChangeNotifier {
     if (selectedArea.isEmpty) return 'Please select an area';
     if (selectedRoute.isEmpty) return 'Please select a route';
     if (selectedCustomer == null) return 'Please select a customer';
+    if (collectionMode.isEmpty) return 'Please select data collection mode';
     if (waterAvailable == null) return 'Please indicate if water was available';
     if (waterAvailable == false && remarks.trim().isEmpty) {
       return 'Remarks are required when water was not available';
@@ -323,6 +363,13 @@ class FeedbackController extends ChangeNotifier {
       req.fields['zone'] = selectedZone;
       req.fields['area'] = selectedArea;
       req.fields['customerId'] = selectedCustomer!.id;
+      req.fields['collectionMode'] = collectionMode;
+      if (selectedCustomer!.accountNo.isNotEmpty) {
+        req.fields['accountNo'] = selectedCustomer!.accountNo;
+      }
+      if (selectedCustomer!.name.isNotEmpty) {
+        req.fields['customerName'] = selectedCustomer!.name;
+      }
       req.fields['waterAvailable'] = waterAvailable! ? 'true' : 'false';
       if (waterAvailable! && satisfaction != null) {
         req.fields['satisfaction'] = satisfaction!;
@@ -340,7 +387,7 @@ class FeedbackController extends ChangeNotifier {
         req.fields['locationAccuracy'] = locationAccuracy.toString();
       }
 
-      if (waterAvailable == false && photo != null) {
+      if (photo != null) {
         final file = File(photo!.path);
         req.files.add(await http.MultipartFile.fromPath('photo', file.path));
       }
@@ -363,6 +410,7 @@ class FeedbackController extends ChangeNotifier {
     selectedZone = '';
     selectedArea = '';
     selectedRoute = '';
+    collectionMode = '';
     selectedCustomer = null;
     waterAvailable = null;
     satisfaction = null;

@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:um_collect/components/FootNote.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/pages/Settings.dart';
+import 'package:um_collect/pages/FormsListPage.dart';
 import 'package:um_collect/pages/home.dart';
 import 'package:um_collect/pages/incidences.dart';
 import 'package:um_collect/pages/incidenceslist.dart';
@@ -129,6 +130,14 @@ class _StaffDrawerState extends State<StaffDrawer> {
                       title: 'Settings',
                       onTap: () => Navigator.pushReplacement(context,
                           MaterialPageRoute(builder: (_) => const Settings())),
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.description_outlined,
+                      title: 'Forms',
+                      onTap: () => Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const FormsListPage())),
                     ),
                     _buildDrawerItem(
                       icon: Icons.privacy_tip,

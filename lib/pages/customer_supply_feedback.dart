@@ -23,6 +23,11 @@ class CustomerSupplyFeedback extends StatelessWidget {
     'Low Pressure',
   ];
 
+  static const List<String> collectionModes = [
+    'Customer Care',
+    'Field',
+  ];
+
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
@@ -60,10 +65,14 @@ class _FeedbackForm extends StatefulWidget {
 
 class _FeedbackFormState extends State<_FeedbackForm> {
   final TextEditingController _remarksController = TextEditingController();
+  final TextEditingController _accountNoController = TextEditingController();
+  final TextEditingController _customerNameController = TextEditingController();
 
   @override
   void dispose() {
     _remarksController.dispose();
+    _accountNoController.dispose();
+    _customerNameController.dispose();
     super.dispose();
   }
 
@@ -74,6 +83,18 @@ class _FeedbackFormState extends State<_FeedbackForm> {
         if (ctrl.remarks.isEmpty && _remarksController.text.isNotEmpty) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _remarksController.clear();
+          });
+        }
+        final selectedAccountNo = ctrl.selectedCustomer?.accountNo ?? '';
+        if (_accountNoController.text != selectedAccountNo) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _accountNoController.text = selectedAccountNo;
+          });
+        }
+        final selectedName = ctrl.selectedCustomerName;
+        if (_customerNameController.text != selectedName) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _customerNameController.text = selectedName;
           });
         }
         return Column(
@@ -95,22 +116,30 @@ class _FeedbackFormState extends State<_FeedbackForm> {
             const SizedBox(height: 8),
             _routeDropdown(ctrl),
             const SizedBox(height: 24),
-            _sectionTitle('5. Select Customer'),
+            _sectionTitle('5. Select Account Number'),
             const SizedBox(height: 8),
             _customerSection(context, ctrl),
             const SizedBox(height: 24),
-            _sectionTitle('6. Water Available?'),
+            _sectionTitle('6. Customer Name'),
+            const SizedBox(height: 8),
+            _customerNameField(),
+            const SizedBox(height: 24),
+            _sectionTitle('7. Data Collection Mode'),
+            const SizedBox(height: 8),
+            _collectionModeDropdown(ctrl),
+            const SizedBox(height: 24),
+            _sectionTitle('8. Water Available?'),
             const SizedBox(height: 8),
             _waterAvailableRadio(ctrl),
             if (ctrl.waterAvailable == true) ...[
               const SizedBox(height: 16),
-              _sectionTitle('7. Satisfaction'),
+              _sectionTitle('9. Satisfaction'),
               const SizedBox(height: 8),
               _satisfactionRadio(ctrl),
             ],
             const SizedBox(height: 24),
             _sectionTitle(
-                ctrl.waterAvailable == true ? '8. Remarks' : '7. Remarks'),
+                ctrl.waterAvailable == true ? '10. Remarks' : '9. Remarks'),
             const SizedBox(height: 8),
             _remarksField(ctrl),
             if (ctrl.waterAvailable == false)
@@ -125,15 +154,13 @@ class _FeedbackFormState extends State<_FeedbackForm> {
                 ),
               ),
             const SizedBox(height: 24),
-            _sectionTitle('9. Current Location (optional)'),
+            _sectionTitle('11. Current Location (optional)'),
             const SizedBox(height: 8),
             _locationSection(ctrl),
-            if (ctrl.waterAvailable == false) ...[
-              const SizedBox(height: 24),
-              _sectionTitle('10. Photo (optional)'),
-              const SizedBox(height: 8),
-              _photoSection(ctrl),
-            ],
+            const SizedBox(height: 24),
+            _sectionTitle('12. Photo (optional)'),
+            const SizedBox(height: 8),
+            _photoSection(ctrl),
             const SizedBox(height: 32),
             _submitButton(context, ctrl),
             const SizedBox(height: 24),
@@ -352,27 +379,102 @@ class _FeedbackFormState extends State<_FeedbackForm> {
         ),
       );
     }
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(
-          color: const Color(0xff0288D1).withValues(alpha: 0.1),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Autocomplete<Customer>(
+          optionsBuilder: (TextEditingValue textEditingValue) {
+            return ctrl.searchCustomersByAccount(textEditingValue.text);
+          },
+          displayStringForOption: (Customer c) => c.accountNo,
+          onSelected: (Customer c) => ctrl.updateCustomer(c),
+          fieldViewBuilder:
+              (context, textEditingController, focusNode, onFieldSubmitted) {
+            if (textEditingController.text != _accountNoController.text) {
+              textEditingController.text = _accountNoController.text;
+            }
+            return TextField(
+              controller: textEditingController,
+              focusNode: focusNode,
+              decoration: InputDecoration(
+                hintText: 'Type or select account number',
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: const BorderSide(color: Color(0xff0288D1)),
+                ),
+              ),
+              onChanged: (_) {
+                if (ctrl.selectedCustomer != null) {
+                  ctrl.updateCustomer(null);
+                }
+              },
+              onSubmitted: (_) => onFieldSubmitted(),
+            );
+          },
+          optionsViewBuilder: (context, onSelected, options) {
+            final items = options.toList();
+            return Align(
+              alignment: Alignment.topLeft,
+              child: Material(
+                elevation: 4.0,
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  width: MediaQuery.of(context).size.width - 40,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 260),
+                    child: ListView.builder(
+                      padding: EdgeInsets.zero,
+                      shrinkWrap: true,
+                      itemCount: items.length,
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+                        return ListTile(
+                          dense: true,
+                          title: Text(item.accountNo),
+                          subtitle: Text(
+                            item.name.isNotEmpty ? item.name : 'No name',
+                          ),
+                          onTap: () => onSelected(item),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
         ),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<Customer>(
-          value: ctrl.selectedCustomer,
-          isExpanded: true,
-          hint: const Text('Select customer'),
-          items: ctrl.filteredCustomers
-              .map((c) => DropdownMenuItem(
-                    value: c,
-                    child: Text(c.displayName),
-                  ))
-              .toList(),
-          onChanged: (v) => ctrl.updateCustomer(v),
+        if (ctrl.selectedCustomer == null && _accountNoController.text.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 4),
+            child: Text(
+              'Choose an account from suggestions',
+              style: TextStyle(fontSize: 12, color: Colors.orange[800]),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _customerNameField() {
+    return TextField(
+      controller: _customerNameController,
+      readOnly: true,
+      decoration: InputDecoration(
+        hintText: 'Customer name auto-populates after account selection',
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: const BorderSide(color: Color(0xff0288D1)),
         ),
       ),
     );
@@ -409,6 +511,30 @@ class _FeedbackFormState extends State<_FeedbackForm> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _collectionModeDropdown(FeedbackController ctrl) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(
+          color: const Color(0xff0288D1).withValues(alpha: 0.1),
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: ctrl.collectionMode.isEmpty ? null : ctrl.collectionMode,
+          isExpanded: true,
+          hint: const Text('Select mode'),
+          items: CustomerSupplyFeedback.collectionModes
+              .map((m) => DropdownMenuItem(value: m, child: Text(m)))
+              .toList(),
+          onChanged: (v) => ctrl.updateCollectionMode(v ?? ''),
+        ),
       ),
     );
   }
@@ -571,6 +697,7 @@ class _FeedbackFormState extends State<_FeedbackForm> {
 
   Widget _photoSection(FeedbackController ctrl) {
     final hasPhoto = ctrl.photo != null;
+    final allowGallery = ctrl.collectionMode == 'Customer Care';
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -614,15 +741,45 @@ class _FeedbackFormState extends State<_FeedbackForm> {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              IconButton(
-                onPressed: hasPhoto ? ctrl.clearPhoto : null,
-                icon: const Icon(Icons.delete_outline),
-                color: Colors.red[700],
-                tooltip: 'Remove photo',
-              ),
+              if (allowGallery) ...[
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => ctrl.pickPhotoFromGallery(),
+                    icon: const Icon(Icons.photo_library_outlined, size: 18),
+                    label: const Text('Choose file'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xff0288D1),
+                      side: const BorderSide(color: Color(0xff0288D1)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
+          if (!allowGallery)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                'Field mode allows camera capture only',
+                style: TextStyle(color: Colors.grey[700], fontSize: 12),
+              ),
+            ),
+          if (hasPhoto)
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: ctrl.clearPhoto,
+                icon: Icon(Icons.delete_outline, color: Colors.red[700]),
+                label: Text(
+                  'Remove',
+                  style: TextStyle(color: Colors.red[700]),
+                ),
+              ),
+            ),
         ],
       ),
     );
