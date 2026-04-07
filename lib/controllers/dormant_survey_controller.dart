@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -14,6 +15,8 @@ class DormantSurveyController extends ChangeNotifier {
   final _storage = const FlutterSecureStorage();
   final _db = CustomerDbService.instance;
   final _imagePicker = ImagePicker();
+
+  bool duplicateCheckInProgress = false;
 
   bool isLoadingDb = true;
   String? dbError;
@@ -45,7 +48,8 @@ class DormantSurveyController extends ChangeNotifier {
   // Step D: meter condition + evidence
   String meterCondition = ''; // choice
   String meterReading = '';
-  String generalComments = '';
+  String generalCommentChoice = ''; // required choice
+  String generalCommentOther = ''; // only if choice == Other
 
   // Evidence
   XFile? photo;
@@ -79,11 +83,22 @@ class DormantSurveyController extends ChangeNotifier {
 
   static const List<String> meterConditions = [
     'Good / Functional',
-    'Buried / Covered',
+    'Buried / Covered(inaccessible)',
     'Glass Broken / Foggy / Illegible',
     'Stuck / Stopped',
-    'Disconnected',
+    'Disconnected (Meter On Ground)',
+    'Disconnected (Meter Removed)',
     'No Meter (Direct)',
+  ];
+
+  static const String generalCommentOtherLabel = 'Other specify';
+
+  static const List<String> generalCommentOptions = [
+    'Active and consuming (wrongly categorized)',
+    'True dormant (details match)',
+    'False dormant (different account)',
+    'Meter not found (exhausted all means)',
+    generalCommentOtherLabel,
   ];
 
   Future<void> init() async {
@@ -148,6 +163,43 @@ class DormantSurveyController extends ChangeNotifier {
   void setAccount(CustomerDbEntry? v) {
     selectedAccount = v;
     notifyListeners();
+  }
+
+  String _normalizeName(String v) {
+    return v.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
+  }
+
+  Future<bool> isDormantNameAlreadySubmitted(String customerName) async {
+    try {
+      final token = await _storage.read(key: 'mwstaffjwt');
+      if (token == null || token.isEmpty) return false;
+
+      final normalized = _normalizeName(customerName);
+      if (normalized.isEmpty) return false;
+
+      duplicateCheckInProgress = true;
+      notifyListeners();
+
+      final uri = Uri.parse('${getUrl()}dormant-survey/exists').replace(
+        queryParameters: {'customerName': normalized},
+      );
+      final resp = await http.get(
+        uri,
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (resp.statusCode < 200 || resp.statusCode >= 300) return false;
+
+      final decoded = jsonDecode(resp.body);
+      final exists = decoded is Map &&
+          decoded['data'] is Map &&
+          decoded['data']['exists'] == true;
+      return exists;
+    } catch (_) {
+      return false;
+    } finally {
+      duplicateCheckInProgress = false;
+      notifyListeners();
+    }
   }
 
   void setAccountSearchQuery(String v) {
@@ -239,9 +291,28 @@ class DormantSurveyController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setGeneralComments(String v) {
-    generalComments = v;
+  void setGeneralCommentChoice(String v) {
+    if (generalCommentChoice == v) return;
+    generalCommentChoice = v;
+    if (generalCommentChoice != generalCommentOtherLabel) {
+      generalCommentOther = '';
+    }
     notifyListeners();
+  }
+
+  void setGeneralCommentOther(String v) {
+    generalCommentOther = v;
+    notifyListeners();
+  }
+
+  String? buildGeneralCommentsForSubmit() {
+    if (generalCommentChoice.trim().isEmpty) return null;
+    if (generalCommentChoice == generalCommentOtherLabel) {
+      final other = generalCommentOther.trim();
+      if (other.isEmpty) return null;
+      return 'Other: $other';
+    }
+    return generalCommentChoice.trim();
   }
 
   Future<void> capturePhoto() async {
@@ -397,9 +468,23 @@ class DormantSurveyController extends ChangeNotifier {
 
     // Step D
     if (meterCondition.isEmpty) return 'Select meter condition';
-    final needsReading = meterCondition != 'No Meter (Direct)';
+    final noReadingConditions = <String>{
+      'No Meter (Direct)',
+      'Disconnected (Meter Removed)',
+      'Buried / Covered(inaccessible)',
+    };
+    final needsReading = !noReadingConditions.contains(meterCondition);
     if (needsReading && meterReading.trim().isEmpty) {
       return 'Enter meter reading (use 0 / estimate if illegible)';
+    }
+
+    // General comments choice required
+    if (generalCommentChoice.trim().isEmpty) {
+      return 'Select general comments option';
+    }
+    if (generalCommentChoice == generalCommentOtherLabel &&
+        generalCommentOther.trim().isEmpty) {
+      return 'Specify other general comments';
     }
 
     // GPS required per doc
@@ -408,7 +493,7 @@ class DormantSurveyController extends ChangeNotifier {
     }
 
     // Photo required when disconnected (per doc hint)
-    if (meterCondition == 'Disconnected' && photo == null) {
+    if (meterCondition == 'Disconnected (Meter On Ground)' && photo == null) {
       return 'Capture a photo for disconnected meters';
     }
 
@@ -425,11 +510,14 @@ class DormantSurveyController extends ChangeNotifier {
       final token = await _storage.read(key: 'mwstaffjwt');
       if (token == null || token.isEmpty) return 'Not authenticated';
 
+      final acct = selectedAccount!;
+      final already = await isDormantNameAlreadySubmitted(acct.customerName);
+      if (already) return 'Dormant Account already submitted';
+
       final uri = Uri.parse('${getUrl()}dormant-survey/with-media');
       final req = http.MultipartRequest('POST', uri);
       req.headers['Authorization'] = 'Bearer $token';
 
-      final acct = selectedAccount!;
       req.fields['scheme'] = scheme;
       req.fields['zone'] = zone;
       req.fields['route'] = route;
@@ -472,8 +560,9 @@ class DormantSurveyController extends ChangeNotifier {
       if (meterReading.trim().isNotEmpty) {
         req.fields['meterReading'] = meterReading.trim();
       }
-      if (generalComments.trim().isNotEmpty) {
-        req.fields['generalComments'] = generalComments.trim();
+      final gen = buildGeneralCommentsForSubmit();
+      if (gen != null && gen.trim().isNotEmpty) {
+        req.fields['generalComments'] = gen.trim();
       }
 
       req.fields['latitude'] = latitude.toString();
@@ -525,7 +614,8 @@ class DormantSurveyController extends ChangeNotifier {
     currentOccupantPhone = '';
     meterCondition = '';
     meterReading = '';
-    generalComments = '';
+    generalCommentChoice = '';
+    generalCommentOther = '';
     photo = null;
     latitude = null;
     longitude = null;

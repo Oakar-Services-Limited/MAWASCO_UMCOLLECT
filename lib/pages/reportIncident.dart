@@ -769,7 +769,9 @@ class _ReportIncidentState extends State<ReportIncident> {
             isLoading = null;
             if (res.error == null) {
               successful = true;
-              error = res.success;
+              error = res.ticketNo != null
+                  ? '${res.success} Ticket No: ${res.ticketNo}'
+                  : res.success;
             } else {
               successful = false;
               error = res.error;
@@ -963,11 +965,13 @@ class Message {
   dynamic token;
   dynamic success;
   dynamic error;
+  dynamic ticketNo;
 
   Message({
     required this.token,
     required this.success,
     required this.error,
+    this.ticketNo,
   });
 
   factory Message.fromJson(Map<String, dynamic> json) {
@@ -975,6 +979,7 @@ class Message {
       token: json['token'],
       success: json['success'],
       error: json['error'],
+      ticketNo: json['data'] != null ? json['data']['serialNo'] : null,
     );
   }
 }
