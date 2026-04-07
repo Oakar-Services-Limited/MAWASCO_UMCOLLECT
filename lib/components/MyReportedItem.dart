@@ -30,7 +30,9 @@ class _CollectedItemState extends State<MyReportedItem> {
   }
 
   String _getFormattedDateTime() {
-    final createdAt = widget.item["createdAt"] ?? widget.item["CreatedAt"];
+    final createdAt = widget.item["createdAt"] ??
+        widget.item["CreatedAt"] ??
+        widget.item["created_at"];
     if (createdAt == null) return "Date not available";
     try {
       final dateTime = parsePostgresTimestamp(createdAt.toString());
@@ -55,7 +57,9 @@ class _CollectedItemState extends State<MyReportedItem> {
     final description = widget.item["Description"] ??
         widget.item["description"] ??
         "No description available";
-    final status = widget.item["Status"] ?? widget.item["status"] ?? "Received";
+    final status =
+        widget.item["Status"] ?? widget.item["status"] ?? "Received";
+    final lowerStatus = status.toString().toLowerCase();
     final serialNo = widget.item["SerialNo"] ??
         widget.item["serialNo"] ??
         widget.item["id"] ??
@@ -203,8 +207,12 @@ class _CollectedItemState extends State<MyReportedItem> {
                   Container(
                       padding: const EdgeInsets.fromLTRB(12, 2, 12, 2),
                       decoration: BoxDecoration(
-                          color:
-                              status == "Resolved" ? Colors.green : Colors.red,
+                          color: lowerStatus.contains('resolved')
+                              ? Colors.green
+                              : (lowerStatus.contains('draft') ||
+                                      lowerStatus.contains('pending'))
+                                  ? Colors.orange
+                                  : Colors.red,
                           borderRadius: BorderRadius.only(
                               bottomRight: Radius.circular(5))),
                       child: Text(

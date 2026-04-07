@@ -46,6 +46,7 @@ class _IncidencesState extends State<Incidences> {
   List<Category> categories = [];
   bool isLoading = true;
   String? error;
+  bool showingCached = false;
 
   var isstaff;
   var staffid;
@@ -68,31 +69,71 @@ class _IncidencesState extends State<Incidences> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success']) {
+          final parsed = (data['data'] as List)
+              .map((category) => Category.fromJson(category))
+              .toList();
+          await storage.write(
+            key: 'cached_incident_categories',
+            value: json.encode(
+              parsed
+                  .map((c) => {
+                        'id': c.id,
+                        'name': c.name,
+                        'file': c.file,
+                        'status': c.status,
+                      })
+                  .toList(),
+            ),
+          );
           setState(() {
-            categories = (data['data'] as List)
-                .map((category) => Category.fromJson(category))
-                .toList();
+            categories = parsed;
             isLoading = false;
             error = null;
+            showingCached = false;
           });
         } else {
-          setState(() {
-            error = 'Unable to load incidents. Please try again.';
-            isLoading = false;
-          });
+          await _loadCachedCategories();
         }
       } else {
-        setState(() {
-          error = 'Unable to load incidents. Please try again.';
-          isLoading = false;
-        });
+        await _loadCachedCategories();
       }
     } catch (e) {
       if (!mounted) return; // Check if widget is still mounted
+      await _loadCachedCategories();
+    }
+  }
+
+  Future<void> _loadCachedCategories() async {
+    final cached = await storage.read(key: 'cached_incident_categories');
+    if (!mounted) return;
+    if (cached == null || cached.isEmpty) {
       setState(() {
         error =
             'Error loading incidences. Please check your internet connection.';
         isLoading = false;
+        showingCached = false;
+      });
+      return;
+    }
+
+    try {
+      final decoded = json.decode(cached) as List;
+      final parsed = decoded
+          .whereType<Map>()
+          .map((raw) => Category.fromJson(raw.cast<String, dynamic>()))
+          .toList();
+      setState(() {
+        categories = parsed;
+        error = null;
+        isLoading = false;
+        showingCached = true;
+      });
+    } catch (_) {
+      setState(() {
+        error =
+            'Error loading incidences. Please check your internet connection.';
+        isLoading = false;
+        showingCached = false;
       });
     }
   }
@@ -168,6 +209,25 @@ class _IncidencesState extends State<Incidences> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (showingCached)
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.shade100,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Text(
+                        'Offline mode: showing saved incident types.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                   const Padding(
                     padding: EdgeInsets.only(bottom: 16.0),
                     child: Column(

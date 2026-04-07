@@ -1480,7 +1480,7 @@ class _GeometryMapWidgetState extends State<_GeometryMapWidget> {
     // Get initial position
     try {
       Position initialPosition = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        desiredAccuracy: LocationAccuracy.bestForNavigation,
       );
       if (!mounted) return;
 
@@ -1518,7 +1518,7 @@ class _GeometryMapWidgetState extends State<_GeometryMapWidget> {
 
         try {
           Position position = await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.high,
+            desiredAccuracy: LocationAccuracy.bestForNavigation,
           );
           if (!mounted || !_isTracking) return;
 
@@ -1584,7 +1584,7 @@ class _GeometryMapWidgetState extends State<_GeometryMapWidget> {
         return;
       }
       Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        desiredAccuracy: LocationAccuracy.bestForNavigation,
       );
       if (!mounted) return;
       final point = LatLng(position.latitude, position.longitude);
@@ -1634,7 +1634,7 @@ class _GeometryMapWidgetState extends State<_GeometryMapWidget> {
       if (permission == LocationPermission.whileInUse ||
           permission == LocationPermission.always) {
         Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
+          desiredAccuracy: LocationAccuracy.bestForNavigation,
         );
         if (!mounted) return;
         setState(() {

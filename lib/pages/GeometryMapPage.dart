@@ -104,7 +104,7 @@ class _GeometryMapPageState extends State<GeometryMapPage> {
     // Get initial position
     try {
       Position initialPosition = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        desiredAccuracy: LocationAccuracy.bestForNavigation,
       );
       if (!mounted) return;
 
@@ -142,7 +142,7 @@ class _GeometryMapPageState extends State<GeometryMapPage> {
 
         try {
           Position position = await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.high,
+            desiredAccuracy: LocationAccuracy.bestForNavigation,
           );
           if (!mounted || !_isTracking) return;
 
@@ -208,7 +208,7 @@ class _GeometryMapPageState extends State<GeometryMapPage> {
         return;
       }
       Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        desiredAccuracy: LocationAccuracy.bestForNavigation,
       );
       if (!mounted) return;
       final point = LatLng(position.latitude, position.longitude);
@@ -258,7 +258,7 @@ class _GeometryMapPageState extends State<GeometryMapPage> {
       if (permission == LocationPermission.whileInUse ||
           permission == LocationPermission.always) {
         Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
+          desiredAccuracy: LocationAccuracy.bestForNavigation,
         );
         if (!mounted) return;
         setState(() {
@@ -538,7 +538,8 @@ class _GeometryMapPageState extends State<GeometryMapPage> {
                       const Expanded(
                         child: Text(
                           'Offline mode: map tiles and routing may be unavailable, '
-                          'but GPS and drawing geometry still work. Geometry will be '
+                          'but GNSS capture (GPS/GLONASS/GALILEO/BeiDou on supported devices) '
+                          'and drawing geometry still work. Geometry will be '
                           'saved locally and synced when back online.',
                           style: TextStyle(
                             fontSize: 12,

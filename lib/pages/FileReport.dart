@@ -6,11 +6,14 @@ import 'package:http/http.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:uuid/uuid.dart';
 import 'package:um_collect/components/MyDrawer.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/pages/TextOakar.dart';
 import 'package:um_collect/pages/complete.dart';
 import 'package:um_collect/components/MyTextInput.dart';
+import 'package:um_collect/services/connectivity_helper.dart';
+import 'package:um_collect/services/database_helper.dart';
 
 class FileReport extends StatefulWidget {
   final dynamic item;
@@ -38,6 +41,7 @@ class _FileReportState extends State<FileReport> {
   String imageUrl = '';
   String repairedImage = '';
   bool successful = false;
+  bool _isSavingDraft = false;
 
   String capturedImageUrl = '';
   dynamic userData = [];
@@ -45,6 +49,56 @@ class _FileReportState extends State<FileReport> {
   final imagePicker = ImagePicker();
 
   final storage = const FlutterSecureStorage();
+  final _db = DatabaseHelper();
+
+  Future<Message> _queueResolutionDraft({required String reason}) async {
+    final id = const Uuid().v4();
+    final now = DateTime.now();
+    final resolvedDate = DateFormat('yyyy-MM-dd').format(now);
+    final resolvedTime = DateFormat('hh:mm a').format(now);
+    final payload = <String, dynamic>{
+      'taskRemark': taskremark.trim(),
+      'resolvedDate': resolvedDate,
+      'resolvedTime': resolvedTime,
+      if (repairedImage.isNotEmpty) 'repairedImagePath': repairedImage,
+    };
+
+    await _db.saveSubmission(
+      id: id,
+      formId: incidentId,
+      formName: 'Incident Resolution',
+      responses: {
+        '_type': 'incident_resolution',
+        '_endpoint': 'om/assigned-reports/$incidentId',
+        '_method': 'PUT',
+        '_body': payload,
+      },
+    );
+
+    return Message(
+      token: null,
+      success: 'Draft saved offline. Will sync when online. ($reason)',
+      error: null,
+    );
+  }
+
+  Future<void> _saveDraft() async {
+    if (incidentId.isEmpty) {
+      _showMessage('Invalid incident details. Reload and try again.', true);
+      return;
+    }
+    if (taskremark.trim().isEmpty) {
+      _showMessage('Action taken is required to save a draft.', true);
+      return;
+    }
+
+    setState(() => _isSavingDraft = true);
+    final res = await _queueResolutionDraft(reason: 'Manual draft save');
+    if (mounted) {
+      _showMessage(res.success.toString(), false);
+      setState(() => _isSavingDraft = false);
+    }
+  }
 
   void _showMessage(String message, bool isError) {
     if (!mounted) return;
@@ -490,11 +544,27 @@ class _FileReportState extends State<FileReport> {
   }
 
   Widget _buildSubmitButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 50,
-      child: ElevatedButton(
-        onPressed: () async {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: _isSavingDraft ? null : _saveDraft,
+            icon: _isSavingDraft
+                ? const SizedBox(
+                    height: 16,
+                    width: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.save_outlined),
+            label: const Text('Save draft'),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: SizedBox(
+            height: 50,
+            child: ElevatedButton(
+              onPressed: () async {
           setState(() {
             error = "";
             isLoading = LoadingAnimationWidget.staggeredDotsWave(
@@ -503,11 +573,21 @@ class _FileReportState extends State<FileReport> {
             );
           });
 
-          var res = await submitData(
-            incidentId,
-            repairedImage,
-            taskremark,
-          );
+          Message res;
+          final isOnline = await ConnectivityHelper().checkConnectivity();
+          if (!isOnline) {
+            res = await _queueResolutionDraft(reason: 'Offline');
+          } else {
+            res = await submitData(
+              incidentId,
+              repairedImage,
+              taskremark,
+            );
+            if (res.error != null &&
+                res.error.toString().toLowerCase().contains('connection')) {
+              res = await _queueResolutionDraft(reason: 'Network error');
+            }
+          }
 
           setState(() {
             isLoading = null;
@@ -526,23 +606,26 @@ class _FileReportState extends State<FileReport> {
           } else {
             _showMessage(res.error ?? "Failed to submit report", true);
           }
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xff0288D1),
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xff0288D1),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 2,
+              ),
+              child: const Text(
+                'Submit',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           ),
-          elevation: 2,
         ),
-        child: const Text(
-          'Submit',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
+      ],
     );
   }
 

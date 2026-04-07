@@ -8,6 +8,8 @@ import 'package:um_collect/components/StaffDrawer.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:http/http.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:um_collect/services/database_helper.dart';
+import 'package:um_collect/services/sync_service.dart';
 
 class IncidencesList extends StatefulWidget {
   const IncidencesList({
@@ -27,6 +29,9 @@ class _IncidencesListState extends State<IncidencesList> {
   int currentPage = 1;
   final int itemsPerPage = 5;
   String staffid = '';
+  final _db = DatabaseHelper();
+  final _syncService = SyncService();
+  bool _isSyncing = false;
 
   @override
   void initState() {
@@ -43,25 +48,22 @@ class _IncidencesListState extends State<IncidencesList> {
     });
 
     try {
-      final token = await storage.read(key: "mwstaffjwt");
-
-      if (token == null) {
-        throw Exception("No authentication token found");
-      }
-
-      // Extract user ID from token
-      var decoded = parseJwt(token);
-      String userId = decoded["id"]?.toString() ?? '';
-
-      if (userId.isEmpty) {
-        throw Exception("No user ID found in token");
-      }
+      final userId = await _getCurrentUserId();
+      final localDrafts = await _getLocalIncidentDrafts(userId: userId);
 
       // Update staffid for drawer
       if (mounted) {
         setState(() {
           staffid = userId;
         });
+      }
+      final token = await storage.read(key: "mwstaffjwt");
+      if (token == null || token.isEmpty) {
+        setState(() {
+          incidentLst = localDrafts;
+          isLoading = null;
+        });
+        return;
       }
       final response = await get(
         Uri.parse("${getUrl()}om/reports?userId=$userId"),
@@ -78,7 +80,7 @@ class _IncidencesListState extends State<IncidencesList> {
         List responseList = decoded['data'] ?? [];
 
         setState(() {
-          incidentLst = responseList;
+          incidentLst = [...localDrafts, ...responseList];
           isLoading = null;
         });
       } else if (response.statusCode == 400 || response.statusCode == 401) {
@@ -90,12 +92,12 @@ class _IncidencesListState extends State<IncidencesList> {
           await storage.delete(key: 'isstaff');
 
           setState(() {
-            incidentLst = [];
+            incidentLst = localDrafts;
             isLoading = null;
           });
         } else {
           setState(() {
-            incidentLst = [];
+            incidentLst = localDrafts;
             isLoading = null;
           });
         }
@@ -110,7 +112,7 @@ class _IncidencesListState extends State<IncidencesList> {
         }
       } else {
         setState(() {
-          incidentLst = [];
+          incidentLst = localDrafts;
           isLoading = null;
         });
         if (mounted) {
@@ -123,11 +125,13 @@ class _IncidencesListState extends State<IncidencesList> {
         }
       }
     } catch (e) {
+      final userId = await _getCurrentUserId();
+      final localDrafts = await _getLocalIncidentDrafts(userId: userId);
       setState(() {
-        incidentLst = [];
+        incidentLst = localDrafts;
         isLoading = null;
       });
-      if (mounted) {
+      if (mounted && localDrafts.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
@@ -137,6 +141,52 @@ class _IncidencesListState extends State<IncidencesList> {
         );
       }
     }
+  }
+
+  Future<List<Map<String, dynamic>>> _getLocalIncidentDrafts({
+    required String userId,
+  }) async {
+    final rows = await _db.getUnsyncedSubmissions();
+    final drafts = <Map<String, dynamic>>[];
+    for (final row in rows) {
+      Map<String, dynamic> responses = {};
+      try {
+        responses = jsonDecode((row['responses'] ?? '{}').toString())
+            as Map<String, dynamic>;
+      } catch (_) {}
+
+      if (responses['_type']?.toString() != 'incident_report') continue;
+      final body = (responses['_body'] as Map?)?.cast<String, dynamic>() ?? {};
+      final ownerId =
+          body['_ownerId']?.toString() ?? body['userId']?.toString() ?? '';
+      if (userId.isNotEmpty && ownerId.isNotEmpty && ownerId != userId) {
+        continue;
+      }
+
+      drafts.add({
+        'id': row['id'],
+        'incidentType': body['incidentType'] ?? 'Incident',
+        'description': body['description'] ?? 'Saved offline',
+        'status': 'Draft (Offline)',
+        'serialNo': 'DRAFT',
+        'createdAt': row['created_at'],
+      });
+    }
+    return drafts;
+  }
+
+  Future<String> _getCurrentUserId() async {
+    final staffToken = await storage.read(key: "mwstaffjwt");
+    if (staffToken != null && staffToken.isNotEmpty) {
+      final decoded = parseJwt(staffToken);
+      return decoded["id"]?.toString() ?? '';
+    }
+    final publicToken = await storage.read(key: "mwjwt");
+    if (publicToken != null && publicToken.isNotEmpty) {
+      final decoded = parseJwt(publicToken);
+      return decoded["id"]?.toString() ?? '';
+    }
+    return '';
   }
 
   List<dynamic> get paginatedIncidents {
@@ -171,6 +221,37 @@ class _IncidencesListState extends State<IncidencesList> {
       key: _scaffoldKey,
       appBar: AppBar(
         actions: <Widget>[
+          IconButton(
+            icon: _isSyncing
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : const Icon(
+                    Icons.cloud_sync,
+                    color: Colors.white,
+                  ),
+            tooltip: _isSyncing ? 'Syncing...' : 'Sync drafts',
+            onPressed: _isSyncing
+                ? null
+                : () async {
+                    setState(() => _isSyncing = true);
+                    final message = await _syncService.syncAllUnsynced();
+                    await fetchReportedIncidences();
+                    if (!mounted) return;
+                    setState(() => _isSyncing = false);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(message),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+          ),
           IconButton(
             icon: const Icon(
               Icons.refresh,

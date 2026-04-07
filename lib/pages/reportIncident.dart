@@ -11,11 +11,15 @@ import 'package:um_collect/components/MyDrawer.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/models/Map.dart';
 import 'package:um_collect/pages/incidences.dart';
+import 'package:um_collect/pages/incidenceslist.dart';
 import 'package:um_collect/pages/TextOakar.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:uuid/uuid.dart';
+import 'package:um_collect/services/connectivity_helper.dart';
+import 'package:um_collect/services/database_helper.dart';
 
 class ReportIncident extends StatefulWidget {
   final String incident;
@@ -55,6 +59,8 @@ class _ReportIncidentState extends State<ReportIncident> {
   String myimage = '';
   String error = '';
   bool successful = false;
+  bool _isSavingDraft = false;
+  final _db = DatabaseHelper();
 
   Future<void> fetchStoredUserData() async {
     try {
@@ -732,11 +738,42 @@ class _ReportIncidentState extends State<ReportIncident> {
   }
 
   Widget _buildSubmitButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 54,
-      child: ElevatedButton(
-        onPressed: () async {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: _isSavingDraft
+                ? null
+                : () async {
+                    setState(() {
+                      _isSavingDraft = true;
+                      error = "";
+                    });
+                    final res = await _saveDraftOffline(reason: 'Manual draft save');
+                    if (!mounted) return;
+                    setState(() {
+                      _isSavingDraft = false;
+                      successful = res.error == null;
+                      error = res.error ?? res.success ?? '';
+                    });
+                  },
+            icon: _isSavingDraft
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.save_outlined),
+            label: const Text('Save Draft'),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: SizedBox(
+            width: double.infinity,
+            height: 54,
+            child: ElevatedButton(
+              onPressed: () async {
           setState(() {
             error = "";
             isLoading = LoadingAnimationWidget.staggeredDotsWave(
@@ -745,25 +782,38 @@ class _ReportIncidentState extends State<ReportIncident> {
             );
           });
 
-          var res = await submitData(
-              widget.incident,
-              description,
-              myimage,
-              location,
-              route,
-              zone,
-              userid,
-              widget.categoryId,
-              long.toString(),
-              lat.toString(),
-              incidenttype,
-              schemetype,
-              pipesize,
-              reportertype,
-              name,
-              phone,
-              pipematerial,
-              priority);
+          Message res;
+          bool savedOffline = false;
+          final isOnline = await ConnectivityHelper().checkConnectivity();
+          if (!isOnline) {
+            res = await _saveDraftOffline(reason: 'Offline');
+            savedOffline = res.error == null;
+          } else {
+            res = await submitData(
+                widget.incident,
+                description,
+                myimage,
+                location,
+                route,
+                zone,
+                userid,
+                widget.categoryId,
+                long.toString(),
+                lat.toString(),
+                incidenttype,
+                schemetype,
+                pipesize,
+                reportertype,
+                name,
+                phone,
+                pipematerial,
+                priority);
+            if (res.error != null &&
+                res.error.toString().toLowerCase().contains('connection')) {
+              res = await _saveDraftOffline(reason: 'Network error');
+              savedOffline = res.error == null;
+            }
+          }
 
           setState(() {
             isLoading = null;
@@ -780,33 +830,91 @@ class _ReportIncidentState extends State<ReportIncident> {
 
           if (res.error == null) {
             Timer(const Duration(seconds: 2), () {
-              if (mounted) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const Incidences()),
-                );
-              }
+              if (!mounted) return;
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      savedOffline ? const IncidencesList() : const Incidences(),
+                ),
+              );
             });
           }
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xff0288D1),
-          foregroundColor: Colors.white,
-          elevation: 4,
-          shadowColor: Colors.black26,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xff0288D1),
+                foregroundColor: Colors.white,
+                elevation: 4,
+                shadowColor: Colors.black26,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: const Text(
+                'Submit Report',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
           ),
         ),
-        child: const Text(
-          'Submit Report',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
-          ),
+      ],
+    );
+  }
+
+  Future<Message> _saveDraftOffline({required String reason}) async {
+    final validation = _validateIncidentInput(
+      incident: widget.incident,
+      myimage: myimage,
+      categoryId: widget.categoryId,
+      incidenttype: incidenttype,
+      schemetype: schemetype,
+      pipesize: pipesize,
+      reportertype: reportertype,
+      pipematerial: pipematerial,
+    );
+    if (validation != null) {
+      return Message(token: null, success: null, error: validation);
+    }
+
+    await _db.saveSubmission(
+      id: const Uuid().v4(),
+      formId: widget.categoryId,
+      formName: 'Incident Report',
+      responses: {
+        '_type': 'incident_report',
+        '_endpoint': 'om/reports',
+        '_method': 'POST',
+        '_body': _buildIncidentPayload(
+          incident: widget.incident,
+          description: description,
+          myimage: myimage,
+          location: location,
+          route: route,
+          zone: zone,
+          userId: userid,
+          categoryId: widget.categoryId,
+          longitude: long.toString(),
+          latitude: lat.toString(),
+          incidenttype: incidenttype,
+          schemetype: schemetype,
+          pipesize: pipesize,
+          reportertype: reportertype,
+          name: name,
+          phone: phone,
+          pipematerial: pipematerial,
+          priority: priority,
         ),
-      ),
+      },
+    );
+
+    return Message(
+      token: null,
+      success: 'Saved offline. Will sync when connected. ($reason)',
+      error: null,
     );
   }
 
@@ -834,6 +942,90 @@ class _ReportIncidentState extends State<ReportIncident> {
   }
 }
 
+String? _validateIncidentInput({
+  required String incident,
+  required String myimage,
+  required String categoryId,
+  required String incidenttype,
+  required String schemetype,
+  required String pipesize,
+  required String reportertype,
+  required String pipematerial,
+}) {
+  if (myimage.isEmpty && incident != "Supply Fail") {
+    return "Take Photo of $incident!";
+  }
+  if (categoryId.isEmpty) {
+    return "Category ID is missing!";
+  }
+  if (reportertype == "Staff" &&
+      (incident == "Leakage" || incident == "Sewer Burst") &&
+      (incidenttype.isEmpty || incidenttype == "--Select--")) {
+    return "Please select the type of ${incident.toLowerCase()}!";
+  }
+  if (incident == "Leakage" && reportertype == "Staff") {
+    if (schemetype.isEmpty || schemetype == "--Select--") {
+      return "Please select the scheme type!";
+    }
+    if (pipematerial.isEmpty || pipematerial == "--Select--") {
+      return "Please select the pipe material!";
+    }
+    if (pipesize.isEmpty || pipesize == "--Select--") {
+      return "Please select the pipe size!";
+    }
+  }
+  return null;
+}
+
+Map<String, dynamic> _buildIncidentPayload({
+  required String incident,
+  required String description,
+  required String myimage,
+  required String location,
+  required String route,
+  required String zone,
+  required String userId,
+  required String categoryId,
+  required String longitude,
+  required String latitude,
+  required String incidenttype,
+  required String schemetype,
+  required String pipesize,
+  required String reportertype,
+  required String name,
+  required String phone,
+  required String pipematerial,
+  required String priority,
+}) {
+  return {
+    'description': description,
+    'image': myimage,
+    'location': location,
+    'route': route,
+    'zone': zone.isNotEmpty && zone != "--Select--" ? zone : null,
+    'userId': reportertype == "Staff" ? userId : null,
+    'categoryId': categoryId,
+    'longitude': longitude,
+    'latitude': latitude,
+    'incidentType': reportertype == "Staff"
+        ? (incident == "Leakage" || incident == "Sewer Burst")
+            ? incidenttype
+            : incident
+        : incident,
+    'schemeType':
+        incident == "Leakage" && reportertype == "Staff" ? schemetype : null,
+    'pipeSize':
+        incident == "Leakage" && reportertype == "Staff" ? pipesize : null,
+    'pipeMaterial': incident == "Leakage" && reportertype == "Staff"
+        ? pipematerial
+        : null,
+    'reporterName': name,
+    'reporterPhone': phone,
+    'priority': priority,
+    '_ownerId': userId,
+  };
+}
+
 Future<Message> submitData(
   String incident,
   String description,
@@ -854,69 +1046,40 @@ Future<Message> submitData(
   String pipematerial,
   String priority,
 ) async {
-  if (myimage.isEmpty && incident != "Supply Fail") {
-    return Message(
-        token: null, success: null, error: "Take Photo of $incident!");
-  }
-
-  if (categoryId.isEmpty) {
-    return Message(
-        token: null, success: null, error: "Category ID is missing!");
-  }
-
-  // Only validate incident type selection for staff reporters
-  if (reportertype == "Staff" &&
-      (incident == "Leakage" || incident == "Sewer Burst") &&
-      (incidenttype.isEmpty || incidenttype == "--Select--")) {
-    return Message(
-        token: null,
-        success: null,
-        error: "Please select the type of ${incident.toLowerCase()}!");
-  }
-
-  if (incident == "Leakage" && reportertype == "Staff") {
-    if (schemetype.isEmpty || schemetype == "--Select--") {
-      return Message(
-          token: null, success: null, error: "Please select the scheme type!");
-    }
-    if (pipematerial.isEmpty || pipematerial == "--Select--") {
-      return Message(
-          token: null,
-          success: null,
-          error: "Please select the pipe material!");
-    }
-    if (pipesize.isEmpty || pipesize == "--Select--") {
-      return Message(
-          token: null, success: null, error: "Please select the pipe size!");
-    }
+  final validation = _validateIncidentInput(
+    incident: incident,
+    myimage: myimage,
+    categoryId: categoryId,
+    incidenttype: incidenttype,
+    schemetype: schemetype,
+    pipesize: pipesize,
+    reportertype: reportertype,
+    pipematerial: pipematerial,
+  );
+  if (validation != null) {
+    return Message(token: null, success: null, error: validation);
   }
   try {
-    final payload = {
-      'description': description,
-      'image': myimage,
-      'location': location,
-      'route': route,
-      'zone': zone.isNotEmpty && zone != "--Select--" ? zone : null,
-      'userId': reportertype == "Staff" ? userId : null,
-      'categoryId': categoryId,
-      'longitude': longitude,
-      'latitude': latitude,
-      'incidentType': reportertype == "Staff"
-          ? (incident == "Leakage" || incident == "Sewer Burst")
-              ? incidenttype
-              : incident
-          : incident,
-      'schemeType':
-          incident == "Leakage" && reportertype == "Staff" ? schemetype : null,
-      'pipeSize':
-          incident == "Leakage" && reportertype == "Staff" ? pipesize : null,
-      'pipeMaterial': incident == "Leakage" && reportertype == "Staff"
-          ? pipematerial
-          : null,
-      'reporterName': name,
-      'reporterPhone': phone,
-      'priority': priority,
-    };
+    final payload = _buildIncidentPayload(
+      incident: incident,
+      description: description,
+      myimage: myimage,
+      location: location,
+      route: route,
+      zone: zone,
+      userId: userId,
+      categoryId: categoryId,
+      longitude: longitude,
+      latitude: latitude,
+      incidenttype: incidenttype,
+      schemetype: schemetype,
+      pipesize: pipesize,
+      reportertype: reportertype,
+      name: name,
+      phone: phone,
+      pipematerial: pipematerial,
+      priority: priority,
+    );
 
     print("Payload: $payload");
 

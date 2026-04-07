@@ -7,6 +7,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
 import 'package:um_collect/pages/NRWComplete.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:um_collect/components/MyDrawer.dart';
@@ -14,6 +15,8 @@ import 'package:um_collect/components/MyTextInputII.dart';
 import 'package:um_collect/components/SubmitButton.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/pages/TextOakar.dart';
+import 'package:um_collect/services/connectivity_helper.dart';
+import 'package:um_collect/services/database_helper.dart';
 
 class FileReportNRW extends StatefulWidget {
   final String incidentid;
@@ -41,6 +44,7 @@ class _FileReportNRWState extends State<FileReportNRW> {
   String imageUrl = '';
   String repairedImage = '';
   bool successful = false;
+  bool _isSavingDraft = false;
 
   String capturedImageUrl = '';
   dynamic userData = [];
@@ -48,6 +52,65 @@ class _FileReportNRWState extends State<FileReportNRW> {
   final imagePicker = ImagePicker();
 
   final storage = const FlutterSecureStorage();
+  final _db = DatabaseHelper();
+
+  Future<Message> _queueResolutionDraft({required String reason}) async {
+    if (incidentId.isEmpty) {
+      return Message(
+        token: null,
+        success: null,
+        error: 'Invalid Incident ID',
+      );
+    }
+
+    final now = DateTime.now();
+    final resolvedDate = DateFormat('yyyy-MM-dd').format(now);
+    final resolvedTime = DateFormat('hh:mm a').format(now);
+    final id = const Uuid().v4();
+
+    await _db.saveSubmission(
+      id: id,
+      formId: incidentId,
+      formName: 'NRW Incident Resolution',
+      responses: {
+        '_type': 'nrw_incident_resolution',
+        '_endpoint': 'nrw_leakages/update/$incidentId',
+        '_method': 'PUT',
+        '_body': {
+          'TaskImage': repairedImage,
+          'TaskRemark': taskremark.trim(),
+          'ResolvedDate': resolvedDate,
+          'ResolvedTime': resolvedTime,
+          'Status': 'Resolved',
+        },
+      },
+    );
+
+    return Message(
+      token: null,
+      success: 'Draft saved offline. Will sync when online. ($reason)',
+      error: null,
+    );
+  }
+
+  Future<void> _saveDraft() async {
+    if (taskremark.trim().isEmpty) {
+      setState(() {
+        successful = false;
+        error = 'Action is required before saving a draft.';
+      });
+      return;
+    }
+
+    setState(() => _isSavingDraft = true);
+    final res = await _queueResolutionDraft(reason: 'Manual draft save');
+    if (!mounted) return;
+    setState(() {
+      _isSavingDraft = false;
+      successful = res.error == null;
+      error = res.error ?? res.success;
+    });
+  }
 
   @override
   void initState() {
@@ -534,6 +597,22 @@ class _FileReportNRWState extends State<FileReportNRW> {
                         ),
                       ),
                       TextOakar(label: error, issuccessful: successful),
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.center,
+                        child: OutlinedButton.icon(
+                          onPressed: _isSavingDraft ? null : _saveDraft,
+                          icon: _isSavingDraft
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2),
+                                )
+                              : const Icon(Icons.save_outlined),
+                          label: const Text('Save draft'),
+                        ),
+                      ),
                       Center(
                         child: isLoading ?? const SizedBox(),
                       ),
@@ -554,8 +633,24 @@ class _FileReportNRWState extends State<FileReportNRW> {
                               );
                             });
 
-                            var res = await submitData(
-                                incidentId, repairedImage, taskremark);
+                            Message res;
+                            final isOnline =
+                                await ConnectivityHelper().checkConnectivity();
+                            if (!isOnline) {
+                              res = await _queueResolutionDraft(reason: 'Offline');
+                            } else {
+                              res = await submitData(
+                                  incidentId, repairedImage, taskremark);
+                              if (res.error != null &&
+                                  res.error
+                                      .toString()
+                                      .toLowerCase()
+                                      .contains('connection')) {
+                                res = await _queueResolutionDraft(
+                                  reason: 'Network error',
+                                );
+                              }
+                            }
                             if (!mounted) return;
                             setState(() {
                               isLoading = null;

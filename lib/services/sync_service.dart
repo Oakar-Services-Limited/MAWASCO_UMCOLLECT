@@ -22,10 +22,8 @@ class SyncService {
       return 'No internet connection. Sync skipped.';
     }
 
-    final token = await _storage.read(key: 'mwstaffjwt');
-    if (token == null || token.isEmpty) {
-      return 'Authentication token not found. Please login to sync.';
-    }
+    final staffToken = await _storage.read(key: 'mwstaffjwt');
+    final publicToken = await _storage.read(key: 'mwjwt');
 
     final submissions = await _db.getUnsyncedSubmissions();
     if (submissions.isEmpty) {
@@ -60,6 +58,21 @@ class SyncService {
         }
 
         final uri = Uri.parse('${getUrl()}$endpoint');
+        final requiresAuth = _requiresAuth(endpoint);
+        final token = _tokenForEndpoint(
+          endpoint: endpoint,
+          staffToken: staffToken,
+          publicToken: publicToken,
+        );
+        if (requiresAuth && (token == null || token.isEmpty)) {
+          await _db.updateSubmissionSyncStatus(
+            id: id,
+            synced: false,
+            syncStatus: 'failed',
+            syncError: 'Authentication token not found. Please login to sync.',
+          );
+          continue;
+        }
 
         http.Response response;
         if (method == 'POST') {
@@ -67,19 +80,40 @@ class SyncService {
             uri,
             headers: {
               'Content-Type': 'application/json; charset=UTF-8',
-              'Authorization': 'Bearer $token',
+              if (token != null && token.isNotEmpty)
+                'Authorization': 'Bearer $token',
             },
             body: jsonEncode(body),
           );
         } else if (method == 'PUT') {
-          response = await http.put(
-            uri,
-            headers: {
-              'Content-Type': 'application/json; charset=UTF-8',
-              'Authorization': 'Bearer $token',
-            },
-            body: jsonEncode(body),
-          );
+          final repairedImagePath = body['repairedImagePath']?.toString();
+          if (repairedImagePath != null && repairedImagePath.isNotEmpty) {
+            final multipart = http.MultipartRequest('PUT', uri);
+            if (token != null && token.isNotEmpty) {
+              multipart.headers['Authorization'] = 'Bearer $token';
+            }
+            final file = File(repairedImagePath);
+            if (await file.exists()) {
+              multipart.files
+                  .add(await http.MultipartFile.fromPath('image', file.path));
+            }
+            for (final entry in body.entries) {
+              if (entry.key == 'repairedImagePath') continue;
+              multipart.fields[entry.key] = entry.value?.toString() ?? '';
+            }
+            final streamed = await multipart.send();
+            response = await http.Response.fromStream(streamed);
+          } else {
+            response = await http.put(
+              uri,
+              headers: {
+                'Content-Type': 'application/json; charset=UTF-8',
+                if (token != null && token.isNotEmpty)
+                  'Authorization': 'Bearer $token',
+              },
+              body: jsonEncode(body),
+            );
+          }
         } else {
           await _db.updateSubmissionSyncStatus(
             id: id,
@@ -140,6 +174,26 @@ class SyncService {
     return value.contains(Platform.pathSeparator) &&
         !value.startsWith('http://') &&
         !value.startsWith('https://');
+  }
+
+  bool _requiresAuth(String endpoint) {
+    // Public incident reporting endpoint can sync without JWT.
+    if (endpoint == 'om/reports') return false;
+    return true;
+  }
+
+  String? _tokenForEndpoint({
+    required String endpoint,
+    required String? staffToken,
+    required String? publicToken,
+  }) {
+    if (endpoint == 'om/reports') {
+      // Prefer public token, but allow staff token too.
+      return (publicToken != null && publicToken.isNotEmpty)
+          ? publicToken
+          : staffToken;
+    }
+    return staffToken;
   }
 }
 

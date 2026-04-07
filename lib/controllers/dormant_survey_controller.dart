@@ -509,6 +509,14 @@ class DormantSurveyController extends ChangeNotifier {
     try {
       final token = await _storage.read(key: 'mwstaffjwt');
       if (token == null || token.isEmpty) return 'Not authenticated';
+      final decoded = parseJwt(token);
+      final enumeratorName = (decoded['name'] ??
+              decoded['Name'] ??
+              decoded['fullName'] ??
+              decoded['FullName'] ??
+              '')
+          .toString()
+          .trim();
 
       final acct = selectedAccount!;
       final already = await isDormantNameAlreadySubmitted(acct.customerName);
@@ -524,6 +532,9 @@ class DormantSurveyController extends ChangeNotifier {
       req.fields['connectionNumber'] = acct.connectionNumber;
       req.fields['customerName'] = acct.customerName;
       req.fields['meterNoSystem'] = acct.meterNo;
+      if (enumeratorName.isNotEmpty) {
+        req.fields['enumeratorName'] = enumeratorName;
+      }
       req.fields['sourceOfWater'] = sourceOfWater.trim();
       req.fields['detailsMatch'] = detailsMatch == true ? 'true' : 'false';
       if (willingToRegularize != null) {

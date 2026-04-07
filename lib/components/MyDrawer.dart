@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:um_collect/components/FootNote.dart';
 import 'package:um_collect/pages/incidences.dart';
+import 'package:um_collect/pages/incidenceslist.dart';
 import 'package:um_collect/pages/privaypolicy.dart';
 
 class MyDrawer extends StatefulWidget {
@@ -76,6 +77,33 @@ class _MyDrawerState extends State<MyDrawer> {
                                 ),
                                 Text(
                                   'Home',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w400),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const IncidencesList()));
+                          },
+                          child: const Padding(
+                            padding: EdgeInsets.all(8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                Icon(Icons.report_problem, color: Colors.white),
+                                SizedBox(
+                                  width: 24,
+                                ),
+                                Text(
+                                  'My Reported Incidences',
                                   style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 20,
