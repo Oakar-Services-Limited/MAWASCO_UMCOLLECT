@@ -107,8 +107,12 @@ class DormantSurveyController extends ChangeNotifier {
       dbError = null;
       notifyListeners();
       await _db.ensureLoaded();
-    } catch (e) {
-      dbError = 'Failed to load customer DB';
+    } catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('[DormantSurvey.init] Failed to load customer DB: $e');
+        debugPrintStack(stackTrace: st);
+      }
+      dbError = 'Failed to load customer DB: $e';
     } finally {
       isLoadingDb = false;
       notifyListeners();
@@ -216,8 +220,16 @@ class DormantSurveyController extends ChangeNotifier {
     detailsMatch = v;
     // Clear dependent fields when switching paths
     willingToRegularize = null;
-    currentAccountNumber = '';
-    currentMeterNumber = '';
+    if (detailsMatch == true) {
+      // When details match, default the "current" values to the system values
+      // from the selected account for submission consistency.
+      currentAccountNumber =
+          _normalizeAccountNumber(selectedAccount?.accountNumber ?? '');
+      currentMeterNumber = selectedAccount?.meterNo ?? '';
+    } else {
+      currentAccountNumber = '';
+      currentMeterNumber = '';
+    }
     currentUserIsRegisteredCustomer = null;
     requiresInvestigation = null;
     investigationReason = '';
@@ -282,7 +294,9 @@ class DormantSurveyController extends ChangeNotifier {
 
   void setMeterCondition(String v) {
     meterCondition = v;
-    // If disconnected, we may want photo; if not, photo optional.
+    if (meterCondition == 'No Meter (Direct)') {
+      photo = null;
+    }
     notifyListeners();
   }
 
@@ -529,6 +543,7 @@ class DormantSurveyController extends ChangeNotifier {
       req.fields['scheme'] = scheme;
       req.fields['zone'] = zone;
       req.fields['route'] = route;
+      req.fields['accountnumber'] = _normalizeAccountNumber(acct.accountNumber);
       req.fields['connectionNumber'] = acct.connectionNumber;
       req.fields['customerName'] = acct.customerName;
       req.fields['meterNoSystem'] = acct.meterNo;
@@ -541,7 +556,8 @@ class DormantSurveyController extends ChangeNotifier {
         req.fields['willingToRegularize'] = willingToRegularize!;
       }
       if (currentAccountNumber.trim().isNotEmpty) {
-        req.fields['currentAccountNumber'] = currentAccountNumber.trim();
+        req.fields['currentAccountNumber'] =
+            _normalizeAccountNumber(currentAccountNumber);
       }
       if (currentMeterNumber.trim().isNotEmpty) {
         req.fields['currentMeterNumber'] = currentMeterNumber.trim();
@@ -631,6 +647,17 @@ class DormantSurveyController extends ChangeNotifier {
     latitude = null;
     longitude = null;
     locationAccuracy = null;
+  }
+
+  /// Pads numeric account numbers to 5 digits (e.g. `1982` -> `01982`).
+  /// Non-numeric values are returned trimmed unchanged.
+  static String _normalizeAccountNumber(String v) {
+    final s = v.trim();
+    if (s.isEmpty) return s;
+    final digitsOnly = RegExp(r'^\d+$').hasMatch(s);
+    if (!digitsOnly) return s;
+    if (s.length >= 5) return s;
+    return s.padLeft(5, '0');
   }
 }
 

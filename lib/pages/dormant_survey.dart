@@ -243,7 +243,7 @@ class _DormantSurveyForm extends StatelessWidget {
             const SizedBox(height: 12),
             _locationSection(context, ctrl),
             const SizedBox(height: 12),
-            _photoSection(ctrl),
+            if (ctrl.meterCondition != 'No Meter (Direct)') _photoSection(ctrl),
             const SizedBox(height: 12),
             _sectionTitle('E. General comments'),
             const SizedBox(height: 8),
@@ -360,7 +360,7 @@ class _DormantSurveyForm extends StatelessWidget {
                         value: e,
                         child: Text(e.label.isNotEmpty
                             ? e.label
-                            : '${e.connectionNumber} - ${e.customerName}'),
+                            : '${e.accountNumber} - ${e.customerName}'),
                       ))
                   .toList(),
               onChanged: !enabled
@@ -405,7 +405,7 @@ class _DormantSurveyForm extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text('Name: ${ctrl.selectedAccount!.customerName}'),
-                Text('Account: ${ctrl.selectedAccount!.connectionNumber}'),
+                Text('Account: ${ctrl.selectedAccount!.accountNumber}'),
                 Text('Meter (system): ${ctrl.selectedAccount!.meterNo}'),
               ],
             ),
@@ -715,6 +715,7 @@ class _DormantSurveyForm extends StatelessWidget {
                     backgroundColor: Colors.green,
                   ),
                 );
+                if (!context.mounted) return;
                 Navigator.pop(context);
               },
         style: ElevatedButton.styleFrom(

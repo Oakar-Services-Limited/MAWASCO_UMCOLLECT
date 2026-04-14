@@ -5,7 +5,11 @@ import 'package:flutter/services.dart';
 
 @immutable
 class CustomerDbEntry {
-  final String name;
+  /// This is the **account number** in our `customer_db.csv`.
+  ///
+  /// Historically the CSV header used `name` for this value, so we support both
+  /// `account_number` and `name` when parsing.
+  final String accountNumber;
   final String connectionNumber;
   final String customerName;
   final String meterNo;
@@ -16,7 +20,7 @@ class CustomerDbEntry {
   final String label;
 
   const CustomerDbEntry({
-    required this.name,
+    required this.accountNumber,
     required this.connectionNumber,
     required this.customerName,
     required this.meterNo,
@@ -29,7 +33,7 @@ class CustomerDbEntry {
 
   static CustomerDbEntry fromCsvRow(Map<String, String> row) {
     return CustomerDbEntry(
-      name: (row['name'] ?? '').trim(),
+      accountNumber: (row['account_number'] ?? '').trim(),
       connectionNumber: (row['connection_number'] ?? '').trim(),
       customerName: (row['customer_name'] ?? '').trim(),
       meterNo: (row['meter_no'] ?? '').trim(),
@@ -54,7 +58,7 @@ class CustomerDbService {
 
   Future<void> ensureLoaded() async {
     if (_loaded) return;
-    final raw = await rootBundle.loadString('customer_db.csv');
+    final raw = await rootBundle.loadString('assets/customer_db.csv');
     _entries = _parseCsv(raw);
     _loaded = true;
   }
@@ -109,8 +113,9 @@ class CustomerDbService {
       if (route.isNotEmpty && e.route != route) continue;
 
       if (q.isNotEmpty) {
-        final hay = '${e.customerName} ${e.connectionNumber} ${e.name} ${e.label}'
-            .toLowerCase();
+        final hay =
+            '${e.customerName} ${e.accountNumber} ${e.connectionNumber} ${e.label}'
+                .toLowerCase();
         if (!hay.contains(q)) continue;
       }
 
@@ -143,4 +148,3 @@ class CustomerDbService {
     return out;
   }
 }
-
