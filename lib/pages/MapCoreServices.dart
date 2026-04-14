@@ -1399,19 +1399,26 @@ class _MapCoreServicesState extends State<MapCoreServices> {
       isScrollControlled: true,
       builder: (ctx) {
         return SafeArea(
-          child: Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(24),
-                topRight: Radius.circular(24),
-              ),
+          child: AnimatedPadding(
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.easeOut,
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
             ),
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+            child: SingleChildScrollView(
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
+                ),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                 Center(
                   child: Container(
                     width: 40,
@@ -1501,7 +1508,9 @@ class _MapCoreServicesState extends State<MapCoreServices> {
                     label: const Text('Find assets near me'),
                   ),
                 ),
-              ],
+                  ],
+                ),
+              ),
             ),
           ),
         );
@@ -1638,7 +1647,7 @@ class _MapCoreServicesState extends State<MapCoreServices> {
       _isLoadingLocation = true;
     });
     await _initLocation();
-  }
+  } 
 
   @override
   Widget build(BuildContext context) {
