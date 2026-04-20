@@ -716,6 +716,9 @@ class _DormantSurveyForm extends StatelessWidget {
                   ),
                 );
                 if (!context.mounted) return;
+                // Give the snackbar a moment to render before popping.
+                await Future.delayed(const Duration(milliseconds: 350));
+                if (!context.mounted) return;
                 Navigator.pop(context);
               },
         style: ElevatedButton.styleFrom(

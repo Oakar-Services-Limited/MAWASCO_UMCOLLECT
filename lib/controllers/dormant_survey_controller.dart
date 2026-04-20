@@ -537,6 +537,7 @@ class DormantSurveyController extends ChangeNotifier {
       if (already) return 'Dormant Account already submitted';
 
       final uri = Uri.parse('${getUrl()}dormant-survey/with-media');
+      print('[DormantSurvey.submit] POST $uri hasPhoto=${photo != null}');
       final req = http.MultipartRequest('POST', uri);
       req.headers['Authorization'] = 'Bearer $token';
 
@@ -561,6 +562,12 @@ class DormantSurveyController extends ChangeNotifier {
       }
       if (currentMeterNumber.trim().isNotEmpty) {
         req.fields['currentMeterNumber'] = currentMeterNumber.trim();
+      } else {
+        final currentSystemMeterNumber = acct.meterNo.trim();
+        if (currentSystemMeterNumber.isNotEmpty) {
+          // If none provided, store the current system meter number.
+          req.fields['currentMeterNumber'] = currentSystemMeterNumber;
+        }
       }
       if (currentUserIsRegisteredCustomer != null) {
         req.fields['currentUserIsRegisteredCustomer'] =
@@ -600,22 +607,32 @@ class DormantSurveyController extends ChangeNotifier {
 
       if (photo != null) {
         final file = File(photo!.path);
-        req.files.add(await http.MultipartFile.fromPath('photo', file.path));
+        print('[DormantSurvey.submit] photoPath=${file.path} exists=${await file.exists()}');
+        if (await file.exists()) {
+          req.files.add(await http.MultipartFile.fromPath('photo', file.path));
+        } else {
+          debugPrint(
+            '[DormantSurvey.submit] photo file missing at path=${file.path}',
+          );
+        }
       }
 
       final streamed = await req.send();
       final resp = await http.Response.fromStream(streamed);
+      print('[DormantSurvey.submit] status=${resp.statusCode} bodyLen=${resp.body.length}');
       if (resp.statusCode >= 200 && resp.statusCode < 300) {
         reset();
         return null;
       }
-      print(resp.body);
-      return 'Failed to submit dormant survey';
+      debugPrint(
+        '[DormantSurvey.submit] failed status=${resp.statusCode} body=${resp.body}',
+      );
+      return 'Failed to submit dormant survey (${resp.statusCode}). ${resp.body.isNotEmpty ? resp.body : ''}';
       
       
     } catch (e) {
-      print(e);
-      return 'Failed to submit dormant survey';
+      debugPrint('[DormantSurvey.submit] exception $e');
+      return 'Failed to submit dormant survey. $e';
     } finally {
       isSubmitting = false;
       notifyListeners();
