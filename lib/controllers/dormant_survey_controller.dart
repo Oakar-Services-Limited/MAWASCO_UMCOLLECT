@@ -221,11 +221,9 @@ class DormantSurveyController extends ChangeNotifier {
     // Clear dependent fields when switching paths
     willingToRegularize = null;
     if (detailsMatch == true) {
-      // When details match, default the "current" values to the system values
-      // from the selected account for submission consistency.
-      currentAccountNumber =
-          _normalizeAccountNumber(selectedAccount?.accountNumber ?? '');
-      currentMeterNumber = selectedAccount?.meterNo ?? '';
+      // When details match, we do NOT auto-fill the current account number.
+      // If needed, the user can type it; otherwise it will remain blank.
+      currentMeterNumber = '';
     } else {
       currentAccountNumber = '';
       currentMeterNumber = '';
@@ -548,6 +546,8 @@ class DormantSurveyController extends ChangeNotifier {
       req.fields['connectionNumber'] = acct.connectionNumber;
       req.fields['customerName'] = acct.customerName;
       req.fields['meterNoSystem'] = acct.meterNo;
+      // Store the system meter number in its own DB column
+      req.fields['meterNo'] = acct.meterNo;
       if (enumeratorName.isNotEmpty) {
         req.fields['enumeratorName'] = enumeratorName;
       }
@@ -562,12 +562,6 @@ class DormantSurveyController extends ChangeNotifier {
       }
       if (currentMeterNumber.trim().isNotEmpty) {
         req.fields['currentMeterNumber'] = currentMeterNumber.trim();
-      } else {
-        final currentSystemMeterNumber = acct.meterNo.trim();
-        if (currentSystemMeterNumber.isNotEmpty) {
-          // If none provided, store the current system meter number.
-          req.fields['currentMeterNumber'] = currentSystemMeterNumber;
-        }
       }
       if (currentUserIsRegisteredCustomer != null) {
         req.fields['currentUserIsRegisteredCustomer'] =
