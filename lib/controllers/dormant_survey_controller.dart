@@ -545,8 +545,6 @@ class DormantSurveyController extends ChangeNotifier {
       req.fields['accountnumber'] = _normalizeAccountNumber(acct.accountNumber);
       req.fields['connectionNumber'] = acct.connectionNumber;
       req.fields['customerName'] = acct.customerName;
-      req.fields['meterNoSystem'] = acct.meterNo;
-      // Store the system meter number in its own DB column
       req.fields['meterNo'] = acct.meterNo;
       if (enumeratorName.isNotEmpty) {
         req.fields['enumeratorName'] = enumeratorName;
