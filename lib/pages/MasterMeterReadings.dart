@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
 
-import 'package:geolocator/geolocator.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:http/http.dart' as http;
 import 'package:um_collect/components/MySearchableSelectInput.dart';
@@ -28,20 +27,99 @@ class MasterMeterReadings extends StatefulWidget {
 class _MasterMeterReadingsState extends State<MasterMeterReadings> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final storage = const FlutterSecureStorage();
-  late Position position;
 
   String error = '';
   String staffid = '';
   String metername = '';
   String meterreading = '';
   String myimage = '';
-  var isLoading;
+  Widget? isLoading;
+
+  /// Last saved reading for the selected master meter (from API). Consumption = current − previous.
+  double? _previousReading;
+  bool _loadingLastReading = false;
 
   late File? _image;
   final imagePicker = ImagePicker();
   
   List<String> masterMeterNames = ["--Select--"];
   bool isLoadingMeters = false;
+
+  Future<void> _fetchLastReadingForMeter(String name) async {
+    if (name.isEmpty || name == '--Select--') {
+      setState(() {
+        _previousReading = null;
+        _loadingLastReading = false;
+      });
+      return;
+    }
+    setState(() {
+      _loadingLastReading = true;
+      _previousReading = null;
+    });
+    try {
+      final uri = Uri.parse('${getUrl()}master-meter-reading/last').replace(
+        queryParameters: {'meterName': name},
+      );
+      final response = await http.get(
+        uri,
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+      );
+      if (!mounted) return;
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        setState(() => _loadingLastReading = false);
+        return;
+      }
+      final decoded = jsonDecode(response.body);
+      final data = decoded is Map ? decoded['data'] : null;
+      final raw = data is Map ? data['previousReading'] : null;
+      double? prev;
+      if (raw is num) {
+        prev = raw.toDouble();
+      } else if (raw != null) {
+        prev = double.tryParse(raw.toString().replaceAll(',', ''));
+      }
+      setState(() {
+        _previousReading = prev;
+        _loadingLastReading = false;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _loadingLastReading = false;
+          _previousReading = null;
+        });
+      }
+    }
+  }
+
+  String? _formatConsumptionPreview() {
+    if (_previousReading == null) return null;
+    final s = meterreading.trim();
+    if (s.isEmpty) return null;
+    final current = double.tryParse(s.replaceAll(',', ''));
+    if (current == null) return null;
+    final diff = current - _previousReading!;
+    return _formatM3Number(diff);
+  }
+
+  /// One consistent format for m³ display (whole numbers without decimals when exact).
+  static String _formatM3Number(double v) {
+    if (v == v.roundToDouble()) {
+      return v.toStringAsFixed(0);
+    }
+    return v.toStringAsFixed(2);
+  }
+
+  String _previousReadingLabel() {
+    final p = _previousReading;
+    if (p == null) {
+      return 'Previous reading: — (first read for this meter)';
+    }
+    return 'Previous reading: ${_formatM3Number(p)} m³';
+  }
 
   void _showMessage(String message, bool isError) {
     if (!mounted) return;
@@ -219,12 +297,54 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
                                   setState(() {
                                     metername = value;
                                   });
+                                  _fetchLastReadingForMeter(value);
                                 },
                                 list: masterMeterNames,
                                 label: 'Select Meter Name',
                                 value: metername,
                               ),
                         const SizedBox(height: 20),
+                        if (metername.isNotEmpty && metername != '--Select--') ...[
+                          if (_loadingLastReading)
+                            const Padding(
+                              padding: EdgeInsets.only(bottom: 8.0),
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Color(0xff0288D1),
+                                    ),
+                                  ),
+                                  SizedBox(width: 12),
+                                  Text(
+                                    'Loading previous reading…',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.black54,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8.0),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  _previousReadingLabel(),
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.black87,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                         MyTextInput(
                           lines: 1,
                           value: meterreading,
@@ -235,8 +355,25 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
                               meterreading = value;
                             });
                           },
-                          title: 'Enter Meter Reading',
+                          title: 'Reading (m³)',
                         ),
+                        if (metername.isNotEmpty &&
+                            metername != '--Select--' &&
+                            _previousReading != null &&
+                            meterreading.trim().isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Consumption (m³) for this read: ${_formatConsumptionPreview() ?? "—"}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Color(0xff2E7D32),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 20),
                         Column(
                           children: [
@@ -397,11 +534,11 @@ Future<Message> submitData(
   String meterreading,
   String myimage,
 ) async {
-  if (metername.isEmpty) {
+  if (metername.isEmpty || metername == '--Select--') {
     return Message(
       token: null,
       success: null,
-      error: "Meter Name cannot be empty!",
+      error: "Select a master meter",
     );
   }
 
@@ -431,7 +568,7 @@ Future<Message> submitData(
       },
       body: jsonEncode(<String, dynamic>{
         'meterName': metername,
-        'units': meterreading,
+        'reading': meterreading,
         'image': myimage,
       }),
     );
@@ -441,10 +578,20 @@ Future<Message> submitData(
         response.statusCode == 203) {
       return Message.fromJson(jsonDecode(response.body));
     } else {
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map && decoded['error'] != null) {
+          return Message(
+            token: null,
+            success: null,
+            error: decoded['error'].toString(),
+          );
+        }
+      } catch (_) {}
       return Message(
         token: null,
         success: null,
-        error: "Server error! Contact administrator.",
+        error: "Server error (${response.statusCode}). Try again or contact support.",
       );
     }
   } catch (e) {
