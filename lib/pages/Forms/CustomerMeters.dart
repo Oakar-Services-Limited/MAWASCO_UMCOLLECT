@@ -81,7 +81,7 @@ class _CustomerMetersState extends State<CustomerMeters> {
   String location = '';
   String parcelno = '';
 
-  var isLoading;
+  Widget? isLoading;
 
   Future<String> convertFileToBase64(XFile file) async {
     List<int> fileBytes = await file.readAsBytes();
@@ -169,7 +169,7 @@ class _CustomerMetersState extends State<CustomerMeters> {
     }
   }
 
-  Future<void> prefillForm(data) async {
+  Future<void> prefillForm(Map<String, dynamic> data) async {
     if (!mounted) return;
     setState(() {
       id = data["id"] ?? "";
@@ -595,6 +595,14 @@ class _CustomerMetersState extends State<CustomerMeters> {
                                 LoadingAnimationWidget.staggeredDotsWave(
                                     color: const Color(0xff0288D1), size: 100);
                           });
+
+                          // When editing an existing meter, user must explicitly allow location update on the map.
+                          // That toggle is stored in secure storage by `MyMap`.
+                          final updateLocationFlag =
+                              await storage.read(key: "updateLocation");
+                          final shouldUpdateLocation =
+                              updateLocationFlag == "true";
+
                           var res = await submitData(
                             name,
                             phone,
@@ -621,6 +629,7 @@ class _CustomerMetersState extends State<CustomerMeters> {
                             myimage,
                             editing,
                             id,
+                            shouldUpdateLocation,
                           );
 
                           if (!mounted) return;
@@ -712,6 +721,7 @@ Future<Message> submitData(
   String myimage,
   String? editing,
   String? id,
+  bool updateLocation,
 ) async {
   if (accountnumber.isEmpty) {
     return Message(
@@ -783,8 +793,9 @@ Future<Message> submitData(
       'meterSize': size,
       'remarks': remarks,
       'userId': userid,
-      'latitude': id == '' ? lat : null,
-      'longitude': id == '' ? long : null,
+      // Always send location on create. On edit, only send when user enabled "Allow Location Update".
+      'latitude': (id == null || id.isEmpty || updateLocation) ? lat : null,
+      'longitude': (id == null || id.isEmpty || updateLocation) ? long : null,
     };
     final hasImage = myimage.isNotEmpty;
 

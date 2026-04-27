@@ -227,6 +227,7 @@ class _PointProjectsState extends State<PointProjects> {
                         "Master Meter",
                         "Washout",
                         "Manhole",
+                        "Air Valve",
                       ],
                       label: 'Asset Type',
                       value: selectedAssetType,
@@ -635,9 +636,7 @@ Future<Message> submitData(
     }
 
     // For simplicity, queue as POST for both create/update
-    final endpoint = editing == 'true'
-        ? 'pj/points/$pointID'
-        : 'pj/points';
+    final endpoint = editing == 'true' ? 'pj/points/$pointID' : 'pj/points';
     final method = editing == 'true' ? 'PUT' : 'POST';
 
     await db.saveSubmission(
@@ -654,8 +653,7 @@ Future<Message> submitData(
 
     return Message(
       token: null,
-      success:
-          "Saved offline. Will sync when you have internet. ($reason)",
+      success: "Saved offline. Will sync when you have internet. ($reason)",
       error: null,
     );
   }
