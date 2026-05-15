@@ -4,8 +4,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 String getUrl() {
-  // return "http://192.168.1.121:3003/api/";
-  return "http://192.168.1.136:3003/api/";
+  return "http://192.168.1.121:3003/api/";
+  // return "http://192.168.1.136:3003/api/";
   // return "https://api-utilitymanager.mawasco.co.ke/api/";
 }
 
@@ -214,8 +214,8 @@ Future<List<String>> _fetchMasterMeterNamesFromApi() async {
   final names = <String>[];
   for (var meter in data) {
     if (meter['name'] != null && meter['name'].toString().isNotEmpty) {
-      final name = meter['name'].toString();
-      if (!names.contains(name)) names.add(name);
+      final name = meter['name'].toString().trim();
+      if (name.isNotEmpty && !names.contains(name)) names.add(name);
     }
   }
   _masterMeterNamesCache = names;

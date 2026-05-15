@@ -52,6 +52,7 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
 
   /// Last saved reading for the selected master meter (from API). Consumption = current − previous.
   double? _previousReading;
+  String? _previousReadingError;
   bool _loadingLastReading = false;
 
   late File? _image;
@@ -68,9 +69,11 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
   bool get _hasPhoto => myimage.isNotEmpty;
 
   Future<void> _fetchLastReadingForMeter(String name) async {
-    if (name.isEmpty || name == '--Select--') {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty || trimmed == '--Select--') {
       setState(() {
         _previousReading = null;
+        _previousReadingError = null;
         _loadingLastReading = false;
       });
       return;
@@ -78,23 +81,37 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
     setState(() {
       _loadingLastReading = true;
       _previousReading = null;
+      _previousReadingError = null;
     });
     try {
+      final token = await storage.read(key: 'mwstaffjwt');
       final uri = Uri.parse('${getUrl()}master-meter-reading/last').replace(
-        queryParameters: {'meterName': name},
+        queryParameters: {'meterName': trimmed},
       );
       final response = await http.get(
         uri,
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
+          if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
         },
       );
       if (!mounted) return;
       if (response.statusCode < 200 || response.statusCode >= 300) {
-        setState(() => _loadingLastReading = false);
+        setState(() {
+          _loadingLastReading = false;
+          _previousReadingError = 'Could not load previous reading.';
+        });
         return;
       }
       final decoded = jsonDecode(response.body);
+      if (decoded is Map && decoded['success'] == false) {
+        setState(() {
+          _loadingLastReading = false;
+          _previousReadingError =
+              decoded['error']?.toString() ?? 'Could not load previous reading.';
+        });
+        return;
+      }
       final data = decoded is Map ? decoded['data'] : null;
       final raw = data is Map ? data['previousReading'] : null;
       double? prev;
@@ -105,6 +122,7 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
       }
       setState(() {
         _previousReading = prev;
+        _previousReadingError = null;
         _loadingLastReading = false;
       });
     } catch (_) {
@@ -112,6 +130,7 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
         setState(() {
           _loadingLastReading = false;
           _previousReading = null;
+          _previousReadingError = 'Could not load previous reading.';
         });
       }
     }
@@ -136,6 +155,9 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
   }
 
   String _previousReadingLabel() {
+    if (_previousReadingError != null) {
+      return _previousReadingError!;
+    }
     final p = _previousReading;
     if (p == null) {
       return 'Previous reading: — (first read for this meter)';
@@ -322,7 +344,7 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
     });
 
     final res = await submitData(
-      metername: metername,
+      metername: metername.trim(),
       meterreading: meterreading.trim(),
       myimage: myimage,
       remarks: remarks == '--Select--' ? '' : remarks,
@@ -356,6 +378,7 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
           myimage = '';
           _image = null;
           _previousReading = null;
+          _previousReadingError = null;
         });
       }
     } else {
@@ -466,10 +489,11 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
                               )
                             : MySearchableSelectInput(
                                 onSubmit: (value) {
+                                  final trimmed = value.trim();
                                   setState(() {
-                                    metername = value;
+                                    metername = trimmed;
                                   });
-                                  _fetchLastReadingForMeter(value);
+                                  _fetchLastReadingForMeter(trimmed);
                                 },
                                 list: masterMeterNames,
                                 label: 'Select Meter Name',
@@ -509,9 +533,11 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
                                 alignment: Alignment.centerLeft,
                                 child: Text(
                                   _previousReadingLabel(),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 14,
-                                    color: Colors.black87,
+                                    color: _previousReadingError != null
+                                        ? Colors.orange.shade800
+                                        : Colors.black87,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -715,7 +741,8 @@ Future<Message> submitData({
   required String remarks,
   bool forceOffline = false,
 }) async {
-  if (metername.isEmpty || metername == '--Select--') {
+  final meter = metername.trim();
+  if (meter.isEmpty || meter == '--Select--') {
     return Message(
       token: null,
       success: null,
@@ -753,7 +780,7 @@ Future<Message> submitData({
 
   Future<Message> queueOffline(String reason) async {
     final payload = <String, dynamic>{
-      'meterName': metername,
+      'meterName': meter,
       'reading': meterreading,
       if (myimage.isNotEmpty) 'image': myimage,
       if (remarks.isNotEmpty) 'remarks': remarks,
@@ -792,7 +819,7 @@ Future<Message> submitData({
         if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
       },
       body: jsonEncode(<String, dynamic>{
-        'meterName': metername,
+        'meterName': meter,
         'reading': meterreading,
         'image': myimage,
         'remarks': remarks,
