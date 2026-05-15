@@ -10,6 +10,7 @@ class MyTextInput extends StatefulWidget {
   final TextInputType type;
   final Function(dynamic) onSubmit;
   final int? maxLength;
+  final List<TextInputFormatter>? inputFormatters;
 
   const MyTextInput(
       {super.key,
@@ -18,7 +19,8 @@ class MyTextInput extends StatefulWidget {
       required this.value,
       required this.type,
       required this.onSubmit,
-      this.maxLength});
+      this.maxLength,
+      this.inputFormatters});
 
   @override
   State<StatefulWidget> createState() => _MyTextInputState();
@@ -87,10 +89,14 @@ class _MyTextInputState extends State<MyTextInput> {
               focusNode: _focusNode,
               onChanged: _onChanged,
               keyboardType: widget.type,
-              inputFormatters: widget.type ==
-                      const TextInputType.numberWithOptions(decimal: false)
-                  ? <TextInputFormatter>[FilteringTextInputFormatter.digitsOnly]
-                  : null,
+              inputFormatters: widget.inputFormatters ??
+                  (widget.type ==
+                          const TextInputType.numberWithOptions(
+                              decimal: false)
+                      ? <TextInputFormatter>[
+                          FilteringTextInputFormatter.digitsOnly
+                        ]
+                      : null),
               controller: _controller,
               maxLines: widget.lines,
               maxLength: widget.maxLength,

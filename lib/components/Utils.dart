@@ -14,7 +14,7 @@ Map<String, dynamic> parseJwt(String token) {
   if (parts.length != 3) {
     return <String, dynamic>{"error": "Invalid token"};
   }
-
+   
   final payload = _decodeBase64(parts[1]);
   final payloadMap = json.decode(payload);
   if (payloadMap is! Map<String, dynamic>) {

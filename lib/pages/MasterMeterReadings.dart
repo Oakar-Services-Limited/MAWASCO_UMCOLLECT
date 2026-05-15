@@ -6,14 +6,18 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
-
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:http/http.dart' as http;
 import 'package:um_collect/components/MySearchableSelectInput.dart';
+import 'package:um_collect/components/MySelectInput.dart';
 import 'package:um_collect/components/MyTextInput.dart';
 import 'package:um_collect/components/StaffDrawer.dart';
+import 'package:um_collect/components/offline_pending_card.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/pages/home.dart';
+import 'package:um_collect/services/connectivity_helper.dart';
+import 'package:um_collect/services/database_helper.dart';
+import 'package:um_collect/services/sync_service.dart';
 
 class MasterMeterReadings extends StatefulWidget {
   const MasterMeterReadings({
@@ -25,6 +29,16 @@ class MasterMeterReadings extends StatefulWidget {
 }
 
 class _MasterMeterReadingsState extends State<MasterMeterReadings> {
+  static const List<String> _remarksOptions = [
+    '--Select--',
+    'Good/Functional',
+    'Buried/Covered (inaccessible)',
+    'Chamber Flooded',
+    'Foggy/Illegible(estimate)',
+    'Meter Stuck',
+    'Meter Faulty/Damaged',
+  ];
+
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final storage = const FlutterSecureStorage();
 
@@ -32,6 +46,7 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
   String staffid = '';
   String metername = '';
   String meterreading = '';
+  String remarks = '';
   String myimage = '';
   Widget? isLoading;
 
@@ -41,9 +56,16 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
 
   late File? _image;
   final imagePicker = ImagePicker();
-  
+
   List<String> masterMeterNames = ["--Select--"];
   bool isLoadingMeters = false;
+  bool _isSyncing = false;
+  bool _isOnline = true;
+  int _offlineCardEpoch = 0;
+  final _syncService = SyncService();
+  StreamSubscription<bool>? _connectivitySub;
+
+  bool get _hasPhoto => myimage.isNotEmpty;
 
   Future<void> _fetchLastReadingForMeter(String name) async {
     if (name.isEmpty || name == '--Select--') {
@@ -164,9 +186,8 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
   }
 
   Future<String> convertFileToBase64(XFile file) async {
-    List<int> fileBytes = await file.readAsBytes();
-    String base64String = base64Encode(fileBytes);
-    return base64String;
+    final fileBytes = await file.readAsBytes();
+    return base64Encode(fileBytes);
   }
 
   Future<void> takePhoto() async {
@@ -176,10 +197,13 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
     );
 
     if (pickedFile != null) {
-      String base64Image = await convertFileToBase64(pickedFile);
+      final base64Image = await convertFileToBase64(pickedFile);
       setState(() {
         _image = File(pickedFile.path);
         myimage = base64Image;
+        if (remarks.isEmpty || remarks == '--Select--') {
+          remarks = '--Select--';
+        }
       });
     }
   }
@@ -188,9 +212,10 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
   void initState() {
     super.initState();
     _image = null;
+    remarks = '--Select--';
     fetchStoredData();
     _loadMasterMeters();
-    // Clear any lingering success snackbar from a previous submit when opening the page afresh
+    _listenConnectivity();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         ScaffoldMessenger.of(context).clearSnackBars();
@@ -198,17 +223,46 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
     });
   }
 
-  /// List from Utils (preloaded on Home when possible); search on frontend in MySearchableSelectInput.
-  /// Always refreshes cache in background to ensure fresh data, but shows cached immediately for fast load.
+  @override
+  void dispose() {
+    _connectivitySub?.cancel();
+    super.dispose();
+  }
+
+  void _listenConnectivity() {
+    ConnectivityHelper().checkConnectivity().then((online) {
+      if (!mounted) return;
+      setState(() => _isOnline = online);
+    });
+    _connectivitySub =
+        ConnectivityHelper().connectivityStream.listen((online) {
+      if (!mounted) return;
+      setState(() {
+        _isOnline = online;
+        if (online) _offlineCardEpoch++;
+      });
+    });
+  }
+
+  Future<void> _syncPendingReadings() async {
+    if (_isSyncing) return;
+    setState(() => _isSyncing = true);
+    final message = await _syncService.syncAllUnsynced();
+    if (!mounted) return;
+    setState(() {
+      _isSyncing = false;
+      _offlineCardEpoch++;
+    });
+    _showMessage(message, false);
+  }
+
   Future<void> _loadMasterMeters() async {
     final cached = getMasterMeterNamesCached();
     if (cached != null && cached.isNotEmpty) {
-      // Show cached immediately for instant load (0ms)
       setState(() {
         masterMeterNames = ["--Select--", ...cached];
         isLoadingMeters = false;
       });
-      // Refresh in background to ensure fresh data (e.g. after creating new meter)
       refreshMasterMeterNamesCache().then((freshNames) {
         if (!mounted) return;
         setState(() {
@@ -217,7 +271,6 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
       });
       return;
     }
-    // No cache: fetch and show loading
     setState(() => isLoadingMeters = true);
     final names = await getMasterMeterNames();
     if (!mounted) return;
@@ -229,14 +282,84 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
 
   Future<void> fetchStoredData() async {
     try {
-      var token = await storage.read(key: "mwstaffjwt");
-      var decoded = parseJwt(token.toString());
+      final token = await storage.read(key: "mwstaffjwt");
+      final decoded = parseJwt(token.toString());
 
       setState(() {
-        staffid = decoded["UserID"];
+        staffid = (decoded["UserID"] ?? decoded["id"] ?? '').toString();
       });
-    } catch (e) {
-      // 
+    } catch (_) {}
+  }
+
+  String? _validateForm() {
+    if (metername.isEmpty || metername == '--Select--') {
+      return 'Select a meter name.';
+    }
+    if (meterreading.trim().isEmpty) {
+      return 'Enter the meter reading.';
+    }
+    if (!_hasPhoto) {
+      return 'Take a meter photo.';
+    }
+    if (remarks.isEmpty || remarks == '--Select--') {
+      return 'Select remarks after taking the photo.';
+    }
+    return null;
+  }
+
+  Future<void> _submit({required bool asDraft}) async {
+    final validationError = _validateForm();
+    if (validationError != null) {
+      _showMessage(validationError, true);
+      return;
+    }
+
+    setState(() {
+      isLoading = LoadingAnimationWidget.staggeredDotsWave(
+        color: const Color(0xff0288D1),
+        size: 100,
+      );
+    });
+
+    final res = await submitData(
+      metername: metername,
+      meterreading: meterreading.trim(),
+      myimage: myimage,
+      remarks: remarks == '--Select--' ? '' : remarks,
+      forceOffline: asDraft,
+    );
+
+    if (!mounted) return;
+    setState(() {
+      isLoading = null;
+    });
+
+    if (res.error == null) {
+      setState(() => _offlineCardEpoch++);
+      _showMessage(
+        res.success ?? "Reading submitted successfully",
+        false,
+      );
+      if (!asDraft) {
+        Timer(const Duration(seconds: 2), () {
+          if (!mounted) return;
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const Home()),
+          );
+        });
+      } else {
+        setState(() {
+          metername = '';
+          meterreading = '';
+          remarks = '--Select--';
+          myimage = '';
+          _image = null;
+          _previousReading = null;
+        });
+      }
+    } else {
+      _showMessage(res.error ?? "Failed to submit reading", true);
     }
   }
 
@@ -261,6 +384,22 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
           ),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: _isSyncing
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : const Icon(Icons.cloud_sync, color: Colors.white),
+            tooltip: _isSyncing ? 'Syncing…' : 'Sync pending readings',
+            onPressed: _isSyncing ? null : _syncPendingReadings,
+          ),
+        ],
       ),
       drawer: StaffDrawer(staffid: staffid),
       body: Stack(
@@ -282,7 +421,40 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
                             color: Colors.black87,
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 12),
+                        if (!_isOnline)
+                          Card(
+                            color: const Color(0xFFFFF3E0),
+                            margin: const EdgeInsets.only(bottom: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.cloud_off,
+                                      color: Color(0xff0288D1)),
+                                  SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      'You are offline. Submit or Save draft stores readings locally; sync when connected.',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        OfflinePendingCard(
+                          key: ValueKey(_offlineCardEpoch),
+                          types: const ['master_meter_reading'],
+                          label: 'Master meter readings',
+                        ),
+                        const SizedBox(height: 8),
                         isLoadingMeters
                             ? const Center(
                                 child: Padding(
@@ -304,7 +476,8 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
                                 value: metername,
                               ),
                         const SizedBox(height: 20),
-                        if (metername.isNotEmpty && metername != '--Select--') ...[
+                        if (metername.isNotEmpty &&
+                            metername != '--Select--') ...[
                           if (_loadingLastReading)
                             const Padding(
                               padding: EdgeInsets.only(bottom: 8.0),
@@ -394,8 +567,8 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(15),
                                 border: Border.all(
-                                  color:
-                                      const Color(0xff0288D1).withValues(alpha:0.1),
+                                  color: const Color(0xff0288D1)
+                                      .withValues(alpha: 0.1),
                                 ),
                               ),
                               child: Stack(
@@ -426,8 +599,8 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
                                         borderRadius: BorderRadius.circular(30),
                                         boxShadow: [
                                           BoxShadow(
-                                            color:
-                                                Colors.black.withValues(alpha:0.2),
+                                            color: Colors.black
+                                                .withValues(alpha: 0.2),
                                             blurRadius: 6,
                                             offset: const Offset(0, 3),
                                           ),
@@ -448,50 +621,34 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
                             ),
                           ],
                         ),
+                        if (_hasPhoto) ...[
+                          const SizedBox(height: 20),
+                          MySelectInput(
+                            onSubmit: (value) {
+                              setState(() {
+                                remarks = value;
+                              });
+                            },
+                            list: _remarksOptions,
+                            label: 'Remarks *',
+                            value: remarks.isEmpty ? '--Select--' : remarks,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Select the meter condition observed when taking the photo.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.black.withValues(alpha: 0.65),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 30),
                         SizedBox(
                           width: double.infinity,
                           height: 50,
                           child: ElevatedButton(
-                            onPressed: () async {
-                              setState(() {
-                                isLoading =
-                                    LoadingAnimationWidget.staggeredDotsWave(
-                                  color: const Color(0xff0288D1),
-                                  size: 100,
-                                );
-                              });
-
-                              var res = await submitData(
-                                metername,
-                                meterreading,
-                                myimage,
-                              );
-
-                              if (!mounted) return;
-                              setState(() {
-                                isLoading = null;
-                              });
-
-                              if (res.error == null) {
-                                _showMessage(
-                                    res.success ??
-                                        "Reading submitted successfully",
-                                    false);
-                                Timer(const Duration(seconds: 2), () {
-                                  if (!mounted) return;
-                                  Navigator.pushReplacement(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (_) => const Home()),
-                                  );
-                                });
-                              } else {
-                                _showMessage(
-                                    res.error ?? "Failed to submit reading",
-                                    true);
-                              }
-                            },
+                            onPressed: () => _submit(asDraft: false),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xff0288D1),
                               foregroundColor: Colors.white,
@@ -500,12 +657,34 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
                               ),
                               elevation: 2,
                             ),
-                            child: const Text(
-                              'Submit',
-                              style: TextStyle(
+                            child: Text(
+                              _isOnline
+                                  ? 'Submit'
+                                  : 'Submit (save offline)',
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                               ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: OutlinedButton.icon(
+                            onPressed: () => _submit(asDraft: true),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xff0288D1),
+                              side: const BorderSide(color: Color(0xff0288D1)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            icon: const Icon(Icons.save_outlined, size: 20),
+                            label: const Text(
+                              'Save draft (sync later)',
+                              style: TextStyle(fontWeight: FontWeight.w600),
                             ),
                           ),
                         ),
@@ -518,7 +697,7 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
           ),
           if (isLoading != null)
             Container(
-              color: Colors.black.withValues(alpha:0.3),
+              color: Colors.black.withValues(alpha: 0.3),
               child: Center(
                 child: isLoading,
               ),
@@ -529,11 +708,13 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
   }
 }
 
-Future<Message> submitData(
-  String metername,
-  String meterreading,
-  String myimage,
-) async {
+Future<Message> submitData({
+  required String metername,
+  required String meterreading,
+  required String myimage,
+  required String remarks,
+  bool forceOffline = false,
+}) async {
   if (metername.isEmpty || metername == '--Select--') {
     return Message(
       token: null,
@@ -558,48 +739,108 @@ Future<Message> submitData(
     );
   }
 
-  try {
-    http.Response response;
+  if (remarks.isEmpty) {
+    return Message(
+      token: null,
+      success: null,
+      error: "Select remarks after taking the photo.",
+    );
+  }
 
-    response = await http.post(
+  final db = DatabaseHelper();
+  final isOnline =
+      !forceOffline && await ConnectivityHelper().checkConnectivity();
+
+  Future<Message> queueOffline(String reason) async {
+    final payload = <String, dynamic>{
+      'meterName': metername,
+      'reading': meterreading,
+      if (myimage.isNotEmpty) 'image': myimage,
+      if (remarks.isNotEmpty) 'remarks': remarks,
+    };
+
+    await db.saveSubmission(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      formId: 'master_meter_reading',
+      formName: 'Master Meter Reading',
+      responses: {
+        '_type': 'master_meter_reading',
+        '_endpoint': 'master-meter-reading/create',
+        '_method': 'POST',
+        '_body': payload,
+      },
+    );
+
+    return Message(
+      token: null,
+      success: "Saved offline. Will sync when you have internet. ($reason)",
+      error: null,
+    );
+  }
+
+  if (!isOnline || forceOffline) {
+    return queueOffline(forceOffline ? 'Draft saved' : 'Offline');
+  }
+
+  try {
+    const storage = FlutterSecureStorage();
+    final token = await storage.read(key: 'mwstaffjwt');
+    final response = await http.post(
       Uri.parse("${getUrl()}master-meter-reading/create"),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
       },
       body: jsonEncode(<String, dynamic>{
         'meterName': metername,
         'reading': meterreading,
         'image': myimage,
+        'remarks': remarks,
       }),
     );
 
     if (response.statusCode == 200 ||
         response.statusCode == 201 ||
         response.statusCode == 203) {
-      return Message.fromJson(jsonDecode(response.body));
-    } else {
-      try {
-        final decoded = jsonDecode(response.body);
-        if (decoded is Map && decoded['error'] != null) {
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map<String, dynamic>) {
+        if (decoded['error'] != null) {
           return Message(
             token: null,
             success: null,
             error: decoded['error'].toString(),
           );
         }
-      } catch (_) {}
-      return Message(
-        token: null,
-        success: null,
-        error: "Server error (${response.statusCode}). Try again or contact support.",
-      );
+        if (decoded['success'] != null) {
+          return Message(
+            token: decoded['data'] is Map ? (decoded['data'] as Map)['id'] : null,
+            success: decoded['success']?.toString(),
+            error: null,
+          );
+        }
+      }
+      return Message.fromJson(decoded as Map<String, dynamic>);
     }
-  } catch (e) {
+
+    try {
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map && decoded['error'] != null) {
+        return Message(
+          token: null,
+          success: null,
+          error: decoded['error'].toString(),
+        );
+      }
+    } catch (_) {}
+
     return Message(
       token: null,
       success: null,
-      error: "Connection failed! Check your internet connection.!",
+      error:
+          "Server error (${response.statusCode}). Try again or contact support.",
     );
+  } catch (_) {
+    return queueOffline('Network error');
   }
 }
 

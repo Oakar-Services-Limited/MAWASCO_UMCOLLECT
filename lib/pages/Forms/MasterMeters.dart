@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:um_collect/components/MySelectInput.dart';
 import 'package:um_collect/components/MyTextInput.dart';
@@ -28,6 +29,11 @@ class MasterMeters extends StatefulWidget {
 }
 
 class _MasterMetersState extends State<MasterMeters> {
+  /// Alphanumeric and mixed serials (DMA meters); block line breaks only.
+  static final List<TextInputFormatter> _serialInputFormatters = [
+    FilteringTextInputFormatter.deny(RegExp(r'[\n\r]')),
+  ];
+
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final storage = const FlutterSecureStorage();
   late Position position;
@@ -209,16 +215,17 @@ class _MasterMetersState extends State<MasterMeters> {
                       },
                       title: 'Name',
                     ),
-                        MyTextInput(
+                    MyTextInput(
                       lines: 1,
                       value: serial,
-                      type: TextInputType.number,
+                      type: TextInputType.text,
+                      inputFormatters: _serialInputFormatters,
                       onSubmit: (value) {
                         setState(() {
-                          serial = value;
+                          serial = value.trim();
                         });
                       },
-                      title: 'Serial Number',
+                      title: 'Serial No',
                     ),
                     MySelectInput(
                       onSubmit: (value) => setState(() => category = value),

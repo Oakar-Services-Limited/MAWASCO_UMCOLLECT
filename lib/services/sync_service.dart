@@ -126,6 +126,7 @@ class SyncService {
 
         if (response.statusCode == 200 ||
             response.statusCode == 201 ||
+            response.statusCode == 203 ||
             response.statusCode == 204) {
           await _db.deleteSubmission(id);
 

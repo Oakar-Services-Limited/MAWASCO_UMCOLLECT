@@ -34,6 +34,7 @@ import 'package:um_collect/pages/customer_supply_feedback.dart';
 import 'package:um_collect/pages/FormsListPage.dart';
 import 'package:um_collect/pages/MapCoreServices.dart';
 import 'package:um_collect/pages/dormant_survey.dart';
+import 'package:um_collect/pages/meter_replacement.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -264,6 +265,24 @@ class _HomeState extends State<Home> {
                             )),
                           ),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 15),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildServiceCard(
+                            'Meter Replacement Exercise',
+                            Icons.swap_horiz_outlined,
+                            () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const MeterReplacementPage(),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const Expanded(child: SizedBox()),
                       ],
                     ),
                   ]),
