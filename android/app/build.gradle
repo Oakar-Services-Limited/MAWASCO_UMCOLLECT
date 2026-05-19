@@ -15,7 +15,7 @@ if (localPropertiesFile.exists()) {
 
 def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
 if (flutterVersionCode == null) {
-    flutterVersionCode = '83'
+    flutterVersionCode = '85'
 }
 
 def flutterVersionName = localProperties.getProperty('flutter.versionName')
@@ -23,7 +23,7 @@ if (flutterVersionName == null) {
     flutterVersionName = '2.0.0'
 }
 
-android {
+android {   
     namespace "ke.co.osl.um_collector"
     compileSdkVersion 36
     ndkVersion = "27.0.12077973"
