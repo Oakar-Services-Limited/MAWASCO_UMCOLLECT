@@ -32,8 +32,30 @@ class MeterReplacementController extends ChangeNotifier {
   MeterReplacementEntry? selectedExerciseEntry;
   bool accountNotFound = false;
 
-  // Normal operations — manual meter number only
+  // Normal operations — same dimensions as exercise list, entered manually
+  String manualAccountNumber = '';
+  String manualCustomerName = '';
   String manualMeterNumber = '';
+  String manualCurrentRoute = '';
+  String manualLastRecordedReading = '';
+  String manualCategory = '';
+  String manualAccountStatus = '';
+
+  /// Mirrors common CSV values; technician can pick closest type.
+  static const List<String> manualCategoryOptions = [
+    'Domestic/Residential',
+    'Commercial',
+    'Institutions',
+    'Industrial',
+    'Other',
+  ];
+
+  static const List<String> manualAccountStatusOptions = [
+    'Active',
+    'Sealed',
+    'Inactive',
+    'Other',
+  ];
 
   String zone = '';
 
@@ -121,6 +143,10 @@ class MeterReplacementController extends ChangeNotifier {
     if (replacementSource == MeterReplacementSource.scheduledExercise) {
       return selectedExerciseEntry?.customerName;
     }
+    if (replacementSource == MeterReplacementSource.normalOperations) {
+      final v = manualCustomerName.trim();
+      return v.isEmpty ? null : v;
+    }
     return null;
   }
 
@@ -138,12 +164,20 @@ class MeterReplacementController extends ChangeNotifier {
     if (replacementSource == MeterReplacementSource.scheduledExercise) {
       return selectedExerciseEntry?.route;
     }
+    if (replacementSource == MeterReplacementSource.normalOperations) {
+      final v = manualCurrentRoute.trim();
+      return v.isEmpty ? null : v;
+    }
     return null;
   }
 
   String? get displayLastReading {
     if (replacementSource == MeterReplacementSource.scheduledExercise) {
       return selectedExerciseEntry?.currentMeterReading;
+    }
+    if (replacementSource == MeterReplacementSource.normalOperations) {
+      final v = manualLastRecordedReading.trim();
+      return v.isEmpty ? null : v;
     }
     return null;
   }
@@ -154,7 +188,13 @@ class MeterReplacementController extends ChangeNotifier {
     accountSearchQuery = '';
     selectedExerciseEntry = null;
     accountNotFound = false;
+    manualAccountNumber = '';
+    manualCustomerName = '';
     manualMeterNumber = '';
+    manualCurrentRoute = '';
+    manualLastRecordedReading = '';
+    manualCategory = '';
+    manualAccountStatus = '';
     canBeReplaced = null;
     _clearReplaceabilityDetails();
     _clearReplacementWork();
@@ -193,6 +233,36 @@ class MeterReplacementController extends ChangeNotifier {
 
   void setManualMeterNumber(String v) {
     manualMeterNumber = v;
+    notifyListeners();
+  }
+
+  void setManualAccountNumber(String v) {
+    manualAccountNumber = v;
+    notifyListeners();
+  }
+
+  void setManualCustomerName(String v) {
+    manualCustomerName = v;
+    notifyListeners();
+  }
+
+  void setManualCurrentRoute(String v) {
+    manualCurrentRoute = v;
+    notifyListeners();
+  }
+
+  void setManualLastRecordedReading(String v) {
+    manualLastRecordedReading = v;
+    notifyListeners();
+  }
+
+  void setManualCategory(String v) {
+    manualCategory = v;
+    notifyListeners();
+  }
+
+  void setManualAccountStatus(String v) {
+    manualAccountStatus = v;
     notifyListeners();
   }
 
@@ -372,8 +442,26 @@ class MeterReplacementController extends ChangeNotifier {
             : 'Search and select an account from the replacement list';
       }
     } else {
+      if (manualAccountNumber.trim().isEmpty) {
+        return 'Enter the account number';
+      }
+      if (manualCustomerName.trim().isEmpty) {
+        return 'Enter the customer name';
+      }
       if (manualMeterNumber.trim().isEmpty) {
         return 'Enter the meter number';
+      }
+      if (manualCurrentRoute.trim().isEmpty) {
+        return 'Enter the current route';
+      }
+      if (manualLastRecordedReading.trim().isEmpty) {
+        return 'Enter the last recorded reading';
+      }
+      if (manualCategory.isEmpty || manualCategory == '--Select--') {
+        return 'Select customer category';
+      }
+      if (manualAccountStatus.isEmpty || manualAccountStatus == '--Select--') {
+        return 'Select account status';
       }
     }
 
@@ -420,7 +508,8 @@ class MeterReplacementController extends ChangeNotifier {
         return 'Enter the initial reading of the new meter';
       }
 
-      if (replacementSource == MeterReplacementSource.scheduledExercise) {
+      if (replacementSource == MeterReplacementSource.scheduledExercise ||
+          replacementSource == MeterReplacementSource.normalOperations) {
         if (routeIsCorrect == null) {
           return 'Indicate whether the current route is correct';
         }
@@ -469,7 +558,13 @@ class MeterReplacementController extends ChangeNotifier {
         req.fields['category'] = e.category;
         req.fields['accountStatus'] = e.accountStatus;
       } else {
+        req.fields['accountNumber'] = manualAccountNumber.trim();
+        req.fields['customerName'] = manualCustomerName.trim();
         req.fields['meterNumber'] = manualMeterNumber.trim();
+        req.fields['currentRoute'] = manualCurrentRoute.trim();
+        req.fields['lastRecordedReading'] = manualLastRecordedReading.trim();
+        req.fields['category'] = manualCategory.trim();
+        req.fields['accountStatus'] = manualAccountStatus.trim();
       }
 
       req.fields['canBeReplaced'] = canBeReplaced == true ? 'true' : 'false';
@@ -490,7 +585,8 @@ class MeterReplacementController extends ChangeNotifier {
         req.fields['newMeterSerial'] = newMeterSerial.trim();
         req.fields['initialNewMeterReading'] = initialNewMeterReading.trim();
 
-        if (replacementSource == MeterReplacementSource.scheduledExercise) {
+        if (replacementSource == MeterReplacementSource.scheduledExercise ||
+            replacementSource == MeterReplacementSource.normalOperations) {
           req.fields['routeIsCorrect'] = routeIsCorrect == true ? 'true' : 'false';
           if (routeIsCorrect == false) {
             req.fields['correctedRoute'] = correctedRoute;
@@ -539,7 +635,13 @@ class MeterReplacementController extends ChangeNotifier {
     accountSearchQuery = '';
     selectedExerciseEntry = null;
     accountNotFound = false;
+    manualAccountNumber = '';
+    manualCustomerName = '';
     manualMeterNumber = '';
+    manualCurrentRoute = '';
+    manualLastRecordedReading = '';
+    manualCategory = '';
+    manualAccountStatus = '';
     zone = '';
     canBeReplaced = null;
     _clearReplaceabilityDetails();

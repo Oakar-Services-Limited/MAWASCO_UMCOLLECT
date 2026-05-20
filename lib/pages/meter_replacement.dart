@@ -82,12 +82,7 @@ class _MeterReplacementForm extends StatelessWidget {
                   MeterReplacementSource.scheduledExercise)
                 _exerciseAccountSearch(context, ctrl)
               else
-                _textInput(
-                  label: 'Meter number *',
-                  hint: 'Enter the meter serial number (no lookup)',
-                  value: ctrl.manualMeterNumber,
-                  onChanged: ctrl.setManualMeterNumber,
-                ),
+                _normalOperationsCustomerFields(ctrl),
               const SizedBox(height: 24),
               _sectionTitle('Meter replaceability check'),
               const SizedBox(height: 8),
@@ -159,8 +154,7 @@ class _MeterReplacementForm extends StatelessWidget {
               const SizedBox(height: 8),
               _locationSection(context, ctrl),
               if (ctrl.canBeReplaced == true &&
-                  ctrl.replacementSource ==
-                      MeterReplacementSource.scheduledExercise) ...[
+                  ctrl.replacementSource != null) ...[
                 const SizedBox(height: 24),
                 _sectionTitle('Route verification'),
                 const SizedBox(height: 8),
@@ -244,7 +238,7 @@ class _MeterReplacementForm extends StatelessWidget {
             contentPadding: EdgeInsets.zero,
             title: const Text('No — other / normal operations'),
             subtitle: const Text(
-              'Enter meter number manually (no account lookup)',
+              'Enter account, customer, meter, route, and other details manually',
               style: TextStyle(fontSize: 12),
             ),
             value: MeterReplacementSource.normalOperations,
@@ -365,8 +359,92 @@ class _MeterReplacementForm extends StatelessWidget {
           _detailRow('Meter number', entry.meterNumber),
           _detailRow('Current route', entry.route),
           _detailRow('Last recorded reading', entry.currentMeterReading),
+          _detailRow('Category', entry.category),
+          _detailRow('Account status', entry.accountStatus),
         ],
       ),
+    );
+  }
+
+  /// Same fields as the exercise list, for normal operations (manual entry).
+  Widget _normalOperationsCustomerFields(MeterReplacementController ctrl) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _cardWrap(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Customer details',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: Colors.grey[800],
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Fill in all items that would appear after selecting from the '
+                'replacement list.',
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _textInput(
+          label: 'Account number *',
+          hint: 'Customer account number',
+          value: ctrl.manualAccountNumber,
+          onChanged: ctrl.setManualAccountNumber,
+        ),
+        const SizedBox(height: 12),
+        _textInput(
+          label: 'Customer name *',
+          hint: 'Full name as on account',
+          value: ctrl.manualCustomerName,
+          onChanged: ctrl.setManualCustomerName,
+        ),
+        const SizedBox(height: 12),
+        _textInput(
+          label: 'Meter number *',
+          hint: 'Meter number on site / billing',
+          value: ctrl.manualMeterNumber,
+          onChanged: ctrl.setManualMeterNumber,
+        ),
+        const SizedBox(height: 12),
+        _textInput(
+          label: 'Current route *',
+          hint: 'e.g. 005 Karindundu 01',
+          value: ctrl.manualCurrentRoute,
+          onChanged: ctrl.setManualCurrentRoute,
+        ),
+        const SizedBox(height: 12),
+        _textInput(
+          label: 'Last recorded reading *',
+          hint: 'Last billing / system reading (m³)',
+          value: ctrl.manualLastRecordedReading,
+          onChanged: ctrl.setManualLastRecordedReading,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        ),
+        const SizedBox(height: 12),
+        _dropdown(
+          label: 'Category *',
+          hint: 'Select category',
+          value: ctrl.manualCategory.isEmpty ? null : ctrl.manualCategory,
+          items: MeterReplacementController.manualCategoryOptions,
+          onChanged: (v) => ctrl.setManualCategory(v ?? ''),
+        ),
+        const SizedBox(height: 12),
+        _dropdown(
+          label: 'Account status *',
+          hint: 'Select status',
+          value:
+              ctrl.manualAccountStatus.isEmpty ? null : ctrl.manualAccountStatus,
+          items: MeterReplacementController.manualAccountStatusOptions,
+          onChanged: (v) => ctrl.setManualAccountStatus(v ?? ''),
+        ),
+      ],
     );
   }
 

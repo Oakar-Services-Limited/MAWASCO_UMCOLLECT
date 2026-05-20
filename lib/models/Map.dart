@@ -28,6 +28,15 @@ class _MyMapState extends State<MyMap> {
   String editing = 'false';
   bool updating = false;
 
+  /// QGIS-like emphasis: tap the location pin to toggle a strong red halo;
+  /// a softer yellow ring is always shown so the active point stays visible.
+  bool _gpsPointTappedHighlight = false;
+
+  static const Color _haloYellowStroke = Color(0xFFFFC107);
+  static const Color _haloYellowFill = Color(0x4DFFEE58);
+  static const Color _haloRedStroke = Color(0xFFE53935);
+  static const Color _haloRedFill = Color(0x40E53935);
+
   @override
   void initState() {
     super.initState();
@@ -54,13 +63,38 @@ class _MyMapState extends State<MyMap> {
       'assets/images/loc.png',
     );
     setState(() {
-      sourcePosition = Marker(
-        markerId: const MarkerId('source'),
-        position: curLocation,
-        icon: _vehicleIcon,
-        anchor: const Offset(0.5, 0.5),
-      );
+      sourcePosition = _buildSourceMarker(curLocation);
     });
+  }
+
+  void _onGpsMarkerTap() {
+    setState(() {
+      _gpsPointTappedHighlight = !_gpsPointTappedHighlight;
+    });
+  }
+
+  Marker _buildSourceMarker(LatLng position) {
+    return Marker(
+      markerId: const MarkerId('source'),
+      position: position,
+      icon: _vehicleIcon,
+      anchor: const Offset(0.5, 0.5),
+      onTap: _onGpsMarkerTap,
+    );
+  }
+
+  Set<Circle> _gpsSelectionHalos() {
+    return {
+      Circle(
+        circleId: const CircleId('gps_selection_halo'),
+        center: curLocation,
+        radius: _gpsPointTappedHighlight ? 22 : 14,
+        strokeWidth: _gpsPointTappedHighlight ? 4 : 2,
+        strokeColor:
+            _gpsPointTappedHighlight ? _haloRedStroke : _haloYellowStroke,
+        fillColor: _gpsPointTappedHighlight ? _haloRedFill : _haloYellowFill,
+      ),
+    };
   }
 
   @override
@@ -69,9 +103,12 @@ class _MyMapState extends State<MyMap> {
     if (oldWidget.lat != widget.lat || oldWidget.lon != widget.lon) {
       _updateCameraPosition(LatLng(widget.lat, widget.lon));
       setState(() {
+        _gpsPointTappedHighlight = false;
         curLocation = LatLng(widget.lat, widget.lon);
-        sourcePosition = sourcePosition!
-            .copyWith(positionParam: LatLng(widget.lat, widget.lon));
+        if (sourcePosition != null) {
+          sourcePosition =
+              sourcePosition!.copyWith(positionParam: LatLng(widget.lat, widget.lon));
+        }
       });
     }
   }
@@ -99,6 +136,13 @@ class _MyMapState extends State<MyMap> {
         Card(
           clipBehavior: Clip.hardEdge,
           elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(4),
+            side: BorderSide(
+              color: _gpsPointTappedHighlight ? _haloRedStroke : Colors.transparent,
+              width: _gpsPointTappedHighlight ? 3 : 0,
+            ),
+          ),
           child: GoogleMap(
             zoomControlsEnabled: false,
             mapType: MapType.satellite,
@@ -107,6 +151,7 @@ class _MyMapState extends State<MyMap> {
               zoom: 12,
             ),
             markers: sourcePosition != null ? {sourcePosition!} : {},
+            circles: _gpsSelectionHalos(),
             onMapCreated: (GoogleMapController controller) {
               _controller.complete(controller);
               setState(() {

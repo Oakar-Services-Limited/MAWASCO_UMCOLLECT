@@ -114,6 +114,9 @@ class _MapCoreServicesState extends State<MapCoreServices> {
   bool _allLayersZoomed = false;
   Timer? _fitDebounce;
 
+  /// Highlights the last tapped asset on the map (GIS-style); cleared on blank map tap.
+  String? _highlightedAssetKey;
+
   // Toggle to enable verbose debugging logs
   static const bool _debugMap = true;
 
@@ -635,6 +638,27 @@ class _MapCoreServicesState extends State<MapCoreServices> {
     }
   }
 
+  /// Stable id used by markers/polylines and selection highlight (matches MarkerId/PolylineId suffix).
+  String _assetMapKey(MapLayerType type, String id) => '${type.name}_$id';
+
+  void _setHighlightedAsset(_MapFeature f) {
+    final key = _assetMapKey(f.type, f.id);
+    if (_highlightedAssetKey == key) return;
+    setState(() => _highlightedAssetKey = key);
+  }
+
+  void _clearHighlightedAsset() {
+    if (_highlightedAssetKey == null) return;
+    setState(() => _highlightedAssetKey = null);
+  }
+
+  /// Yellow highlight for selected points (red when the asset type already uses yellow, e.g. manholes).
+  double _markerHueForMap(MapLayerType type, bool isHighlighted) {
+    if (!isHighlighted) return _markerHue(type);
+    if (type == MapLayerType.manholes) return BitmapDescriptor.hueRed;
+    return BitmapDescriptor.hueYellow;
+  }
+
   Set<Marker> get _markers {
     final markers = <Marker>{};
     _layerData.forEach((type, features) {
@@ -644,12 +668,17 @@ class _MapCoreServicesState extends State<MapCoreServices> {
 
       for (final f in features) {
         if (f.point == null) continue;
+        final key = _assetMapKey(type, f.id);
+        final highlighted = key == _highlightedAssetKey;
         markers.add(
           Marker(
-            markerId: MarkerId('${type.name}_${f.id}'),
+            markerId: MarkerId(key),
             position: f.point!,
             infoWindow: InfoWindow(title: f.name),
-            icon: BitmapDescriptor.defaultMarkerWithHue(_markerHue(type)),
+            icon: BitmapDescriptor.defaultMarkerWithHue(
+              _markerHueForMap(type, highlighted),
+            ),
+            zIndexInt: highlighted ? 1 : 0,
             onTap: () => _openAssetDetailsSheet(f),
           ),
         );
@@ -796,14 +825,30 @@ class _MapCoreServicesState extends State<MapCoreServices> {
 
       for (final f in features) {
         if (f.line == null || f.line!.length < 2) continue;
+        final key = _assetMapKey(type, f.id);
+        final highlighted = key == _highlightedAssetKey;
+        final baseColor = type == MapLayerType.waterPipes
+            ? Colors.blueAccent
+            : Colors.tealAccent.shade700;
+        if (highlighted) {
+          lines.add(
+            Polyline(
+              polylineId: PolylineId('${key}_selection_glow'),
+              points: f.line!,
+              color: Colors.amberAccent,
+              width: 14,
+              zIndex: 0,
+              consumeTapEvents: false,
+            ),
+          );
+        }
         lines.add(
           Polyline(
-            polylineId: PolylineId('${type.name}_${f.id}'),
+            polylineId: PolylineId(key),
             points: f.line!,
-            color: type == MapLayerType.waterPipes
-                ? Colors.blueAccent
-                : Colors.tealAccent.shade700,
-            width: 4,
+            color: baseColor,
+            width: highlighted ? 6 : 4,
+            zIndex: 1,
             consumeTapEvents: true,
             onTap: () => _openLineDetailsSheet(f),
           ),
@@ -1074,6 +1119,7 @@ class _MapCoreServicesState extends State<MapCoreServices> {
   }
 
   void _openAssetDetailsSheet(_MapFeature f) {
+    _setHighlightedAsset(f);
     final title = (f.name.trim().isEmpty) ? '${f.type.name} ${f.id}' : f.name;
     final entries = f.props.entries.toList();
 
@@ -1293,6 +1339,7 @@ class _MapCoreServicesState extends State<MapCoreServices> {
                       subtitle: Text('${_typeLabel(f.type)} • $distanceLabel'),
                       onTap: () {
                         Navigator.pop(context);
+                        _setHighlightedAsset(f);
                         if (f.point != null) {
                           _animateTo(f.point!, zoom: 18);
                         } else if (f.line != null && f.line!.length >= 2) {
@@ -1680,6 +1727,8 @@ class _MapCoreServicesState extends State<MapCoreServices> {
             onTap: (p) {
               if (_measuring && _measureMode == _MeasureInputMode.mapTap) {
                 _addMeasurePoint(p);
+              } else {
+                _clearHighlightedAsset();
               }
             },
             onMapCreated: (controller) {
@@ -2220,6 +2269,7 @@ class _MapCoreServicesState extends State<MapCoreServices> {
       _selectedSearchColumn = null;
       _searchError = null;
       _searchController.clear();
+      _highlightedAssetKey = null;
     });
     _ensureCategoryLoaded(cat);
   }
