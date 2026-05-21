@@ -287,7 +287,7 @@ class _StaffLoginState extends State<StaffLogin> {
           'email': email,
           'password': password,
           'type': 'Mobile',
-          'appVersion': '27'
+          'appVersion': '28'
         }),
       );
 
