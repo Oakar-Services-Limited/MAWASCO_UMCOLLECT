@@ -7,7 +7,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../Components/Utils.dart';
+import 'package:um_collect/components/Utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
@@ -287,7 +287,7 @@ class _StaffLoginState extends State<StaffLogin> {
           'email': email,
           'password': password,
           'type': 'Mobile',
-          'appVersion': '28'
+          'appVersion': '29'
         }),
       );
 
@@ -304,6 +304,10 @@ class _StaffLoginState extends State<StaffLogin> {
         if (data['error'] == null) {
           await storage.write(key: 'mwstaffjwt', value: data['token']);
           await storage.write(key: 'isstaff', value: 'true');
+          final staffName = staffDisplayNameFromJwt(parseJwt(data['token']));
+          if (staffName.isNotEmpty) {
+            await storage.write(key: 'staffName', value: staffName);
+          }
 
           // Register FCM token after successful login
           await _registerFCMToken();

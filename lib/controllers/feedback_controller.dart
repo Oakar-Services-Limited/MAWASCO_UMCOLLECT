@@ -354,6 +354,11 @@ class FeedbackController extends ChangeNotifier {
       final token = await _storage.read(key: 'mwstaffjwt');
       if (token == null || token.isEmpty) return 'Not authenticated';
 
+      var reporterName = staffDisplayNameFromJwt(parseJwt(token));
+      if (reporterName.isEmpty) {
+        reporterName = (await _storage.read(key: 'staffName'))?.trim() ?? '';
+      }
+
       // Always use multipart endpoint so we can include optional photo + GPS.
       final uri = Uri.parse('${getUrl()}customer-feedback/with-media');
       final req = http.MultipartRequest('POST', uri);
@@ -378,6 +383,9 @@ class FeedbackController extends ChangeNotifier {
         req.fields['remarks'] = remarks.trim();
       }
       req.fields['timestamp'] = DateTime.now().toIso8601String();
+      if (reporterName.isNotEmpty) {
+        req.fields['reporterName'] = reporterName;
+      }
 
       if (latitude != null && longitude != null) {
         req.fields['latitude'] = latitude.toString();

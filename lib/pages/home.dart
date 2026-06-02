@@ -88,6 +88,10 @@ class _HomeState extends State<Home> {
           isnew = true;
         });
         await storage.write(key: 'staffid', value: staffid);
+        final staffName = staffDisplayNameFromJwt(decoded);
+        if (staffName.isNotEmpty) {
+          await storage.write(key: 'staffName', value: staffName);
+        }
 
         fetchStats(staffid, isnew);
         preloadMasterMeterNames(); // Warm cache so Master Meter Readings opens with list ready

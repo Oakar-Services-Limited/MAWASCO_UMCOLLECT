@@ -4,9 +4,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 String getUrl() {
-  // return "http://192.168.1.121:3003/api/";
+  return "http://192.168.1.121:3003/api/";
   // return "http://192.168.1.136:3003/api/";
-  return "https://api-utilitymanager.mawasco.co.ke/api/";
+  // return "https://api-utilitymanager.mawasco.co.ke/api/";
 }
 
 Map<String, dynamic> parseJwt(String token) {
@@ -22,6 +22,18 @@ Map<String, dynamic> parseJwt(String token) {
   }
 
   return payloadMap;
+}
+
+/// Staff display name from JWT payload (login token includes `name` when issued by admin/login).
+String staffDisplayNameFromJwt(Map<String, dynamic> decoded) {
+  if (decoded['error'] != null) return '';
+  return (decoded['name'] ??
+          decoded['Name'] ??
+          decoded['fullName'] ??
+          decoded['FullName'] ??
+          '')
+      .toString()
+      .trim();
 }
 
 String _decodeBase64(String str) {
