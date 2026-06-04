@@ -14,7 +14,7 @@ Map<String, dynamic> parseJwt(String token) {
   if (parts.length != 3) {
     return <String, dynamic>{"error": "Invalid token"};
   }
-   
+
   final payload = _decodeBase64(parts[1]);
   final payloadMap = json.decode(payload);
   if (payloadMap is! Map<String, dynamic>) {
@@ -22,6 +22,18 @@ Map<String, dynamic> parseJwt(String token) {
   }
 
   return payloadMap;
+}
+
+/// Staff display name from JWT payload (login token includes `name` when issued by admin/login).
+String staffDisplayNameFromJwt(Map<String, dynamic> decoded) {
+  if (decoded['error'] != null) return '';
+  return (decoded['name'] ??
+          decoded['Name'] ??
+          decoded['fullName'] ??
+          decoded['FullName'] ??
+          '')
+      .toString()
+      .trim();
 }
 
 String _decodeBase64(String str) {

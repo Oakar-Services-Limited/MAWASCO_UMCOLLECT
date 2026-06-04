@@ -1,15 +1,861 @@
 [
-  { "zone": "018 Tumutumu-87", "area": "Kiangoma", "days": ["Monday", "Sunday"] },
-  { "zone": "018 Tumutumu-87", "area": "Ngurumo", "days": ["Sunday"] },
-  { "zone": "018 Tumutumu-87", "area": "Karogoto", "days": ["Wednesday", "Thursday"] },
-  { "zone": "022 92", "area": "Mukangu-Checheni", "days": ["Tuesday", "Wednesday", "Thursday"] },
-  { "zone": "022 92", "area": "Kanyage", "days": ["Wednesday"] },
-  { "zone": "022 92", "area": "Gathugu-Gathagana", "days": ["Tuesday", "Thursday", "Saturday", "Sunday"] },
-  { "zone": "022 92", "area": "Gatwe", "days": ["Thursday", "Friday"] },
-  { "zone": "022 92", "area": "Kahutiini", "days": ["Thursday", "Friday"] },
-  { "zone": "022 92", "area": "Gitumbi", "days": ["Wednesday", "Thursday", "Friday"] },
-  { "zone": "022 92", "area": "Kiangogoyo", "days": ["Tuesday", "Wednesday", "Thursday"] },
-  { "zone": "014 85", "area": "Kiamucheru", "days": ["Thursday", "Sunday"] },
-  { "zone": "016 87", "area": "Rititi", "days": ["Thursday"] },
-  { "zone": "015 86", "area": "Ruthagati", "days": ["Friday"] }
+  {
+    "zone": "018 Tumutumu-87",
+    "area": "Kiangoma",
+    "days": [
+      "Monday",
+      "Sunday"
+    ]
+  },
+  {
+    "zone": "018 Tumutumu-87",
+    "area": "Ngurumo",
+    "days": [
+      "Sunday"
+    ]
+  },
+  {
+    "zone": "018 Tumutumu-87",
+    "area": "Karogoto",
+    "days": [
+      "Friday",
+      "Saturday"
+    ]
+  },
+  {
+    "zone": "018 Tumutumu-87",
+    "area": "Mbogoini Lines",
+    "days": [
+      "Thursday"
+    ]
+  },
+  {
+    "zone": "018 Tumutumu-87",
+    "area": "Kahiga",
+    "days": [
+      "Saturday"
+    ]
+  },
+  {
+    "zone": "022 92",
+    "area": "Mukangu-Checheni",
+    "days": [
+      "Tuesday",
+      "Wednesday",
+      "Thursday"
+    ]
+  },
+  {
+    "zone": "022 92",
+    "area": "Kanyage",
+    "days": [
+      "Wednesday"
+    ]
+  },
+  {
+    "zone": "022 92",
+    "area": "Gathugu-Gathagana",
+    "days": [
+      "Tuesday",
+      "Thursday",
+      "Saturday",
+      "Sunday"
+    ]
+  },
+  {
+    "zone": "022 92",
+    "area": "Gatwe",
+    "days": [
+      "Thursday",
+      "Friday"
+    ]
+  },
+  {
+    "zone": "022 92",
+    "area": "Kahutiini",
+    "days": [
+      "Thursday",
+      "Friday"
+    ]
+  },
+  {
+    "zone": "022 92",
+    "area": "Gitumbi",
+    "days": [
+      "Wednesday",
+      "Thursday",
+      "Friday"
+    ]
+  },
+  {
+    "zone": "022 92",
+    "area": "Kiangogoyo",
+    "days": [
+      "Tuesday",
+      "Wednesday",
+      "Thursday"
+    ]
+  },
+  {
+    "zone": "022 92",
+    "area": "Kiamabara-Mungetho-Kieni",
+    "days": [
+      "Monday",
+      "Wednesday"
+    ]
+  },
+  {
+    "zone": "022 92",
+    "area": "Kianjogu-Karembu",
+    "days": [
+      "Monday",
+      "Wednesday"
+    ]
+  },
+  {
+    "zone": "022 92",
+    "area": "Munengere",
+    "days": [
+      "Monday",
+      "Wednesday"
+    ]
+  },
+  {
+    "zone": "022 92",
+    "area": "Muchohi",
+    "days": [
+      "Monday",
+      "Wednesday",
+      "Thursday",
+      "Friday"
+    ]
+  },
+  {
+    "zone": "022 92",
+    "area": "Ruharu / Mt Carmel",
+    "days": [
+      "Tuesday",
+      "Thursday"
+    ]
+  },
+  {
+    "zone": "022 92",
+    "area": "Kihayu DMA",
+    "days": [
+      "Tuesday",
+      "Thursday",
+      "Friday"
+    ]
+  },
+  {
+    "zone": "022 92",
+    "area": "Karidundu & Kirimara",
+    "days": [
+      "Tuesday",
+      "Thursday",
+      "Saturday",
+      "Sunday"
+    ]
+  },
+  {
+    "zone": "022 92",
+    "area": "Ndimaini",
+    "days": [
+      "Wednesday",
+      "Thursday",
+      "Friday"
+    ]
+  },
+  {
+    "zone": "022 92",
+    "area": "Ikwaini",
+    "days": [
+      "Thursday",
+      "Friday"
+    ]
+  },
+  {
+    "zone": "022 92",
+    "area": "Wachira Tank",
+    "days": [
+      "Friday"
+    ]
+  },
+  {
+    "zone": "022 92",
+    "area": "Karindundu Tank Environs",
+    "days": [
+      "Friday"
+    ]
+  },
+  {
+    "zone": "014 85",
+    "area": "Kiamucheru",
+    "days": [
+      "Thursday",
+      "Sunday"
+    ]
+  },
+  {
+    "zone": "014 85",
+    "area": "Itiati Campus",
+    "days": [
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday"
+    ]
+  },
+  {
+    "zone": "014 85",
+    "area": "Gitunduti",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday"
+    ]
+  },
+  {
+    "zone": "014 85",
+    "area": "Laini Site-Mukonye",
+    "days": [
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday"
+    ]
+  },
+  {
+    "zone": "014 85",
+    "area": "Kihuri",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday"
+    ]
+  },
+  {
+    "zone": "014 85",
+    "area": "Gikore",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday"
+    ]
+  },
+  {
+    "zone": "014 85",
+    "area": "Itiati-Muberethi Tank",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday"
+    ]
+  },
+  {
+    "zone": "014 85",
+    "area": "Magutu",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday"
+    ]
+  },
+  {
+    "zone": "016 87",
+    "area": "Rititi",
+    "days": [
+      "Thursday"
+    ]
+  },
+  {
+    "zone": "016 87",
+    "area": "Mathaithi Areas",
+    "days": [
+      "Monday"
+    ]
+  },
+  {
+    "zone": "016 87",
+    "area": "Kiamamunyo",
+    "days": [
+      "Monday",
+      "Saturday"
+    ]
+  },
+  {
+    "zone": "016 87",
+    "area": "Grand Kago",
+    "days": [
+      "Monday",
+      "Thursday",
+      "Saturday"
+    ]
+  },
+  {
+    "zone": "016 87",
+    "area": "Karindi Unjiru Area",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday"
+    ]
+  },
+  {
+    "zone": "016 87",
+    "area": "Githima Millers",
+    "days": [
+      "Monday"
+    ]
+  },
+  {
+    "zone": "016 87",
+    "area": "Mbari ya Njora",
+    "days": [
+      "Monday"
+    ]
+  },
+  {
+    "zone": "016 87",
+    "area": "Kiamuthua",
+    "days": [
+      "Tuesday"
+    ]
+  },
+  {
+    "zone": "016 87",
+    "area": "Tumutumu Institutions & Environs",
+    "days": [
+      "Tuesday",
+      "Wednesday"
+    ]
+  },
+  {
+    "zone": "016 87",
+    "area": "Miria",
+    "days": [
+      "Wednesday"
+    ]
+  },
+  {
+    "zone": "016 87",
+    "area": "Kiawaduha",
+    "days": [
+      "Wednesday"
+    ]
+  },
+  {
+    "zone": "016 87",
+    "area": "Mathaithi-Kiamuthua-Githima",
+    "days": [
+      "Wednesday"
+    ]
+  },
+  {
+    "zone": "016 87",
+    "area": "Kiamaina",
+    "days": [
+      "Thursday",
+      "Friday"
+    ]
+  },
+  {
+    "zone": "016 87",
+    "area": "Kanyama",
+    "days": [
+      "Thursday",
+      "Friday"
+    ]
+  },
+  {
+    "zone": "016 87",
+    "area": "Kiamachimbi A Lines",
+    "days": [
+      "Thursday"
+    ]
+  },
+  {
+    "zone": "016 87",
+    "area": "Kaiyaba Scout Area",
+    "days": [
+      "Thursday"
+    ]
+  },
+  {
+    "zone": "016 87",
+    "area": "Mbogoini",
+    "days": [
+      "Thursday"
+    ]
+  },
+  {
+    "zone": "016 87",
+    "area": "Rugoka",
+    "days": [
+      "Thursday"
+    ]
+  },
+  {
+    "zone": "016 87",
+    "area": "Mbari ya Kaigi",
+    "days": [
+      "Thursday"
+    ]
+  },
+  {
+    "zone": "016 87",
+    "area": "Kiriko-Gitugu Lines",
+    "days": [
+      "Thursday"
+    ]
+  },
+  {
+    "zone": "016 87",
+    "area": "Thiu-Karogoto Areas",
+    "days": [
+      "Friday",
+      "Saturday"
+    ]
+  },
+  {
+    "zone": "015 86",
+    "area": "Ruthagati",
+    "days": [
+      "Friday"
+    ]
+  },
+  {
+    "zone": "015 86",
+    "area": "Kiangi Lines",
+    "days": [
+      "Friday"
+    ]
+  },
+  {
+    "zone": "015 86",
+    "area": "Kiawarigi Shopping Centre",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday"
+    ]
+  },
+  {
+    "zone": "015 86",
+    "area": "Kimathi Lines",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday"
+    ]
+  },
+  {
+    "zone": "015 86",
+    "area": "Gikumbo Lines",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday"
+    ]
+  },
+  {
+    "zone": "015 86",
+    "area": "Ichuga Lines",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday"
+    ]
+  },
+  {
+    "zone": "015 86",
+    "area": "Itoga Line",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday"
+    ]
+  },
+  {
+    "zone": "015 86",
+    "area": "Gaitara Lines",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday"
+    ]
+  },
+  {
+    "zone": "015 86",
+    "area": "Gachuiro",
+    "days": [
+      "Wednesday"
+    ]
+  },
+  {
+    "zone": "015 86",
+    "area": "General China",
+    "days": [
+      "Wednesday"
+    ]
+  },
+  {
+    "zone": "015 86",
+    "area": "Mukonye",
+    "days": [
+      "Wednesday",
+      "Thursday"
+    ]
+  },
+  {
+    "zone": "015 86",
+    "area": "Highland",
+    "days": [
+      "Wednesday",
+      "Thursday"
+    ]
+  },
+  {
+    "zone": "015 86",
+    "area": "Gathu-ini",
+    "days": [
+      "Wednesday",
+      "Thursday"
+    ]
+  },
+  {
+    "zone": "015 86",
+    "area": "Gathumbi",
+    "days": [
+      "Thursday",
+      "Friday"
+    ]
+  },
+  {
+    "zone": "012 83",
+    "area": "Kangongoro",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Friday",
+      "Sunday"
+    ]
+  },
+  {
+    "zone": "012 83",
+    "area": "Kiamariga, Dunjos & Kianjau",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Friday",
+      "Sunday"
+    ]
+  },
+  {
+    "zone": "012 83",
+    "area": "Kagati & Kiamariga Police",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Friday",
+      "Sunday"
+    ]
+  },
+  {
+    "zone": "012 83",
+    "area": "Kiamariga Upper & Lower",
+    "days": [
+      "Wednesday",
+      "Thursday",
+      "Saturday"
+    ]
+  },
+  {
+    "zone": "012 83",
+    "area": "Ngorano Dispensary",
+    "days": [
+      "Wednesday",
+      "Thursday",
+      "Saturday"
+    ]
+  },
+  {
+    "zone": "012 83",
+    "area": "Kiaihuru Iruri",
+    "days": [
+      "Wednesday",
+      "Thursday",
+      "Saturday"
+    ]
+  },
+  {
+    "zone": "013 84",
+    "area": "Kabiruini",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Friday",
+      "Sunday"
+    ]
+  },
+  {
+    "zone": "013 84",
+    "area": "Mutiini",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Friday",
+      "Sunday"
+    ]
+  },
+  {
+    "zone": "013 84",
+    "area": "Maria",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Friday",
+      "Sunday"
+    ]
+  },
+  {
+    "zone": "013 84",
+    "area": "Njathe-ini",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Friday",
+      "Sunday"
+    ]
+  },
+  {
+    "zone": "019 89",
+    "area": "Giakaibei",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday"
+    ]
+  },
+  {
+    "zone": "019 89",
+    "area": "Gathehu",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday"
+    ]
+  },
+  {
+    "zone": "019 89",
+    "area": "Kairini-Gathehu",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday"
+    ]
+  },
+  {
+    "zone": "019 89",
+    "area": "Ndumanu",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday"
+    ]
+  },
+  {
+    "zone": "019 89",
+    "area": "Migingo-Gathehu",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday"
+    ]
+  },
+  {
+    "zone": "020 90",
+    "area": "Kiaruhiu",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday"
+    ]
+  },
+  {
+    "zone": "020 90",
+    "area": "Githaiti",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday"
+    ]
+  },
+  {
+    "zone": "020 90",
+    "area": "Kiamuthumbi",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday"
+    ]
+  },
+  {
+    "zone": "020 90",
+    "area": "Ndiriti",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday"
+    ]
+  },
+  {
+    "zone": "020 90",
+    "area": "Kariki",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday"
+    ]
+  },
+  {
+    "zone": "020 90",
+    "area": "Gatondo Kigio",
+    "days": [
+      "Monday"
+    ]
+  },
+  {
+    "zone": "021 91",
+    "area": "Kiabaritiri",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday"
+    ]
+  },
+  {
+    "zone": "021 91",
+    "area": "Gathungururu",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday"
+    ]
+  },
+  {
+    "zone": "021 91",
+    "area": "Gikororo",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday"
+    ]
+  },
+  {
+    "zone": "021 91",
+    "area": "Mathia",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday"
+    ]
+  },
+  {
+    "zone": "021 91",
+    "area": "Gatura",
+    "days": [
+      "Monday",
+      "Sunday"
+    ]
+  },
+  {
+    "zone": "021 91",
+    "area": "Kamunyaka",
+    "days": [
+      "Monday",
+      "Sunday"
+    ]
+  },
+  {
+    "zone": "021 91",
+    "area": "Ndima Factory",
+    "days": [
+      "Wednesday"
+    ]
+  },
+  {
+    "zone": "021 91",
+    "area": "Miiri",
+    "days": [
+      "Wednesday",
+      "Thursday"
+    ]
+  },
+  {
+    "zone": "021 91",
+    "area": "Kirima Iguru",
+    "days": [
+      "Thursday"
+    ]
+  },
+  {
+    "zone": "021 91",
+    "area": "Kianyange",
+    "days": [
+      "Thursday"
+    ]
+  },
+  {
+    "zone": "021 91",
+    "area": "Kiangai",
+    "days": [
+      "Thursday",
+      "Friday"
+    ]
+  }
 ]
