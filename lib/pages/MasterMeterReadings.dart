@@ -46,7 +46,10 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
   String staffid = '';
   String metername = '';
   String meterreading = '';
-  String remarks = '';
+  String meterCondition = '--Select--';
+  String remarksText = '';
+  String dma = '';
+  String zone = '';
   String myimage = '';
   Widget? isLoading;
 
@@ -223,8 +226,8 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
       setState(() {
         _image = File(pickedFile.path);
         myimage = base64Image;
-        if (remarks.isEmpty || remarks == '--Select--') {
-          remarks = '--Select--';
+        if (meterCondition.isEmpty) {
+          meterCondition = '--Select--';
         }
       });
     }
@@ -234,7 +237,7 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
   void initState() {
     super.initState();
     _image = null;
-    remarks = '--Select--';
+    meterCondition = '--Select--';
     fetchStoredData();
     _loadMasterMeters();
     _listenConnectivity();
@@ -278,6 +281,17 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
     _showMessage(message, false);
   }
 
+  void _applyMeterSelection(String name) {
+    final trimmed = name.trim();
+    final entry = lookupMasterMeterByName(trimmed);
+    setState(() {
+      metername = trimmed;
+      dma = entry?.dma ?? '';
+      zone = entry?.zone ?? '';
+    });
+    _fetchLastReadingForMeter(trimmed);
+  }
+
   Future<void> _loadMasterMeters() async {
     final cached = getMasterMeterNamesCached();
     if (cached != null && cached.isNotEmpty) {
@@ -285,19 +299,20 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
         masterMeterNames = ["--Select--", ...cached];
         isLoadingMeters = false;
       });
-      refreshMasterMeterNamesCache().then((freshNames) {
+      refreshMasterMeterNamesCache().then((_) async {
+        final catalog = await getMasterMeterCatalog();
         if (!mounted) return;
         setState(() {
-          masterMeterNames = ["--Select--", ...freshNames];
+          masterMeterNames = ["--Select--", ...catalog.map((e) => e.name)];
         });
       });
       return;
     }
     setState(() => isLoadingMeters = true);
-    final names = await getMasterMeterNames();
+    final catalog = await getMasterMeterCatalog();
     if (!mounted) return;
     setState(() {
-      masterMeterNames = ["--Select--", ...names];
+      masterMeterNames = ["--Select--", ...catalog.map((e) => e.name)];
       isLoadingMeters = false;
     });
   }
@@ -323,10 +338,20 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
     if (!_hasPhoto) {
       return 'Take a meter photo.';
     }
-    if (remarks.isEmpty || remarks == '--Select--') {
-      return 'Select remarks after taking the photo.';
+    if (remarksText.trim().isEmpty) {
+      return 'Enter remarks after taking the photo.';
     }
     return null;
+  }
+
+  String _buildRemarksPayload() {
+    final parts = <String>[];
+    if (meterCondition.isNotEmpty && meterCondition != '--Select--') {
+      parts.add('Condition: $meterCondition');
+    }
+    final typed = remarksText.trim();
+    if (typed.isNotEmpty) parts.add(typed);
+    return parts.join(' | ');
   }
 
   Future<void> _submit({required bool asDraft}) async {
@@ -347,7 +372,10 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
       metername: metername.trim(),
       meterreading: meterreading.trim(),
       myimage: myimage,
-      remarks: remarks == '--Select--' ? '' : remarks,
+      remarks: _buildRemarksPayload(),
+      dma: dma,
+      zone: zone,
+      userId: staffid,
       forceOffline: asDraft,
     );
 
@@ -374,7 +402,10 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
         setState(() {
           metername = '';
           meterreading = '';
-          remarks = '--Select--';
+          meterCondition = '--Select--';
+          remarksText = '';
+          dma = '';
+          zone = '';
           myimage = '';
           _image = null;
           _previousReading = null;
@@ -489,16 +520,27 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
                               )
                             : MySearchableSelectInput(
                                 onSubmit: (value) {
-                                  final trimmed = value.trim();
-                                  setState(() {
-                                    metername = trimmed;
-                                  });
-                                  _fetchLastReadingForMeter(trimmed);
+                                  _applyMeterSelection(value);
                                 },
                                 list: masterMeterNames,
                                 label: 'Select Meter Name',
                                 value: metername,
                               ),
+                        if (metername.isNotEmpty &&
+                            metername != '--Select--') ...[
+                          const SizedBox(height: 12),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'DMA: ${dma.isNotEmpty ? dma : '—'}  |  Zone: ${zone.isNotEmpty ? zone : '—'}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.black87,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 20),
                         if (metername.isNotEmpty &&
                             metername != '--Select--') ...[
@@ -652,16 +694,30 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
                           MySelectInput(
                             onSubmit: (value) {
                               setState(() {
-                                remarks = value;
+                                meterCondition = value;
                               });
                             },
                             list: _remarksOptions,
-                            label: 'Remarks *',
-                            value: remarks.isEmpty ? '--Select--' : remarks,
+                            label: 'Meter condition (optional)',
+                            value: meterCondition.isEmpty
+                                ? '--Select--'
+                                : meterCondition,
+                          ),
+                          const SizedBox(height: 16),
+                          MyTextInput(
+                            lines: 3,
+                            value: remarksText,
+                            type: TextInputType.multiline,
+                            onSubmit: (value) {
+                              setState(() {
+                                remarksText = value;
+                              });
+                            },
+                            title: 'Remarks *',
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Select the meter condition observed when taking the photo.',
+                            'Type any notes about this reading (required).',
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.black.withValues(alpha: 0.65),
@@ -739,6 +795,9 @@ Future<Message> submitData({
   required String meterreading,
   required String myimage,
   required String remarks,
+  required String dma,
+  required String zone,
+  required String userId,
   bool forceOffline = false,
 }) async {
   final meter = metername.trim();
@@ -770,8 +829,19 @@ Future<Message> submitData({
     return Message(
       token: null,
       success: null,
-      error: "Select remarks after taking the photo.",
+      error: "Enter remarks after taking the photo.",
     );
+  }
+
+  const storage = FlutterSecureStorage();
+  String effectiveUserId = userId.trim();
+  if (effectiveUserId.isEmpty) {
+    final token = await storage.read(key: 'mwstaffjwt');
+    if (token != null && token.isNotEmpty) {
+      final decoded = parseJwt(token);
+      effectiveUserId =
+          (decoded['UserID'] ?? decoded['id'] ?? '').toString().trim();
+    }
   }
 
   final db = DatabaseHelper();
@@ -784,6 +854,9 @@ Future<Message> submitData({
       'reading': meterreading,
       if (myimage.isNotEmpty) 'image': myimage,
       if (remarks.isNotEmpty) 'remarks': remarks,
+      if (dma.isNotEmpty) 'dma': dma,
+      if (zone.isNotEmpty) 'zone': zone,
+      if (effectiveUserId.isNotEmpty) 'userId': effectiveUserId,
     };
 
     await db.saveSubmission(
@@ -810,7 +883,6 @@ Future<Message> submitData({
   }
 
   try {
-    const storage = FlutterSecureStorage();
     final token = await storage.read(key: 'mwstaffjwt');
     final response = await http.post(
       Uri.parse("${getUrl()}master-meter-reading/create"),
@@ -823,6 +895,9 @@ Future<Message> submitData({
         'reading': meterreading,
         'image': myimage,
         'remarks': remarks,
+        if (dma.isNotEmpty) 'dma': dma,
+        if (zone.isNotEmpty) 'zone': zone,
+        if (effectiveUserId.isNotEmpty) 'userId': effectiveUserId,
       }),
     );
 

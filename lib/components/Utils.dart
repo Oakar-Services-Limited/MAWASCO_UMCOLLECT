@@ -154,73 +154,112 @@ List<String> getZones() {
   ];
 }
 
-// --- Master meter names: central cache, fetched once and reused (search on frontend) ---
+// --- Master meters catalog (name + dma + zone), cached for dropdown ---
 
-List<String> _masterMeterNamesCache = [];
+class MasterMeterEntry {
+  final String name;
+  final String dma;
+  final String zone;
+
+  const MasterMeterEntry({
+    required this.name,
+    this.dma = '',
+    this.zone = '',
+  });
+}
+
+List<MasterMeterEntry> _masterMeterCatalogCache = [];
 DateTime? _masterMeterNamesCacheTime;
-Future<List<String>>? _masterMeterNamesFetchFuture;
+Future<List<MasterMeterEntry>>? _masterMeterNamesFetchFuture;
 const int _masterMeterNamesCacheMaxAgeSeconds = 300;
 
-/// If cache is valid, returns it; otherwise null. Use so the page can show list immediately with no loading.
-List<String>? getMasterMeterNamesCached() {
-  if (_masterMeterNamesCache.isEmpty || _masterMeterNamesCacheTime == null)
+List<MasterMeterEntry>? getMasterMeterCatalogCached() {
+  if (_masterMeterCatalogCache.isEmpty || _masterMeterNamesCacheTime == null) {
     return null;
+  }
   final now = DateTime.now();
   if (now.difference(_masterMeterNamesCacheTime!).inSeconds >=
       _masterMeterNamesCacheMaxAgeSeconds) {
     return null;
   }
-  return List.from(_masterMeterNamesCache);
+  return List.from(_masterMeterCatalogCache);
 }
 
-/// Returns master meter names (cached if valid, otherwise fetches and caches). Add "--Select--" in UI if needed.
-Future<List<String>> getMasterMeterNames() async {
-  final cached = getMasterMeterNamesCached();
+/// If cache is valid, returns names only; otherwise null.
+List<String>? getMasterMeterNamesCached() {
+  final catalog = getMasterMeterCatalogCached();
+  if (catalog == null) return null;
+  return catalog.map((e) => e.name).toList();
+}
+
+MasterMeterEntry? lookupMasterMeterByName(String name) {
+  final key = name.trim();
+  if (key.isEmpty || key == '--Select--') return null;
+  for (final e in _masterMeterCatalogCache) {
+    if (e.name == key) return e;
+  }
+  return null;
+}
+
+Future<List<MasterMeterEntry>> getMasterMeterCatalog() async {
+  final cached = getMasterMeterCatalogCached();
   if (cached != null) return cached;
 
   if (_masterMeterNamesFetchFuture != null) {
     return _masterMeterNamesFetchFuture!;
   }
 
-  _masterMeterNamesFetchFuture = _fetchMasterMeterNamesFromApi();
+  _masterMeterNamesFetchFuture = _fetchMasterMeterCatalogFromApi();
   try {
-    final list = await _masterMeterNamesFetchFuture!;
-    return list;
+    return await _masterMeterNamesFetchFuture!;
   } finally {
     _masterMeterNamesFetchFuture = null;
   }
 }
 
-Future<List<String>> _fetchMasterMeterNamesFromApi() async {
+/// Returns master meter names (cached if valid, otherwise fetches and caches).
+Future<List<String>> getMasterMeterNames() async {
+  final catalog = await getMasterMeterCatalog();
+  return catalog.map((e) => e.name).toList();
+}
+
+Future<List<MasterMeterEntry>> _fetchMasterMeterCatalogFromApi() async {
   http.Response response;
   try {
     response = await http.get(
       Uri.parse("${getUrl()}wt/master-meters?limit=1000&namesOnly=1"),
       headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8'
+        'Content-Type': 'application/json; charset=UTF-8',
       },
     );
   } catch (e) {
-    // Covers DNS failures (Failed host lookup), no internet, etc.
-    return List.from(_masterMeterNamesCache); // keep previous cache on error
+    return List.from(_masterMeterCatalogCache);
   }
 
   if (response.statusCode != 200) {
-    return List.from(_masterMeterNamesCache); // keep previous cache on error
+    return List.from(_masterMeterCatalogCache);
   }
 
   final decoded = jsonDecode(response.body);
   final data = decoded['data'] as List? ?? [];
-  final names = <String>[];
+  final catalog = <MasterMeterEntry>[];
+  final seen = <String>{};
   for (var meter in data) {
-    if (meter['name'] != null && meter['name'].toString().isNotEmpty) {
-      final name = meter['name'].toString().trim();
-      if (name.isNotEmpty && !names.contains(name)) names.add(name);
-    }
+    if (meter['name'] == null || meter['name'].toString().isEmpty) continue;
+    final name = meter['name'].toString().trim();
+    if (name.isEmpty || seen.contains(name)) continue;
+    seen.add(name);
+    catalog.add(
+      MasterMeterEntry(
+        name: name,
+        dma: meter['dma']?.toString().trim() ?? '',
+        zone: meter['zone']?.toString().trim() ?? '',
+      ),
+    );
   }
-  _masterMeterNamesCache = names;
+  _masterMeterCatalogCache = catalog;
   _masterMeterNamesCacheTime = DateTime.now();
-  return List.from(names);
+  return List.from(catalog);
 }
 
 /// Call from Home (or after login) to warm the cache so Master Meter Readings opens with list ready.
@@ -230,7 +269,7 @@ void preloadMasterMeterNames() {
 
 /// Invalidate cache so next fetch gets fresh data. Call after creating/updating/deleting a master meter.
 void invalidateMasterMeterNamesCache() {
-  _masterMeterNamesCache = [];
+  _masterMeterCatalogCache = [];
   _masterMeterNamesCacheTime = null;
   _masterMeterNamesFetchFuture = null;
 }
