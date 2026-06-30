@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -55,6 +56,30 @@ class OfflineImageStore {
       final file = File(imagePath);
       if (!await file.exists()) return null;
       return base64Encode(await file.readAsBytes());
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<http.MultipartFile?> multipartFile({
+    required String fieldName,
+    required String imagePath,
+  }) async {
+    try {
+      final file = File(imagePath);
+      if (!await file.exists()) return null;
+      final bytes = await file.readAsBytes();
+      if (bytes.isEmpty) return null;
+      final baseName = p.basename(imagePath);
+      return http.MultipartFile.fromBytes(
+        fieldName,
+        bytes,
+        filename: baseName.endsWith('.jpg') ||
+                baseName.endsWith('.jpeg') ||
+                baseName.endsWith('.png')
+            ? baseName
+            : '$fieldName.jpg',
+      );
     } catch (_) {
       return null;
     }

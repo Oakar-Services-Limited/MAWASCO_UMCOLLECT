@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
@@ -7,7 +5,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/models/meter_replacement_entry.dart';
+import 'package:um_collect/services/connectivity_helper.dart';
+import 'package:um_collect/services/database_helper.dart';
 import 'package:um_collect/services/meter_replacement_list_service.dart';
+import 'package:um_collect/services/offline_image_store.dart';
 
 enum MeterReplacementSource {
   scheduledExercise,
@@ -103,6 +104,7 @@ class MeterReplacementController extends ChangeNotifier {
   String additionalNotes = '';
 
   bool isSubmitting = false;
+  String? lastSubmitNotice;
 
   Future<void> init() async {
     try {
@@ -333,28 +335,43 @@ class MeterReplacementController extends ChangeNotifier {
   Future<void> _pickImage({
     required ImageSource source,
     required void Function(XFile?) assign,
+    required String persistLabel,
   }) async {
     try {
       if (source == ImageSource.camera) {
         final status = await Permission.camera.request();
         if (!status.isGranted) return;
       }
-      final file = await _imagePicker.pickImage(
+      final picked = await _imagePicker.pickImage(
         source: source,
         imageQuality: 85,
+        maxWidth: 1920,
+        maxHeight: 1080,
       );
-      assign(file);
+      if (picked == null) return;
+      final id = DateTime.now().millisecondsSinceEpoch.toString();
+      final saved = await OfflineImageStore.persistFromFile(
+        sourcePath: picked.path,
+        submissionId: 'meter_rep_${persistLabel}_$id',
+      );
+      assign(XFile(saved ?? picked.path));
       notifyListeners();
     } on Exception catch (e) {
       if (kDebugMode) debugPrint('[MeterReplacement._pickImage] $e');
     }
   }
 
-  Future<void> capturePhotoIssue() =>
-      _pickImage(source: ImageSource.camera, assign: (f) => photoIssue = f);
+  Future<void> capturePhotoIssue() => _pickImage(
+        source: ImageSource.camera,
+        assign: (f) => photoIssue = f,
+        persistLabel: 'issue',
+      );
 
-  Future<void> pickPhotoIssueFromGallery() =>
-      _pickImage(source: ImageSource.gallery, assign: (f) => photoIssue = f);
+  Future<void> pickPhotoIssueFromGallery() => _pickImage(
+        source: ImageSource.gallery,
+        assign: (f) => photoIssue = f,
+        persistLabel: 'issue',
+      );
 
   void clearPhotoIssue() {
     photoIssue = null;
@@ -364,11 +381,13 @@ class MeterReplacementController extends ChangeNotifier {
   Future<void> capturePhotoMeterRemoved() => _pickImage(
         source: ImageSource.camera,
         assign: (f) => photoMeterRemoved = f,
+        persistLabel: 'removed',
       );
 
   Future<void> pickPhotoMeterRemovedFromGallery() => _pickImage(
         source: ImageSource.gallery,
         assign: (f) => photoMeterRemoved = f,
+        persistLabel: 'removed',
       );
 
   void clearPhotoMeterRemoved() {
@@ -376,11 +395,17 @@ class MeterReplacementController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> capturePhotoNewMeter() =>
-      _pickImage(source: ImageSource.camera, assign: (f) => photoNewMeter = f);
+  Future<void> capturePhotoNewMeter() => _pickImage(
+        source: ImageSource.camera,
+        assign: (f) => photoNewMeter = f,
+        persistLabel: 'new',
+      );
 
-  Future<void> pickPhotoNewMeterFromGallery() =>
-      _pickImage(source: ImageSource.gallery, assign: (f) => photoNewMeter = f);
+  Future<void> pickPhotoNewMeterFromGallery() => _pickImage(
+        source: ImageSource.gallery,
+        assign: (f) => photoNewMeter = f,
+        persistLabel: 'new',
+      );
 
   void clearPhotoNewMeter() {
     photoNewMeter = null;
@@ -527,102 +552,226 @@ class MeterReplacementController extends ChangeNotifier {
     return null;
   }
 
+  Map<String, String> _buildSubmitFields() {
+    final fields = <String, String>{
+      'replacementSource':
+          replacementSource == MeterReplacementSource.scheduledExercise
+              ? 'scheduled_exercise'
+              : 'normal_operations',
+      'zone': zone,
+      'technicianName': technicianName,
+      'canBeReplaced': canBeReplaced == true ? 'true' : 'false',
+      'latitude': latitude.toString(),
+      'longitude': longitude.toString(),
+    };
+
+    if (replacementSource == MeterReplacementSource.scheduledExercise) {
+      final e = selectedExerciseEntry!;
+      fields['accountNumber'] = e.accountNumber;
+      fields['customerName'] = e.customerName;
+      fields['meterNumber'] = e.meterNumber;
+      fields['currentRoute'] = e.route;
+      fields['lastRecordedReading'] = e.currentMeterReading;
+      fields['category'] = e.category;
+      fields['accountStatus'] = e.accountStatus;
+    } else {
+      fields['accountNumber'] = manualAccountNumber.trim();
+      fields['customerName'] = manualCustomerName.trim();
+      fields['meterNumber'] = manualMeterNumber.trim();
+      fields['currentRoute'] = manualCurrentRoute.trim();
+      fields['lastRecordedReading'] = manualLastRecordedReading.trim();
+      fields['category'] = manualCategory.trim();
+      fields['accountStatus'] = manualAccountStatus.trim();
+    }
+
+    if (canBeReplaced == false) {
+      fields['notReplaceableReason'] = notReplaceableReason;
+      if (notReplaceableReason == notReplaceableOtherLabel) {
+        fields['notReplaceableOtherReason'] = notReplaceableOtherReason.trim();
+      }
+    } else {
+      fields['readingMeterRemoved'] = readingMeterRemoved.trim();
+      fields['confirmRemovedSerial'] = confirmRemovedSerial.trim();
+      fields['newMeterSerial'] = newMeterSerial.trim();
+      fields['initialNewMeterReading'] = initialNewMeterReading.trim();
+      fields['routeIsCorrect'] = routeIsCorrect == true ? 'true' : 'false';
+      if (routeIsCorrect == false) {
+        fields['correctedRoute'] = correctedRoute;
+      }
+    }
+
+    if (altitude != null) fields['altitude'] = altitude.toString();
+    if (locationAccuracy != null) {
+      fields['locationAccuracy'] = locationAccuracy.toString();
+    }
+    if (additionalNotes.trim().isNotEmpty) {
+      fields['additionalNotes'] = additionalNotes.trim();
+    }
+    return fields;
+  }
+
+  Future<void> _addPhotoPath({
+    required Map<String, dynamic> body,
+    required String bodyKey,
+    required XFile? photo,
+    required String submissionId,
+    required String suffix,
+  }) async {
+    if (photo == null) return;
+    final saved = await OfflineImageStore.persistFromFile(
+      sourcePath: photo.path,
+      submissionId: '${submissionId}_$suffix',
+    );
+    if (saved != null) {
+      body[bodyKey] = saved;
+    }
+  }
+
+  Future<void> _attachPhotosToRequest(http.MultipartRequest req) async {
+    Future<void> attach(String fieldName, XFile? photo) async {
+      if (photo == null) {
+        throw StateError('$fieldName is missing');
+      }
+      final part = await OfflineImageStore.multipartFile(
+        fieldName: fieldName,
+        imagePath: photo.path,
+      );
+      if (part == null) {
+        throw StateError(
+          '$fieldName file is missing. Please capture the photo again.',
+        );
+      }
+      req.files.add(part);
+    }
+
+    if (canBeReplaced == false) {
+      await attach('photoIssue', photoIssue);
+      return;
+    }
+
+    await attach('photoMeterRemoved', photoMeterRemoved);
+    await attach('photoNewMeter', photoNewMeter);
+  }
+
+  Future<String?> _queueOffline() async {
+    final submissionId = DateTime.now().millisecondsSinceEpoch.toString();
+    final body = Map<String, dynamic>.from(_buildSubmitFields());
+
+    if (canBeReplaced == false) {
+      await _addPhotoPath(
+        body: body,
+        bodyKey: 'photoIssuePath',
+        photo: photoIssue,
+        submissionId: submissionId,
+        suffix: 'issue',
+      );
+    } else {
+      await _addPhotoPath(
+        body: body,
+        bodyKey: 'photoMeterRemovedPath',
+        photo: photoMeterRemoved,
+        submissionId: submissionId,
+        suffix: 'removed',
+      );
+      await _addPhotoPath(
+        body: body,
+        bodyKey: 'photoNewMeterPath',
+        photo: photoNewMeter,
+        submissionId: submissionId,
+        suffix: 'new',
+      );
+    }
+
+    await DatabaseHelper().saveSubmission(
+      id: submissionId,
+      formId: 'meter_replacement',
+      formName: 'Meter Replacement',
+      responses: {
+        '_type': 'meter_replacement',
+        '_endpoint': 'meter-replacement/with-media',
+        '_method': 'POST',
+        '_multipart': true,
+        '_body': body,
+      },
+    );
+
+    final expectedPhotos = canBeReplaced == false ? 1 : 2;
+    final savedPhotos = body.keys
+        .where((k) => k.endsWith('Path') && body[k] != null)
+        .length;
+    lastSubmitNotice = savedPhotos >= expectedPhotos
+        ? 'Saved offline with photos. Will sync when you have internet.'
+        : savedPhotos > 0
+            ? 'Saved offline with some photos. Will sync when you have internet.'
+            : 'Saved offline but photos could not be stored. Will sync without photos.';
+    reset();
+    return null;
+  }
+
+  Future<String?> _submitOnline(String token) async {
+    final uri = Uri.parse('${getUrl()}meter-replacement/with-media');
+    final req = http.MultipartRequest('POST', uri);
+    req.headers['Authorization'] = 'Bearer $token';
+    req.fields.addAll(_buildSubmitFields());
+    await _attachPhotosToRequest(req);
+
+    final streamed = await req.send();
+    final resp = await http.Response.fromStream(streamed);
+    if (resp.statusCode >= 200 && resp.statusCode < 300) {
+      lastSubmitNotice = null;
+      reset();
+      return null;
+    }
+    if (kDebugMode) {
+      debugPrint('[MeterReplacement.submit] ${resp.statusCode} ${resp.body}');
+    }
+    return 'Failed to submit meter replacement (${resp.statusCode})';
+  }
+
+  bool _isNetworkError(Object e) {
+    final msg = e.toString().toLowerCase();
+    return msg.contains('socketexception') ||
+        msg.contains('network is unreachable') ||
+        msg.contains('connection failed') ||
+        msg.contains('failed host lookup') ||
+        msg.contains('connection refused') ||
+        msg.contains('timed out');
+  }
+
   Future<String?> submit() async {
     final err = validate();
     if (err != null) return err;
 
     isSubmitting = true;
+    lastSubmitNotice = null;
     notifyListeners();
     try {
       final token = await _storage.read(key: 'mwstaffjwt');
       if (token == null || token.isEmpty) return 'Not authenticated';
 
-      final uri = Uri.parse('${getUrl()}meter-replacement/with-media');
-      final req = http.MultipartRequest('POST', uri);
-      req.headers['Authorization'] = 'Bearer $token';
-
-      req.fields['replacementSource'] =
-          replacementSource == MeterReplacementSource.scheduledExercise
-              ? 'scheduled_exercise'
-              : 'normal_operations';
-      req.fields['zone'] = zone;
-      req.fields['technicianName'] = technicianName;
-
-      if (replacementSource == MeterReplacementSource.scheduledExercise) {
-        final e = selectedExerciseEntry!;
-        req.fields['accountNumber'] = e.accountNumber;
-        req.fields['customerName'] = e.customerName;
-        req.fields['meterNumber'] = e.meterNumber;
-        req.fields['currentRoute'] = e.route;
-        req.fields['lastRecordedReading'] = e.currentMeterReading;
-        req.fields['category'] = e.category;
-        req.fields['accountStatus'] = e.accountStatus;
-      } else {
-        req.fields['accountNumber'] = manualAccountNumber.trim();
-        req.fields['customerName'] = manualCustomerName.trim();
-        req.fields['meterNumber'] = manualMeterNumber.trim();
-        req.fields['currentRoute'] = manualCurrentRoute.trim();
-        req.fields['lastRecordedReading'] = manualLastRecordedReading.trim();
-        req.fields['category'] = manualCategory.trim();
-        req.fields['accountStatus'] = manualAccountStatus.trim();
+      final isOnline = await ConnectivityHelper().checkConnectivity();
+      if (!isOnline) {
+        return await _queueOffline();
       }
 
-      req.fields['canBeReplaced'] = canBeReplaced == true ? 'true' : 'false';
-
-      if (canBeReplaced == false) {
-        req.fields['notReplaceableReason'] = notReplaceableReason;
-        if (notReplaceableReason == notReplaceableOtherLabel) {
-          req.fields['notReplaceableOtherReason'] =
-              notReplaceableOtherReason.trim();
-        }
-        req.files.add(await http.MultipartFile.fromPath(
-          'photoIssue',
-          File(photoIssue!.path).path,
-        ));
-      } else {
-        req.fields['readingMeterRemoved'] = readingMeterRemoved.trim();
-        req.fields['confirmRemovedSerial'] = confirmRemovedSerial.trim();
-        req.fields['newMeterSerial'] = newMeterSerial.trim();
-        req.fields['initialNewMeterReading'] = initialNewMeterReading.trim();
-
-        if (replacementSource == MeterReplacementSource.scheduledExercise ||
-            replacementSource == MeterReplacementSource.normalOperations) {
-          req.fields['routeIsCorrect'] = routeIsCorrect == true ? 'true' : 'false';
-          if (routeIsCorrect == false) {
-            req.fields['correctedRoute'] = correctedRoute;
+      try {
+        return await _submitOnline(token);
+      } catch (e) {
+        if (_isNetworkError(e) ||
+            e is StateError && e.message.contains('photo')) {
+          if (_isNetworkError(e)) {
+            return await _queueOffline();
           }
+          return e.toString();
         }
-
-        req.files.add(await http.MultipartFile.fromPath(
-          'photoMeterRemoved',
-          File(photoMeterRemoved!.path).path,
-        ));
-        req.files.add(await http.MultipartFile.fromPath(
-          'photoNewMeter',
-          File(photoNewMeter!.path).path,
-        ));
+        rethrow;
       }
-
-      req.fields['latitude'] = latitude.toString();
-      req.fields['longitude'] = longitude.toString();
-      if (altitude != null) req.fields['altitude'] = altitude.toString();
-      if (locationAccuracy != null) {
-        req.fields['locationAccuracy'] = locationAccuracy.toString();
-      }
-      if (additionalNotes.trim().isNotEmpty) {
-        req.fields['additionalNotes'] = additionalNotes.trim();
-      }
-
-      final streamed = await req.send();
-      final resp = await http.Response.fromStream(streamed);
-      if (resp.statusCode >= 200 && resp.statusCode < 300) {
-        reset();
-        return null;
-      }
-      if (kDebugMode) debugPrint('[MeterReplacement.submit] ${resp.statusCode} ${resp.body}');
-      return 'Failed to submit meter replacement (${resp.statusCode})';
     } catch (e) {
       if (kDebugMode) debugPrint('[MeterReplacement.submit] $e');
+      if (_isNetworkError(e)) {
+        return await _queueOffline();
+      }
+      if (e is StateError) return e.message;
       return 'Failed to submit meter replacement';
     } finally {
       isSubmitting = false;

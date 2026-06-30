@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import 'package:um_collect/controllers/dormant_survey_controller.dart';
+import 'package:um_collect/components/offline_pending_card.dart';
 import 'package:um_collect/models/Map.dart';
 import 'package:um_collect/services/customer_db_service.dart';
 import 'package:um_collect/theme/app_theme.dart';
@@ -59,6 +60,11 @@ class _DormantSurveyForm extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const OfflinePendingCard(
+              types: ['dormant_survey'],
+              label: 'Dormant Survey',
+            ),
+            const SizedBox(height: 12),
             _sectionTitle('A. Account search'),
             const SizedBox(height: 8),
             _schemeDropdown(ctrl),
@@ -710,8 +716,11 @@ class _DormantSurveyForm extends StatelessWidget {
                   return;
                 }
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Dormant survey submitted successfully.'),
+                  SnackBar(
+                    content: Text(
+                      ctrl.lastSubmitNotice ??
+                          'Dormant survey submitted successfully.',
+                    ),
                     backgroundColor: Colors.green,
                   ),
                 );

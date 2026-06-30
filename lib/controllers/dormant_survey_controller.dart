@@ -9,7 +9,10 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:um_collect/components/Utils.dart';
+import 'package:um_collect/services/connectivity_helper.dart';
 import 'package:um_collect/services/customer_db_service.dart';
+import 'package:um_collect/services/database_helper.dart';
+import 'package:um_collect/services/offline_image_store.dart';
 
 class DormantSurveyController extends ChangeNotifier {
   final _storage = const FlutterSecureStorage();
@@ -58,6 +61,7 @@ class DormantSurveyController extends ChangeNotifier {
   double? locationAccuracy;
 
   bool isSubmitting = false;
+  String? lastSubmitNotice;
 
   static const List<String> schemes = ['Rural', 'Urban'];
 
@@ -327,6 +331,16 @@ class DormantSurveyController extends ChangeNotifier {
     return generalCommentChoice.trim();
   }
 
+  Future<void> _persistPickedPhoto(XFile picked) async {
+    final id = DateTime.now().millisecondsSinceEpoch.toString();
+    final saved = await OfflineImageStore.persistFromFile(
+      sourcePath: picked.path,
+      submissionId: 'dormant_$id',
+    );
+    photo = XFile(saved ?? picked.path);
+    notifyListeners();
+  }
+
   Future<void> capturePhoto() async {
     try {
       final picked = await _imagePicker.pickImage(
@@ -336,8 +350,7 @@ class DormantSurveyController extends ChangeNotifier {
         maxHeight: 1080,
       );
       if (picked == null) return;
-      photo = picked;
-      notifyListeners();
+      await _persistPickedPhoto(picked);
     } on PlatformException catch (e) {
       if (e.code == 'already_active') return;
       if (kDebugMode) {
@@ -355,8 +368,7 @@ class DormantSurveyController extends ChangeNotifier {
         maxHeight: 1080,
       );
       if (picked == null) return;
-      photo = picked;
-      notifyListeners();
+      await _persistPickedPhoto(picked);
     } on PlatformException catch (e) {
       if (e.code == 'already_active') return;
       if (kDebugMode) {
@@ -512,11 +524,172 @@ class DormantSurveyController extends ChangeNotifier {
     return null;
   }
 
+  Map<String, String> _buildSubmitFields(String enumeratorName) {
+    final acct = selectedAccount!;
+    final fields = <String, String>{
+      'scheme': scheme,
+      'zone': zone,
+      'route': route,
+      'accountnumber': _normalizeAccountNumber(acct.accountNumber),
+      'connectionNumber': acct.connectionNumber,
+      'customerName': acct.customerName,
+      'meterNo': acct.meterNo,
+      'sourceOfWater': sourceOfWater.trim(),
+      'detailsMatch': detailsMatch == true ? 'true' : 'false',
+      'meterCondition': meterCondition,
+      'latitude': latitude.toString(),
+      'longitude': longitude.toString(),
+    };
+    if (enumeratorName.isNotEmpty) {
+      fields['enumeratorName'] = enumeratorName;
+    }
+    if (willingToRegularize != null) {
+      fields['willingToRegularize'] = willingToRegularize!;
+    }
+    if (currentAccountNumber.trim().isNotEmpty) {
+      fields['currentAccountNumber'] =
+          _normalizeAccountNumber(currentAccountNumber);
+    }
+    if (currentMeterNumber.trim().isNotEmpty) {
+      fields['currentMeterNumber'] = currentMeterNumber.trim();
+    }
+    if (currentUserIsRegisteredCustomer != null) {
+      fields['currentUserIsRegisteredCustomer'] =
+          currentUserIsRegisteredCustomer == true ? 'true' : 'false';
+    }
+    if (requiresInvestigation != null) {
+      fields['requiresInvestigation'] =
+          requiresInvestigation == true ? 'true' : 'false';
+    }
+    if (investigationReason.trim().isNotEmpty) {
+      fields['investigationReason'] = investigationReason.trim();
+    }
+    if (relationshipToAccountHolder.trim().isNotEmpty) {
+      fields['relationshipToAccountHolder'] =
+          relationshipToAccountHolder.trim();
+    }
+    if (currentOccupantName.trim().isNotEmpty) {
+      fields['currentOccupantName'] = currentOccupantName.trim();
+    }
+    if (currentOccupantPhone.trim().isNotEmpty) {
+      fields['currentOccupantPhone'] = currentOccupantPhone.trim();
+    }
+    if (meterReading.trim().isNotEmpty) {
+      fields['meterReading'] = meterReading.trim();
+    }
+    final gen = buildGeneralCommentsForSubmit();
+    if (gen != null && gen.trim().isNotEmpty) {
+      fields['generalComments'] = gen.trim();
+    }
+    if (locationAccuracy != null) {
+      fields['locationAccuracy'] = locationAccuracy.toString();
+    }
+    return fields;
+  }
+
+  Future<String?> _queueOffline(String enumeratorName) async {
+    final submissionId = DateTime.now().millisecondsSinceEpoch.toString();
+    final body = Map<String, dynamic>.from(_buildSubmitFields(enumeratorName));
+
+    if (photo != null) {
+      final file = File(photo!.path);
+      if (await file.exists()) {
+        body['photoPath'] = photo!.path;
+      } else {
+        final saved = await OfflineImageStore.persistFromFile(
+          sourcePath: photo!.path,
+          submissionId: submissionId,
+        );
+        if (saved != null) {
+          body['photoPath'] = saved;
+        }
+      }
+    }
+
+    await DatabaseHelper().saveSubmission(
+      id: submissionId,
+      formId: 'dormant_survey',
+      formName: 'Dormant Survey',
+      responses: {
+        '_type': 'dormant_survey',
+        '_endpoint': 'dormant-survey/with-media',
+        '_method': 'POST',
+        '_multipart': true,
+        '_body': body,
+      },
+    );
+
+    final hasPhoto = photo != null;
+    final photoSaved = body.containsKey('photoPath');
+    lastSubmitNotice = photoSaved
+        ? 'Saved offline with photo. Will sync when you have internet.'
+        : hasPhoto
+            ? 'Saved offline but photo could not be stored. Will sync without photo.'
+            : 'Saved offline. Will sync when you have internet.';
+    reset();
+    return null;
+  }
+
+  Future<String?> _submitOnline(
+    String token,
+    Map<String, String> fields,
+  ) async {
+    final uri = Uri.parse('${getUrl()}dormant-survey/with-media');
+    if (kDebugMode) {
+      debugPrint('[DormantSurvey.submit] POST $uri hasPhoto=${photo != null}');
+    }
+    final req = http.MultipartRequest('POST', uri);
+    req.headers['Authorization'] = 'Bearer $token';
+    req.fields.addAll(fields);
+
+    if (photo != null) {
+      final file = File(photo!.path);
+      if (kDebugMode) {
+        debugPrint(
+          '[DormantSurvey.submit] photoPath=${file.path} exists=${await file.exists()}',
+        );
+      }
+      if (await file.exists()) {
+        req.files.add(await http.MultipartFile.fromPath('photo', file.path));
+      } else {
+        return 'Photo file is missing. Please capture the photo again.';
+      }
+    }
+
+    final streamed = await req.send();
+    final resp = await http.Response.fromStream(streamed);
+    if (kDebugMode) {
+      debugPrint(
+        '[DormantSurvey.submit] status=${resp.statusCode} bodyLen=${resp.body.length}',
+      );
+    }
+    if (resp.statusCode >= 200 && resp.statusCode < 300) {
+      lastSubmitNotice = null;
+      reset();
+      return null;
+    }
+    debugPrint(
+      '[DormantSurvey.submit] failed status=${resp.statusCode} body=${resp.body}',
+    );
+    return 'Failed to submit dormant survey (${resp.statusCode}). ${resp.body.isNotEmpty ? resp.body : ''}';
+  }
+
+  bool _isNetworkError(Object e) {
+    final msg = e.toString().toLowerCase();
+    return msg.contains('socketexception') ||
+        msg.contains('network is unreachable') ||
+        msg.contains('connection failed') ||
+        msg.contains('failed host lookup') ||
+        msg.contains('connection refused') ||
+        msg.contains('timed out');
+  }
+
   Future<String?> submit() async {
     final err = validate();
     if (err != null) return err;
 
     isSubmitting = true;
+    lastSubmitNotice = null;
     notifyListeners();
     try {
       final token = await _storage.read(key: 'mwstaffjwt');
@@ -531,99 +704,41 @@ class DormantSurveyController extends ChangeNotifier {
           .trim();
 
       final acct = selectedAccount!;
+      final fields = _buildSubmitFields(enumeratorName);
+      final isOnline = await ConnectivityHelper().checkConnectivity();
+
+      if (!isOnline) {
+        return await _queueOffline(enumeratorName);
+      }
+
       final already = await isDormantNameAlreadySubmitted(acct.customerName);
       if (already) return 'Dormant Account already submitted';
 
-      final uri = Uri.parse('${getUrl()}dormant-survey/with-media');
-      print('[DormantSurvey.submit] POST $uri hasPhoto=${photo != null}');
-      final req = http.MultipartRequest('POST', uri);
-      req.headers['Authorization'] = 'Bearer $token';
-
-      req.fields['scheme'] = scheme;
-      req.fields['zone'] = zone;
-      req.fields['route'] = route;
-      req.fields['accountnumber'] = _normalizeAccountNumber(acct.accountNumber);
-      req.fields['connectionNumber'] = acct.connectionNumber;
-      req.fields['customerName'] = acct.customerName;
-      req.fields['meterNo'] = acct.meterNo;
-      if (enumeratorName.isNotEmpty) {
-        req.fields['enumeratorName'] = enumeratorName;
-      }
-      req.fields['sourceOfWater'] = sourceOfWater.trim();
-      req.fields['detailsMatch'] = detailsMatch == true ? 'true' : 'false';
-      if (willingToRegularize != null) {
-        req.fields['willingToRegularize'] = willingToRegularize!;
-      }
-      if (currentAccountNumber.trim().isNotEmpty) {
-        req.fields['currentAccountNumber'] =
-            _normalizeAccountNumber(currentAccountNumber);
-      }
-      if (currentMeterNumber.trim().isNotEmpty) {
-        req.fields['currentMeterNumber'] = currentMeterNumber.trim();
-      }
-      if (currentUserIsRegisteredCustomer != null) {
-        req.fields['currentUserIsRegisteredCustomer'] =
-            currentUserIsRegisteredCustomer == true ? 'true' : 'false';
-      }
-      if (requiresInvestigation != null) {
-        req.fields['requiresInvestigation'] =
-            requiresInvestigation == true ? 'true' : 'false';
-      }
-      if (investigationReason.trim().isNotEmpty) {
-        req.fields['investigationReason'] = investigationReason.trim();
-      }
-      if (relationshipToAccountHolder.trim().isNotEmpty) {
-        req.fields['relationshipToAccountHolder'] = relationshipToAccountHolder.trim();
-      }
-      if (currentOccupantName.trim().isNotEmpty) {
-        req.fields['currentOccupantName'] = currentOccupantName.trim();
-      }
-      if (currentOccupantPhone.trim().isNotEmpty) {
-        req.fields['currentOccupantPhone'] = currentOccupantPhone.trim();
-      }
-
-      req.fields['meterCondition'] = meterCondition;
-      if (meterReading.trim().isNotEmpty) {
-        req.fields['meterReading'] = meterReading.trim();
-      }
-      final gen = buildGeneralCommentsForSubmit();
-      if (gen != null && gen.trim().isNotEmpty) {
-        req.fields['generalComments'] = gen.trim();
-      }
-
-      req.fields['latitude'] = latitude.toString();
-      req.fields['longitude'] = longitude.toString();
-      if (locationAccuracy != null) {
-        req.fields['locationAccuracy'] = locationAccuracy.toString();
-      }
-
-      if (photo != null) {
-        final file = File(photo!.path);
-        print('[DormantSurvey.submit] photoPath=${file.path} exists=${await file.exists()}');
-        if (await file.exists()) {
-          req.files.add(await http.MultipartFile.fromPath('photo', file.path));
-        } else {
-          debugPrint(
-            '[DormantSurvey.submit] photo file missing at path=${file.path}',
-          );
+      try {
+        return await _submitOnline(token, fields);
+      } catch (e) {
+        if (_isNetworkError(e)) {
+          debugPrint('[DormantSurvey.submit] network error, queueing offline: $e');
+          return await _queueOffline(enumeratorName);
         }
+        rethrow;
       }
-
-      final streamed = await req.send();
-      final resp = await http.Response.fromStream(streamed);
-      print('[DormantSurvey.submit] status=${resp.statusCode} bodyLen=${resp.body.length}');
-      if (resp.statusCode >= 200 && resp.statusCode < 300) {
-        reset();
-        return null;
-      }
-      debugPrint(
-        '[DormantSurvey.submit] failed status=${resp.statusCode} body=${resp.body}',
-      );
-      return 'Failed to submit dormant survey (${resp.statusCode}). ${resp.body.isNotEmpty ? resp.body : ''}';
-      
-      
     } catch (e) {
       debugPrint('[DormantSurvey.submit] exception $e');
+      if (_isNetworkError(e)) {
+        final token = await _storage.read(key: 'mwstaffjwt');
+        if (token != null && token.isNotEmpty) {
+          final decoded = parseJwt(token);
+          final enumeratorName = (decoded['name'] ??
+                  decoded['Name'] ??
+                  decoded['fullName'] ??
+                  decoded['FullName'] ??
+                  '')
+              .toString()
+              .trim();
+          return await _queueOffline(enumeratorName);
+        }
+      }
       return 'Failed to submit dormant survey. $e';
     } finally {
       isSubmitting = false;

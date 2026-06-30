@@ -313,15 +313,11 @@ class _StaffLoginState extends State<StaffLogin> {
           await _registerFCMToken();
 
           if (mounted) {
-            _showMessage('Login successful!', false);
-            // Wait for the snackbar to be visible before navigating
-            await Future.delayed(const Duration(seconds: 2));
-            if (mounted) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const Home()),
-              );
-            }
+            ScaffoldMessenger.of(context).clearSnackBars();
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const Home()),
+            );
           }
         } else {
           _showMessage(data['error'] ?? 'Login failed', true);

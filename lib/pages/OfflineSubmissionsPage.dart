@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import 'package:um_collect/services/database_helper.dart';
+import 'package:um_collect/services/offline_queue_notifier.dart';
 import 'package:um_collect/services/sync_service.dart';
 import 'package:um_collect/theme/app_theme.dart';
 
@@ -33,6 +34,7 @@ class _OfflineSubmissionsPageState extends State<OfflineSubmissionsPage> {
     setState(() {
       _items = rows;
     });
+    OfflineQueueNotifier.instance.refresh();
   }
 
   Future<void> _syncAll() async {

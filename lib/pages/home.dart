@@ -18,6 +18,7 @@ import 'package:um_collect/components/MyRowIII.dart';
 import 'package:um_collect/components/StaffDrawer.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/pages/Assets.dart';
+import 'package:um_collect/components/offline_pending_card.dart';
 import 'package:um_collect/pages/Routing.dart';
 import 'package:um_collect/pages/complete.dart';
 import 'package:um_collect/pages/incidences.dart';
@@ -233,6 +234,12 @@ class _HomeState extends State<Home> {
                 padding: const EdgeInsets.all(20),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
+                    const OfflinePendingCard(
+                      types: [],
+                      allTypes: true,
+                      label: 'Offline submissions',
+                    ),
+                    const SizedBox(height: 16),
                     _buildSectionTitle("Core Services"),
                     const SizedBox(height: 15),
                     _buildCoreServicesGrid(),

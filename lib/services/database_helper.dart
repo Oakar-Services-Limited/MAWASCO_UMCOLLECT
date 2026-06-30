@@ -5,6 +5,8 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
+import 'package:um_collect/services/offline_queue_notifier.dart';
+
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
   factory DatabaseHelper() => _instance;
@@ -137,6 +139,7 @@ class DatabaseHelper {
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+    OfflineQueueNotifier.instance.refresh();
   }
 
   Future<List<Map<String, dynamic>>> getUnsyncedSubmissions() async {
@@ -175,6 +178,7 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [id],
     );
+    OfflineQueueNotifier.instance.refresh();
   }
 
   Future<void> deleteAllUnsyncedSubmissions() async {
@@ -183,6 +187,7 @@ class DatabaseHelper {
       submissionsTable,
       where: 'synced = 0',
     );
+    OfflineQueueNotifier.instance.refresh();
   }
 }
 

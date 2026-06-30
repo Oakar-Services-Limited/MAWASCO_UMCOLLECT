@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import 'package:um_collect/controllers/meter_replacement_controller.dart';
+import 'package:um_collect/components/offline_pending_card.dart';
 import 'package:um_collect/models/Map.dart';
 import 'package:um_collect/models/meter_replacement_entry.dart';
 import 'package:um_collect/theme/app_theme.dart';
@@ -59,6 +60,11 @@ class _MeterReplacementForm extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const OfflinePendingCard(
+              types: ['meter_replacement'],
+              label: 'Meter Replacement',
+            ),
+            const SizedBox(height: 12),
             _sectionTitle('Replacement context'),
             const SizedBox(height: 8),
             _replacementSourceChoice(ctrl),
@@ -925,8 +931,11 @@ class _MeterReplacementForm extends StatelessWidget {
                   return;
                 }
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Meter replacement submitted successfully.'),
+                  SnackBar(
+                    content: Text(
+                      ctrl.lastSubmitNotice ??
+                          'Meter replacement submitted successfully.',
+                    ),
                     backgroundColor: Colors.green,
                   ),
                 );
