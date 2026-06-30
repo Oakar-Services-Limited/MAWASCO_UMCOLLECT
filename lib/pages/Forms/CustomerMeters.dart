@@ -18,6 +18,7 @@ import 'package:um_collect/models/Map.dart';
 import 'package:um_collect/pages/Assets.dart';
 import 'package:um_collect/services/connectivity_helper.dart';
 import 'package:um_collect/services/database_helper.dart';
+import 'package:um_collect/services/offline_image_store.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:http/http.dart' as http;
@@ -627,6 +628,7 @@ class _CustomerMetersState extends State<CustomerMeters> {
                             lat.toString(),
                             long.toString(),
                             myimage,
+                            _image?.path,
                             editing,
                             id,
                             shouldUpdateLocation,
@@ -719,6 +721,7 @@ Future<Message> submitData(
   String lat,
   String long,
   String myimage,
+  String? imageFilePath,
   String? editing,
   String? id,
   bool updateLocation,
@@ -767,71 +770,89 @@ Future<Message> submitData(
 
   final db = DatabaseHelper();
   final isOnline = await ConnectivityHelper().checkConnectivity();
-  late final Map<String, dynamic> payload;
+  final hasImage = myimage.isNotEmpty;
+
+  final payload = <String, dynamic>{
+    'name': name,
+    'phone': phone,
+    'accountNo': accountnumber,
+    'meterNo': meterserial,
+    'accountStatus': accstatus,
+    'accountType': acctype,
+    'institution': instituteMeterType,
+    'meterStatus': status,
+    'brand': brandname,
+    'material': material,
+    'meterClass': meterclass,
+    'schemeName': schemename,
+    'zone': zone,
+    'route': route,
+    'dma': dma,
+    'location': location,
+    'parcelNo': parcelno,
+    'meterSize': size,
+    'remarks': remarks,
+    'userId': userid,
+    'latitude': (id == null || id.isEmpty || updateLocation) ? lat : null,
+    'longitude': (id == null || id.isEmpty || updateLocation) ? long : null,
+  };
+
+  Future<Message> queueOffline(String reason) async {
+    final submissionId = DateTime.now().millisecondsSinceEpoch.toString();
+    final offlinePayload = Map<String, dynamic>.from(payload);
+
+    if (hasImage) {
+      String? savedPath;
+      if (imageFilePath != null && imageFilePath.isNotEmpty) {
+        savedPath = await OfflineImageStore.persistFromFile(
+          sourcePath: imageFilePath,
+          submissionId: submissionId,
+        );
+      }
+      savedPath ??= await OfflineImageStore.persistFromBase64(
+        base64Image: myimage,
+        submissionId: submissionId,
+      );
+      if (savedPath != null) {
+        offlinePayload['imagePath'] = savedPath;
+      }
+    }
+
+    final endpoint = (id != null && id.isNotEmpty)
+        ? 'wt/customer-meters/$id'
+        : 'wt/customer-meters';
+    final method = (id != null && id.isNotEmpty) ? 'PUT' : 'POST';
+
+    await db.saveSubmission(
+      id: submissionId,
+      formId: 'asset_customer_meters',
+      formName: 'Customer Meters',
+      responses: {
+        '_type': 'asset_customer_meters',
+        '_endpoint': endpoint,
+        '_method': method,
+        '_body': offlinePayload,
+      },
+    );
+
+    final photoSaved = offlinePayload.containsKey('imagePath');
+    return Message(
+      token: null,
+      success: photoSaved
+          ? "Saved offline with photo. Will sync when you have internet. ($reason)"
+          : hasImage
+              ? "Saved offline but photo could not be stored. Will sync without photo. ($reason)"
+              : "Saved offline. Will sync when you have internet. ($reason)",
+      error: null,
+    );
+  }
+
+  if (!isOnline) {
+    return await queueOffline('Offline');
+  }
 
   try {
     http.Response response;
-
-    payload = <String, dynamic>{
-      'name': name,
-      'phone': phone,
-      'accountNo': accountnumber,
-      'meterNo': meterserial,
-      'accountStatus': accstatus,
-      'accountType': acctype,
-      'institution': instituteMeterType,
-      'meterStatus': status,
-      'brand': brandname,
-      'material': material,
-      'meterClass': meterclass,
-      'schemeName': schemename,
-      'zone': zone,
-      'route': route,
-      'dma': dma,
-      'location': location,
-      'parcelNo': parcelno,
-      'meterSize': size,
-      'remarks': remarks,
-      'userId': userid,
-      // Always send location on create. On edit, only send when user enabled "Allow Location Update".
-      'latitude': (id == null || id.isEmpty || updateLocation) ? lat : null,
-      'longitude': (id == null || id.isEmpty || updateLocation) ? long : null,
-    };
-    final hasImage = myimage.isNotEmpty;
-
-    Future<Message> queueOffline(String reason) async {
-      // Avoid storing large base64 images in SQLite queue (can fail due to size).
-      final offlinePayload = Map<String, dynamic>.from(payload);
-
-      final endpoint = (id != null && id.isNotEmpty)
-          ? 'wt/customer-meters/$id'
-          : 'wt/customer-meters';
-      final method = (id != null && id.isNotEmpty) ? 'PUT' : 'POST';
-
-      await db.saveSubmission(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        formId: 'asset_customer_meters',
-        formName: 'Customer Meters',
-        responses: {
-          '_type': 'asset_customer_meters',
-          '_endpoint': endpoint,
-          '_method': method,
-          '_body': offlinePayload,
-        },
-      );
-
-      return Message(
-        token: null,
-        success: hasImage
-            ? "Saved offline (without photo). Will sync when you have internet. ($reason)"
-            : "Saved offline. Will sync when you have internet. ($reason)",
-        error: null,
-      );
-    }
-
-    if (!isOnline) {
-      return await queueOffline('Offline');
-    }
 
     // Online submit can include image as base64.
     if (hasImage) {
@@ -880,40 +901,7 @@ Future<Message> submitData(
       );
     }
   } catch (e) {
-    try {
-      // If we failed after including image, don't store image in offline queue.
-      final offlinePayload = Map<String, dynamic>.from(payload);
-      offlinePayload.remove('image');
-
-      final endpoint = (id != null && id.isNotEmpty)
-          ? 'wt/customer-meters/$id'
-          : 'wt/customer-meters';
-      final method = (id != null && id.isNotEmpty) ? 'PUT' : 'POST';
-      await db.saveSubmission(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        formId: 'asset_customer_meters',
-        formName: 'Customer Meters',
-        responses: {
-          '_type': 'asset_customer_meters',
-          '_endpoint': endpoint,
-          '_method': method,
-          '_body': offlinePayload,
-        },
-      );
-      return Message(
-        token: null,
-        success: myimage.isNotEmpty
-            ? "Saved offline (without photo). Will sync when you have internet. (Network error)"
-            : "Saved offline. Will sync when you have internet. (Network error)",
-        error: null,
-      );
-    } catch (_) {
-      return Message(
-        token: null,
-        success: null,
-        error: "Connection failed! Check your internet connection. Error: $e",
-      );
-    }
+    return await queueOffline('Network error');
   }
 }
 

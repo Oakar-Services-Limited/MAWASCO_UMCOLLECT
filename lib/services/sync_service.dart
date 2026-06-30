@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/services/connectivity_helper.dart';
 import 'package:um_collect/services/database_helper.dart';
+import 'package:um_collect/services/offline_image_store.dart';
 
 class SyncService {
   static final SyncService _instance = SyncService._internal();
@@ -45,7 +46,12 @@ class SyncService {
 
         final endpoint = responses['_endpoint']?.toString();
         final method = (responses['_method'] ?? 'POST').toString().toUpperCase();
-        final body = (responses['_body'] ?? const {}) as Map<String, dynamic>;
+        final body = Map<String, dynamic>.from(
+          (responses['_body'] ?? const {}) as Map<String, dynamic>,
+        );
+        final queuedImagePath = body['imagePath']?.toString();
+
+        await _attachQueuedImage(body);
 
         if (endpoint == null || endpoint.isEmpty) {
           await _db.updateSubmissionSyncStatus(
@@ -131,6 +137,14 @@ class SyncService {
           await _db.deleteSubmission(id);
 
           // Best-effort: delete any local files referenced explicitly
+          if (queuedImagePath != null && queuedImagePath.isNotEmpty) {
+            try {
+              final file = File(queuedImagePath);
+              if (await file.exists()) {
+                await file.delete();
+              }
+            } catch (_) {}
+          }
           for (final value in body.values) {
             if (value is String && _looksLikeLocalPath(value)) {
               try {
@@ -169,6 +183,16 @@ class SyncService {
     }
 
     return 'Sync completed.';
+  }
+
+  Future<void> _attachQueuedImage(Map<String, dynamic> body) async {
+    final imagePath = body['imagePath']?.toString();
+    if (imagePath == null || imagePath.isEmpty) return;
+    final base64 = await OfflineImageStore.readBase64(imagePath);
+    if (base64 != null && base64.isNotEmpty) {
+      body['image'] = base64;
+    }
+    body.remove('imagePath');
   }
 
   bool _looksLikeLocalPath(String value) {
