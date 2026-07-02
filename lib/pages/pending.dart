@@ -1,13 +1,12 @@
 // ignore_for_file: prefer_typing_uninitialized_variables
 
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:um_collect/components/NewCallItem.dart';
 import 'package:um_collect/components/StaffDrawer.dart';
-import 'package:um_collect/components/Utils.dart';
+import 'package:um_collect/components/incidence_list_pagination.dart';
+import 'package:um_collect/services/assigned_reports_service.dart';
 import 'package:um_collect/pages/home.dart';
 import 'package:um_collect/pages/login.dart';
-import 'package:http/http.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -49,73 +48,33 @@ class _PendingIncidencesState extends State<PendingIncidences> {
         throw Exception("No authentication token found");
       }
 
-      final url =
-          "${getUrl()}om/assigned-reports?userId=${widget.staffid}&status=Inprogress";
-      final response = await get(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
+      final reports = await AssignedReportsService.fetchAll(
+        userId: widget.staffid,
+        status: 'Inprogress',
+        token: token,
       );
-      if (response.statusCode == 200) {
-        var data = json.decode(response.body);
-        setState(() {
-          incireported = data["data"] ?? [];
-          isLoading = null;
-        });
-      } else if (response.statusCode == 400 || response.statusCode == 401) {
-        // Handle authentication errors
-        var errorData = json.decode(response.body);
-        if (errorData['error'] == 'Invalid token' ||
-            response.statusCode == 401) {
-          // Clear invalid token
-          await storage.delete(key: 'mwstaffjwt');
-          await storage.delete(key: 'isstaff');
-
-          setState(() {
-            incireported = [];
-            isLoading = null;
-          });
-
-          // Redirect to login
-          if (mounted) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const Login()),
-            );
-          }
-        } else {
-          setState(() {
-            incireported = [];
-            isLoading = null;
-          });
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                    'Failed to fetch assigned incidents. Please try again.'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        }
-      } else {
+      setState(() {
+        incireported = reports;
+        currentPage = 1;
+        isLoading = null;
+      });
+    } catch (e) {
+      if (e is AssignedReportsAuthException) {
+        final storage = const FlutterSecureStorage();
+        await storage.delete(key: 'mwstaffjwt');
+        await storage.delete(key: 'isstaff');
         setState(() {
           incireported = [];
           isLoading = null;
         });
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content:
-                  Text('Failed to fetch assigned incidents. Please try again.'),
-              backgroundColor: Colors.red,
-            ),
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const Login()),
           );
         }
+        return;
       }
-    } catch (e) {
       setState(() {
         incireported = [];
         isLoading = null;
@@ -251,19 +210,12 @@ class _PendingIncidencesState extends State<PendingIncidences> {
   }
 
   Widget _buildPaginationControls() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        ElevatedButton(
-          onPressed: _previousPage,
-          child: const Text('Previous'),
-        ),
-        Text('Page $currentPage'),
-        ElevatedButton(
-          onPressed: _nextPage,
-          child: const Text('Next'),
-        ),
-      ],
+    return IncidenceListPagination(
+      currentPage: currentPage,
+      itemsPerPage: itemsPerPage,
+      totalItems: incireported.length,
+      onPrevious: _previousPage,
+      onNext: _nextPage,
     );
   }
 }

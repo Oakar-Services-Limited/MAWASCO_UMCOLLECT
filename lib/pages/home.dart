@@ -36,6 +36,7 @@ import 'package:um_collect/pages/FormsListPage.dart';
 import 'package:um_collect/pages/MapCoreServices.dart';
 import 'package:um_collect/pages/dormant_survey.dart';
 import 'package:um_collect/pages/meter_replacement.dart';
+import 'package:um_collect/services/assigned_reports_service.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -128,47 +129,27 @@ class _HomeState extends State<Home> {
         return;
       }
 
-      // Fetch pending count
-      final pendingResponse = await get(
-        Uri.parse(
-            "${getUrl()}om/assigned-reports?userId=$id&status=Inprogress"),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
+      final pendingCount = await AssignedReportsService.fetchCount(
+        userId: id,
+        status: 'Inprogress',
+        token: token,
       );
 
       if (!mounted) return;
 
-      // Fetch resolved count
-      final resolvedResponse = await get(
-        Uri.parse("${getUrl()}om/assigned-reports?userId=$id&status=Resolved"),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
+      final resolvedCount = await AssignedReportsService.fetchCount(
+        userId: id,
+        status: 'Resolved',
+        token: token,
       );
 
       if (!mounted) return;
 
-      if (pendingResponse.statusCode == 200 &&
-          resolvedResponse.statusCode == 200) {
-        var pendingData = json.decode(pendingResponse.body);
-        var resolvedData = json.decode(resolvedResponse.body);
-        if (!mounted) return;
-        setState(() {
-          pending = (pendingData['data']?.length ?? 0).toString();
-          complete = (resolvedData['data']?.length ?? 0).toString();
-          isLoading = null;
-        });
-      } else {
-        if (!mounted) return;
-        setState(() {
-          pending = '0';
-          complete = '0';
-          isLoading = null;
-        });
-      }
+      setState(() {
+        pending = pendingCount.toString();
+        complete = resolvedCount.toString();
+        isLoading = null;
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() {
