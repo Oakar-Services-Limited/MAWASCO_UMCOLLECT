@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
@@ -154,7 +157,8 @@ class MeterReplacementController extends ChangeNotifier {
 
   String? get displayMeterNumber {
     if (replacementSource == MeterReplacementSource.scheduledExercise) {
-      return selectedExerciseEntry?.meterNumber;
+      final v = selectedExerciseEntry?.meterNumber.trim() ?? '';
+      return v.isEmpty ? null : v;
     }
     if (replacementSource == MeterReplacementSource.normalOperations) {
       return manualMeterNumber.trim().isEmpty ? null : manualMeterNumber.trim();
@@ -473,9 +477,7 @@ class MeterReplacementController extends ChangeNotifier {
       if (manualCustomerName.trim().isEmpty) {
         return 'Enter the customer name';
       }
-      if (manualMeterNumber.trim().isEmpty) {
-        return 'Enter the meter number';
-      }
+      // meter number optional — submit null/omit when not available
       if (manualCurrentRoute.trim().isEmpty) {
         return 'Enter the current route';
       }
@@ -569,7 +571,8 @@ class MeterReplacementController extends ChangeNotifier {
       final e = selectedExerciseEntry!;
       fields['accountNumber'] = e.accountNumber;
       fields['customerName'] = e.customerName;
-      fields['meterNumber'] = e.meterNumber;
+      final meter = e.meterNumber.trim();
+      if (meter.isNotEmpty) fields['meterNumber'] = meter;
       fields['currentRoute'] = e.route;
       fields['lastRecordedReading'] = e.currentMeterReading;
       fields['category'] = e.category;
@@ -577,7 +580,8 @@ class MeterReplacementController extends ChangeNotifier {
     } else {
       fields['accountNumber'] = manualAccountNumber.trim();
       fields['customerName'] = manualCustomerName.trim();
-      fields['meterNumber'] = manualMeterNumber.trim();
+      final meter = manualMeterNumber.trim();
+      if (meter.isNotEmpty) fields['meterNumber'] = meter;
       fields['currentRoute'] = manualCurrentRoute.trim();
       fields['lastRecordedReading'] = manualLastRecordedReading.trim();
       fields['category'] = manualCategory.trim();
@@ -627,30 +631,69 @@ class MeterReplacementController extends ChangeNotifier {
     }
   }
 
+  Future<String?> _ensureDurablePhotoPath({
+    required XFile? photo,
+    required String persistLabel,
+  }) async {
+    if (photo == null) return null;
+    final existing = File(photo.path);
+    if (await existing.exists()) return photo.path;
+
+    final saved = await OfflineImageStore.persistFromFile(
+      sourcePath: photo.path,
+      submissionId: 'meter_rep_${persistLabel}_${DateTime.now().millisecondsSinceEpoch}',
+    );
+    return saved;
+  }
+
+  String _formatSubmitError(http.Response resp) {
+    try {
+      final data = json.decode(resp.body);
+      if (data is Map) {
+        final err = data['error'] ?? data['message'];
+        if (err != null && err.toString().trim().isNotEmpty) {
+          return err.toString();
+        }
+      }
+    } catch (_) {}
+    final body = resp.body.trim();
+    if (body.isNotEmpty && body.length <= 240) return body;
+    return 'Failed to submit meter replacement (${resp.statusCode})';
+  }
+
   Future<void> _attachPhotosToRequest(http.MultipartRequest req) async {
-    Future<void> attach(String fieldName, XFile? photo) async {
+    Future<void> attach(
+      String fieldName,
+      XFile? photo,
+      String persistLabel,
+    ) async {
       if (photo == null) {
         throw StateError('$fieldName is missing');
       }
-      final part = await OfflineImageStore.multipartFile(
-        fieldName: fieldName,
-        imagePath: photo.path,
+      final path = await _ensureDurablePhotoPath(
+        photo: photo,
+        persistLabel: persistLabel,
       );
-      if (part == null) {
+      if (path == null) {
         throw StateError(
           '$fieldName file is missing. Please capture the photo again.',
         );
       }
-      req.files.add(part);
+      if (kDebugMode) {
+        debugPrint(
+          '[MeterReplacement.submit] attach $fieldName path=$path exists=${await File(path).exists()}',
+        );
+      }
+      req.files.add(await http.MultipartFile.fromPath(fieldName, path));
     }
 
     if (canBeReplaced == false) {
-      await attach('photoIssue', photoIssue);
+      await attach('photoIssue', photoIssue, 'issue');
       return;
     }
 
-    await attach('photoMeterRemoved', photoMeterRemoved);
-    await attach('photoNewMeter', photoNewMeter);
+    await attach('photoMeterRemoved', photoMeterRemoved, 'removed');
+    await attach('photoNewMeter', photoNewMeter, 'new');
   }
 
   Future<String?> _queueOffline() async {
@@ -725,7 +768,7 @@ class MeterReplacementController extends ChangeNotifier {
     if (kDebugMode) {
       debugPrint('[MeterReplacement.submit] ${resp.statusCode} ${resp.body}');
     }
-    return 'Failed to submit meter replacement (${resp.statusCode})';
+    return _formatSubmitError(resp);
   }
 
   bool _isNetworkError(Object e) {
@@ -757,13 +800,10 @@ class MeterReplacementController extends ChangeNotifier {
       try {
         return await _submitOnline(token);
       } catch (e) {
-        if (_isNetworkError(e) ||
-            e is StateError && e.message.contains('photo')) {
-          if (_isNetworkError(e)) {
-            return await _queueOffline();
-          }
-          return e.toString();
+        if (_isNetworkError(e)) {
+          return await _queueOffline();
         }
+        if (e is StateError) return e.message;
         rethrow;
       }
     } catch (e) {

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
@@ -362,7 +361,10 @@ class _MeterReplacementForm extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           _detailRow('Customer name', entry.customerName),
-          _detailRow('Meter number', entry.meterNumber),
+          _detailRow(
+            'Meter number',
+            entry.meterNumber.trim().isEmpty ? '—' : entry.meterNumber,
+          ),
           _detailRow('Current route', entry.route),
           _detailRow('Last recorded reading', entry.currentMeterReading),
           _detailRow('Category', entry.category),
@@ -413,8 +415,8 @@ class _MeterReplacementForm extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         _textInput(
-          label: 'Meter number *',
-          hint: 'Meter number on site / billing',
+          label: 'Meter number (optional)',
+          hint: 'Meter number on site / billing — leave blank if unknown',
           value: ctrl.manualMeterNumber,
           onChanged: ctrl.setManualMeterNumber,
         ),

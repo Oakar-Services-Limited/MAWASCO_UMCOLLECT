@@ -42,3 +42,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# gitignore git
+.gitmain
+.git2
+
+*.md
+
