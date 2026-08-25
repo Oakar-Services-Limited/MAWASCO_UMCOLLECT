@@ -344,16 +344,6 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
     return null;
   }
 
-  String _buildRemarksPayload() {
-    final parts = <String>[];
-    if (meterCondition.isNotEmpty && meterCondition != '--Select--') {
-      parts.add('Condition: $meterCondition');
-    }
-    final typed = remarksText.trim();
-    if (typed.isNotEmpty) parts.add(typed);
-    return parts.join(' | ');
-  }
-
   Future<void> _submit({required bool asDraft}) async {
     final validationError = _validateForm();
     if (validationError != null) {
@@ -372,7 +362,8 @@ class _MasterMeterReadingsState extends State<MasterMeterReadings> {
       metername: metername.trim(),
       meterreading: meterreading.trim(),
       myimage: myimage,
-      remarks: _buildRemarksPayload(),
+      meterCondition: meterCondition,
+      remarks: remarksText.trim(),
       dma: dma,
       zone: zone,
       userId: staffid,
@@ -794,6 +785,7 @@ Future<Message> submitData({
   required String metername,
   required String meterreading,
   required String myimage,
+  required String meterCondition,
   required String remarks,
   required String dma,
   required String zone,
@@ -848,11 +840,16 @@ Future<Message> submitData({
   final isOnline =
       !forceOffline && await ConnectivityHelper().checkConnectivity();
 
+  final normalizedCondition = meterCondition.trim();
+  final hasCondition =
+      normalizedCondition.isNotEmpty && normalizedCondition != '--Select--';
+
   Future<Message> queueOffline(String reason) async {
     final payload = <String, dynamic>{
       'meterName': meter,
       'reading': meterreading,
       if (myimage.isNotEmpty) 'image': myimage,
+      if (hasCondition) 'meterCondition': normalizedCondition,
       if (remarks.isNotEmpty) 'remarks': remarks,
       if (dma.isNotEmpty) 'dma': dma,
       if (zone.isNotEmpty) 'zone': zone,
@@ -894,6 +891,7 @@ Future<Message> submitData({
         'meterName': meter,
         'reading': meterreading,
         'image': myimage,
+        if (hasCondition) 'meterCondition': normalizedCondition,
         'remarks': remarks,
         if (dma.isNotEmpty) 'dma': dma,
         if (zone.isNotEmpty) 'zone': zone,
