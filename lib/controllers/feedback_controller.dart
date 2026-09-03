@@ -369,6 +369,13 @@ class FeedbackController extends ChangeNotifier {
       req.fields['area'] = selectedArea;
       req.fields['customerId'] = selectedCustomer!.id;
       req.fields['collectionMode'] = collectionMode;
+      // Route is required in the form but was previously omitted from the payload.
+      final routeValue = selectedRoute.isNotEmpty
+          ? selectedRoute
+          : selectedCustomer!.route;
+      if (routeValue.isNotEmpty) {
+        req.fields['route'] = routeValue;
+      }
       if (selectedCustomer!.accountNo.isNotEmpty) {
         req.fields['accountNo'] = selectedCustomer!.accountNo;
       }
@@ -383,6 +390,7 @@ class FeedbackController extends ChangeNotifier {
         req.fields['remarks'] = remarks.trim();
       }
       req.fields['timestamp'] = DateTime.now().toIso8601String();
+      // Always send so admin table can show who submitted (API also resolves from JWT).
       if (reporterName.isNotEmpty) {
         req.fields['reporterName'] = reporterName;
       }
