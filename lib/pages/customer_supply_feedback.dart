@@ -67,12 +67,14 @@ class _FeedbackFormState extends State<_FeedbackForm> {
   final TextEditingController _remarksController = TextEditingController();
   final TextEditingController _accountNoController = TextEditingController();
   final TextEditingController _customerNameController = TextEditingController();
+  final TextEditingController _reporterNameController = TextEditingController();
 
   @override
   void dispose() {
     _remarksController.dispose();
     _accountNoController.dispose();
     _customerNameController.dispose();
+    _reporterNameController.dispose();
     super.dispose();
   }
 
@@ -95,6 +97,11 @@ class _FeedbackFormState extends State<_FeedbackForm> {
         if (_customerNameController.text != selectedName) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _customerNameController.text = selectedName;
+          });
+        }
+        if (_reporterNameController.text != ctrl.reporterName) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _reporterNameController.text = ctrl.reporterName;
           });
         }
         return Column(
@@ -154,13 +161,26 @@ class _FeedbackFormState extends State<_FeedbackForm> {
                 ),
               ),
             const SizedBox(height: 24),
-            _sectionTitle('11. Current Location (optional)'),
+            _sectionTitle(
+                ctrl.waterAvailable == true
+                    ? '11. Current Location (optional)'
+                    : '10. Current Location (optional)'),
             const SizedBox(height: 8),
             _locationSection(ctrl),
             const SizedBox(height: 24),
-            _sectionTitle('12. Photo (optional)'),
+            _sectionTitle(
+                ctrl.waterAvailable == true
+                    ? '12. Photo (optional)'
+                    : '11. Photo (optional)'),
             const SizedBox(height: 8),
             _photoSection(ctrl),
+            const SizedBox(height: 24),
+            _sectionTitle(
+                ctrl.waterAvailable == true
+                    ? '13. Reporter Name'
+                    : '12. Reporter Name'),
+            const SizedBox(height: 8),
+            _reporterNameField(ctrl),
             const SizedBox(height: 32),
             _submitButton(context, ctrl),
             const SizedBox(height: 24),
@@ -178,6 +198,37 @@ class _FeedbackFormState extends State<_FeedbackForm> {
         fontWeight: FontWeight.w600,
         color: Color(0xff0288D1),
       ),
+    );
+  }
+
+  Widget _reporterNameField(FeedbackController ctrl) {
+    final fromLogin = ctrl.reporterNameFromLogin;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextField(
+          controller: _reporterNameController,
+          readOnly: fromLogin,
+          onChanged: fromLogin ? null : ctrl.updateReporterName,
+          decoration: InputDecoration(
+            hintText: fromLogin
+                ? 'Logged-in staff name'
+                : 'Enter your full name',
+            helperText: fromLogin
+                ? 'Taken from your login account'
+                : 'Required — your login token has no name',
+            filled: true,
+            fillColor: fromLogin ? Colors.grey[100] : Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15),
+              borderSide: const BorderSide(color: Color(0xff0288D1)),
+            ),
+          ),
+        ),
+      ],
     );
   }
 

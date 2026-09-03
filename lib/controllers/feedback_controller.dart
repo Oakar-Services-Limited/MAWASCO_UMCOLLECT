@@ -28,6 +28,12 @@ class FeedbackController extends ChangeNotifier {
   String? satisfaction; // 'Sufficient' | 'Low Pressure' when water available
   String remarks = '';
 
+  /// Staff / enumerator name stored on the feedback row as reporterName.
+  String reporterName = '';
+  /// True when name came from JWT / secure storage (show read-only).
+  bool reporterNameFromLogin = false;
+  bool reporterIdentityLoaded = false;
+
   // Optional evidence
   XFile? photo;
   double? latitude;
@@ -39,6 +45,43 @@ class FeedbackController extends ChangeNotifier {
   List<String> availableRoutes = [];
   bool isLoadingCustomers = false;
   String? customersError;
+
+  FeedbackController() {
+    loadReporterIdentity();
+  }
+
+  /// Prefer JWT `name`, then stored staffName. If neither exists, UI shows a text field.
+  Future<void> loadReporterIdentity() async {
+    try {
+      final token = await _storage.read(key: 'mwstaffjwt');
+      var name = '';
+      if (token != null && token.isNotEmpty) {
+        name = staffDisplayNameFromJwt(parseJwt(token));
+      }
+      if (name.isEmpty) {
+        name = (await _storage.read(key: 'staffName'))?.trim() ?? '';
+      }
+      if (name.isNotEmpty) {
+        reporterName = name;
+        reporterNameFromLogin = true;
+      } else {
+        reporterName = '';
+        reporterNameFromLogin = false;
+      }
+    } catch (_) {
+      reporterName = '';
+      reporterNameFromLogin = false;
+    } finally {
+      reporterIdentityLoaded = true;
+      notifyListeners();
+    }
+  }
+
+  void updateReporterName(String value) {
+    if (reporterNameFromLogin) return;
+    reporterName = value;
+    notifyListeners();
+  }
 
   /// Zones filtered by selected day (local).
   List<String> get filteredZones => _schedule.zonesForDay(selectedDay);
@@ -330,13 +373,18 @@ class FeedbackController extends ChangeNotifier {
     }
   }
 
-  /// Validation: day, zone, area, route, customer required; if waterAvailable == false, remarks required.
+  /// Validation: day, zone, area, route, customer, reporter required; if waterAvailable == false, remarks required.
   String? validate() {
     if (selectedDay.isEmpty) return 'Please select a day';
     if (selectedZone.isEmpty) return 'Please select a zone';
     if (selectedArea.isEmpty) return 'Please select an area';
     if (selectedRoute.isEmpty) return 'Please select a route';
     if (selectedCustomer == null) return 'Please select a customer';
+    if (reporterName.trim().isEmpty) {
+      return reporterNameFromLogin
+          ? 'Could not resolve your name from login. Please re-login or enter your name.'
+          : 'Please enter your name (reporter)';
+    }
     if (collectionMode.isEmpty) return 'Please select data collection mode';
     if (waterAvailable == null) return 'Please indicate if water was available';
     if (waterAvailable == false && remarks.trim().isEmpty) {
@@ -354,10 +402,7 @@ class FeedbackController extends ChangeNotifier {
       final token = await _storage.read(key: 'mwstaffjwt');
       if (token == null || token.isEmpty) return 'Not authenticated';
 
-      var reporterName = staffDisplayNameFromJwt(parseJwt(token));
-      if (reporterName.isEmpty) {
-        reporterName = (await _storage.read(key: 'staffName'))?.trim() ?? '';
-      }
+      final resolvedReporter = reporterName.trim();
 
       // Always use multipart endpoint so we can include optional photo + GPS.
       final uri = Uri.parse('${getUrl()}customer-feedback/with-media');
@@ -390,10 +435,8 @@ class FeedbackController extends ChangeNotifier {
         req.fields['remarks'] = remarks.trim();
       }
       req.fields['timestamp'] = DateTime.now().toIso8601String();
-      // Always send so admin table can show who submitted (API also resolves from JWT).
-      if (reporterName.isNotEmpty) {
-        req.fields['reporterName'] = reporterName;
-      }
+      // Always persist who submitted (from login name or manual text field).
+      req.fields['reporterName'] = resolvedReporter;
 
       if (latitude != null && longitude != null) {
         req.fields['latitude'] = latitude.toString();
@@ -438,6 +481,10 @@ class FeedbackController extends ChangeNotifier {
     customers = [];
     availableRoutes = [];
     customersError = null;
+    // Keep login name; clear only manually typed reporter name.
+    if (!reporterNameFromLogin) {
+      reporterName = '';
+    }
     notifyListeners();
   }
 
