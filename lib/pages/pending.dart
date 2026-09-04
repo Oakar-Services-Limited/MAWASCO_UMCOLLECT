@@ -12,7 +12,13 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class PendingIncidences extends StatefulWidget {
   final String staffid;
-  const PendingIncidences({super.key, required this.staffid});
+  /// Bumped by parent when this tab is shown again so the list reloads.
+  final int refreshNonce;
+  const PendingIncidences({
+    super.key,
+    required this.staffid,
+    this.refreshNonce = 0,
+  });
 
   @override
   State<PendingIncidences> createState() => _PendingIncidencesState();
@@ -30,6 +36,15 @@ class _PendingIncidencesState extends State<PendingIncidences> {
   void initState() {
     fetchAssignedIncidences();
     super.initState();
+  }
+
+  @override
+  void didUpdateWidget(covariant PendingIncidences oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.refreshNonce != widget.refreshNonce &&
+        widget.refreshNonce > 0) {
+      fetchAssignedIncidences();
+    }
   }
 
   Future<void> fetchAssignedIncidences() async {

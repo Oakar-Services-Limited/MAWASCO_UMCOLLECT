@@ -45,7 +45,7 @@ class Home extends StatefulWidget {
   State<Home> createState() => _HomeState();
 }
 
-class _HomeState extends State<Home> {
+class _HomeState extends State<Home> with WidgetsBindingObserver {
   final storage = const FlutterSecureStorage();
   String name = '';
   String staffid = '';
@@ -56,14 +56,38 @@ class _HomeState extends State<Home> {
   String offset = '0';
   bool isnew = false;
   var isLoading;
-  Timer? _timer;
+  Timer? _statsRefreshTimer;
+  static const Duration _statsRefreshInterval = Duration(minutes: 2);
 
   List stats = [];
 
   @override
   void initState() {
-    getDefaultValues();
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    getDefaultValues();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _statsRefreshTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && staffid.isNotEmpty) {
+      fetchStats(staffid, false);
+    }
+  }
+
+  void _startStatsRefreshTimer() {
+    _statsRefreshTimer?.cancel();
+    _statsRefreshTimer = Timer.periodic(_statsRefreshInterval, (_) {
+      if (!mounted || staffid.isEmpty) return;
+      fetchStats(staffid, false);
+    });
   }
 
   Future<void> getDefaultValues() async {
@@ -95,7 +119,8 @@ class _HomeState extends State<Home> {
           await storage.write(key: 'staffName', value: staffName);
         }
 
-        fetchStats(staffid, isnew);
+        await fetchStats(staffid, isnew);
+        _startStatsRefreshTimer();
         preloadMasterMeterNames(); // Warm cache so Master Meter Readings opens with list ready
       }
     } catch (e) {
@@ -106,6 +131,7 @@ class _HomeState extends State<Home> {
   Future<void> fetchStats(String id, bool isnew) async {
     try {
       if (!mounted) return;
+      if (id.isEmpty) return;
 
       setState(() {
         isnew
@@ -152,11 +178,31 @@ class _HomeState extends State<Home> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        pending = '0';
-        complete = '0';
-        isLoading = null;
-      });
+      // Keep last known counts on background refresh failure; only zero on first load.
+      if (isnew || pending.isEmpty) {
+        setState(() {
+          pending = '0';
+          complete = '0';
+          isLoading = null;
+        });
+      } else {
+        setState(() {
+          isLoading = null;
+        });
+      }
+    }
+  }
+
+  Future<void> _openIncidences({required int selectedItem}) async {
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (context) => IncidencesHome(
+        staffid: staffid,
+        selectedItem: selectedItem,
+      ),
+    ));
+    // Returning from pending/completed — refresh home counts without logout.
+    if (mounted && staffid.isNotEmpty) {
+      await fetchStats(staffid, false);
     }
   }
 
@@ -501,12 +547,7 @@ class _HomeState extends State<Home> {
           child: _buildServiceCard(
             'Pending',
             Icons.pending_actions_outlined,
-            () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (context) => IncidencesHome(
-                staffid: staffid,
-                selectedItem: 0,
-              ),
-            )),
+            () => _openIncidences(selectedItem: 0),
             count: pending,
           ),
         ),
@@ -515,12 +556,7 @@ class _HomeState extends State<Home> {
           child: _buildServiceCard(
             'Completed',
             Icons.task_alt_outlined,
-            () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (context) => IncidencesHome(
-                staffid: staffid,
-                selectedItem: 1,
-              ),
-            )),
+            () => _openIncidences(selectedItem: 1),
             count: complete,
           ),
         ),

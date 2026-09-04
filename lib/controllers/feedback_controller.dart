@@ -13,6 +13,8 @@ import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/models/customer.dart';
 import 'package:um_collect/services/rationing_schedule_service.dart';
 
+enum CustomerEntryMode { fromList, manual }
+
 class FeedbackController extends ChangeNotifier {
   final _schedule = RationingScheduleService.instance;
   final _storage = const FlutterSecureStorage();
@@ -23,7 +25,10 @@ class FeedbackController extends ChangeNotifier {
   String selectedArea = '';
   String selectedRoute = '';
   String collectionMode = ''; // Customer Care | Field
+  CustomerEntryMode customerEntryMode = CustomerEntryMode.fromList;
   Customer? selectedCustomer;
+  String manualAccountNo = '';
+  String manualCustomerName = '';
   bool? waterAvailable; // true = Yes, false = No
   String? satisfaction; // 'Sufficient' | 'Low Pressure' when water available
   String remarks = '';
@@ -34,13 +39,14 @@ class FeedbackController extends ChangeNotifier {
   bool reporterNameFromLogin = false;
   bool reporterIdentityLoaded = false;
 
-  // Optional evidence
+  // Photo/proof evidence (required on submit)
   XFile? photo;
   double? latitude;
   double? longitude;
   double? locationAccuracy;
 
   List<Customer> customers = [];
+
   /// Routes for the route dropdown (set on first zone-only fetch, kept when refetching by route).
   List<String> availableRoutes = [];
   bool isLoadingCustomers = false;
@@ -91,8 +97,9 @@ class FeedbackController extends ChangeNotifier {
       _schedule.areasForZoneAndDay(selectedZone, selectedDay);
 
   /// Route options for dropdown: full list from zone when available, else from current customers.
-  List<String> get filteredRoutes =>
-      availableRoutes.isNotEmpty ? availableRoutes : _uniqueRoutesFrom(customers);
+  List<String> get filteredRoutes => availableRoutes.isNotEmpty
+      ? availableRoutes
+      : _uniqueRoutesFrom(customers);
 
   static List<String> _uniqueRoutesFrom(List<Customer> list) {
     final set = <String>{};
@@ -163,13 +170,34 @@ class FeedbackController extends ChangeNotifier {
     selectedRoute = value;
     selectedCustomer = null;
     notifyListeners();
-    if (value.isNotEmpty && selectedZone.isNotEmpty && selectedArea.isNotEmpty) {
+    if (value.isNotEmpty &&
+        selectedZone.isNotEmpty &&
+        selectedArea.isNotEmpty) {
       fetchCustomers();
     }
   }
 
   void updateCustomer(Customer? value) {
     selectedCustomer = value;
+    notifyListeners();
+  }
+
+  void updateCustomerEntryMode(CustomerEntryMode mode) {
+    if (customerEntryMode == mode) return;
+    customerEntryMode = mode;
+    selectedCustomer = null;
+    manualAccountNo = '';
+    manualCustomerName = '';
+    notifyListeners();
+  }
+
+  void updateManualAccountNo(String value) {
+    manualAccountNo = value;
+    notifyListeners();
+  }
+
+  void updateManualCustomerName(String value) {
+    manualCustomerName = value;
     notifyListeners();
   }
 
@@ -373,13 +401,25 @@ class FeedbackController extends ChangeNotifier {
     }
   }
 
-  /// Validation: day, zone, area, route, customer, reporter required; if waterAvailable == false, remarks required.
+  /// Validation: day, zone, area, route, customer (list or manual), reporter,
+  /// and photo required; if waterAvailable == false, remarks required.
   String? validate() {
     if (selectedDay.isEmpty) return 'Please select a day';
     if (selectedZone.isEmpty) return 'Please select a zone';
     if (selectedArea.isEmpty) return 'Please select an area';
     if (selectedRoute.isEmpty) return 'Please select a route';
-    if (selectedCustomer == null) return 'Please select a customer';
+    if (customerEntryMode == CustomerEntryMode.fromList) {
+      if (selectedCustomer == null) {
+        return 'Please select a customer from the list';
+      }
+    } else {
+      if (manualAccountNo.trim().isEmpty) {
+        return 'Please enter the account number';
+      }
+      if (manualCustomerName.trim().isEmpty) {
+        return 'Please enter the customer name';
+      }
+    }
     if (reporterName.trim().isEmpty) {
       return reporterNameFromLogin
           ? 'Could not resolve your name from login. Please re-login or enter your name.'
@@ -390,6 +430,7 @@ class FeedbackController extends ChangeNotifier {
     if (waterAvailable == false && remarks.trim().isEmpty) {
       return 'Remarks are required when water was not available';
     }
+    if (photo == null) return 'Please capture a photo as proof';
     return null;
   }
 
@@ -404,28 +445,40 @@ class FeedbackController extends ChangeNotifier {
 
       final resolvedReporter = reporterName.trim();
 
-      // Always use multipart endpoint so we can include optional photo + GPS.
+      // Always use multipart endpoint so we can include required photo + optional GPS.
       final uri = Uri.parse('${getUrl()}customer-feedback/with-media');
       final req = http.MultipartRequest('POST', uri);
       req.headers['Authorization'] = 'Bearer $token';
 
+      final customerId = customerEntryMode == CustomerEntryMode.fromList
+          ? selectedCustomer!.id
+          : manualAccountNo.trim();
+      final accountNo = customerEntryMode == CustomerEntryMode.fromList
+          ? selectedCustomer!.accountNo
+          : manualAccountNo.trim();
+      final customerName = customerEntryMode == CustomerEntryMode.fromList
+          ? selectedCustomer!.name
+          : manualCustomerName.trim();
+
       req.fields['day'] = selectedDay;
       req.fields['zone'] = selectedZone;
       req.fields['area'] = selectedArea;
-      req.fields['customerId'] = selectedCustomer!.id;
+      req.fields['customerId'] = customerId;
       req.fields['collectionMode'] = collectionMode;
       // Route is required in the form but was previously omitted from the payload.
       final routeValue = selectedRoute.isNotEmpty
           ? selectedRoute
-          : selectedCustomer!.route;
+          : (customerEntryMode == CustomerEntryMode.fromList
+              ? (selectedCustomer?.route ?? '')
+              : '');
       if (routeValue.isNotEmpty) {
         req.fields['route'] = routeValue;
       }
-      if (selectedCustomer!.accountNo.isNotEmpty) {
-        req.fields['accountNo'] = selectedCustomer!.accountNo;
+      if (accountNo.isNotEmpty) {
+        req.fields['accountNo'] = accountNo;
       }
-      if (selectedCustomer!.name.isNotEmpty) {
-        req.fields['customerName'] = selectedCustomer!.name;
+      if (customerName.isNotEmpty) {
+        req.fields['customerName'] = customerName;
       }
       req.fields['waterAvailable'] = waterAvailable! ? 'true' : 'false';
       if (waterAvailable! && satisfaction != null) {
@@ -470,7 +523,10 @@ class FeedbackController extends ChangeNotifier {
     selectedArea = '';
     selectedRoute = '';
     collectionMode = '';
+    customerEntryMode = CustomerEntryMode.fromList;
     selectedCustomer = null;
+    manualAccountNo = '';
+    manualCustomerName = '';
     waterAvailable = null;
     satisfaction = null;
     remarks = '';

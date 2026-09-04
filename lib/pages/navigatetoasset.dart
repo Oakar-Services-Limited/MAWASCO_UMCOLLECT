@@ -124,29 +124,129 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
     }
   }
 
+  /// True for usable map points (rejects Null Island / missing coords).
+  bool _isValidMapPoint(LatLng p) {
+    if (p.latitude.abs() < 0.0001 && p.longitude.abs() < 0.0001) {
+      return false;
+    }
+    if (p.latitude < -90 || p.latitude > 90) return false;
+    if (p.longitude < -180 || p.longitude > 180) return false;
+    return true;
+  }
+
+  double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value.toString().trim());
+  }
+
+  /// Resolve lat/lng from API rows (field casing + optional GeoJSON geom).
+  LatLng? _parseLatLngFromAsset(dynamic item) {
+    if (item == null || item is! Map) return null;
+    final map = Map<String, dynamic>.from(item);
+
+    final lat = _toDouble(map['latitude'] ??
+        map['Latitude'] ??
+        map['lat'] ??
+        map['Lat']);
+    final lng = _toDouble(map['longitude'] ??
+        map['Longitude'] ??
+        map['lng'] ??
+        map['long'] ??
+        map['Lon']);
+
+    if (lat != null && lng != null) {
+      final point = LatLng(lat, lng);
+      if (_isValidMapPoint(point)) return point;
+    }
+
+    final geom = map['geom'] ?? map['geometry'];
+    if (geom is Map) {
+      final coords = geom['coordinates'];
+      if (coords is List && coords.length >= 2) {
+        final gLng = _toDouble(coords[0]);
+        final gLat = _toDouble(coords[1]);
+        if (gLat != null && gLng != null) {
+          final point = LatLng(gLat, gLng);
+          if (_isValidMapPoint(point)) return point;
+        }
+      }
+    } else if (geom is String && geom.trim().isNotEmpty) {
+      try {
+        final decoded = jsonDecode(geom);
+        if (decoded is Map) {
+          final coords = decoded['coordinates'];
+          if (coords is List && coords.length >= 2) {
+            final gLng = _toDouble(coords[0]);
+            final gLat = _toDouble(coords[1]);
+            if (gLat != null && gLng != null) {
+              final point = LatLng(gLat, gLng);
+              if (_isValidMapPoint(point)) return point;
+            }
+          }
+        }
+      } catch (_) {
+        // ignore non-JSON geom strings
+      }
+    }
+
+    return null;
+  }
+
   Future<void> _fitCameraToBounds(LatLng position1, LatLng position2) async {
-    _updateCameraPosition(position1, 0);
     try {
       final GoogleMapController? controller = await _controller.future;
-      LatLngBounds bounds = LatLngBounds(
-        southwest: position1,
-        northeast: position2,
+      if (controller == null) return;
+
+      final bool p1Ok = _isValidMapPoint(position1);
+      final bool p2Ok = _isValidMapPoint(position2);
+
+      // Prefer framing the destination (asset), not the car alone.
+      if (!p1Ok && p2Ok) {
+        await _updateCameraPosition(position2, 0);
+        return;
+      }
+      if (p1Ok && !p2Ok) {
+        await _updateCameraPosition(position1, 0);
+        return;
+      }
+      if (!p1Ok && !p2Ok) return;
+
+      final southwest = LatLng(
+        math.min(position1.latitude, position2.latitude),
+        math.min(position1.longitude, position2.longitude),
       );
-      CameraUpdate cameraUpdate = CameraUpdate.newLatLngBounds(bounds, 50);
-      controller?.animateCamera(cameraUpdate);
+      final northeast = LatLng(
+        math.max(position1.latitude, position2.latitude),
+        math.max(position1.longitude, position2.longitude),
+      );
+
+      await controller.animateCamera(
+        CameraUpdate.newLatLngBounds(
+          LatLngBounds(southwest: southwest, northeast: northeast),
+          80,
+        ),
+      );
     } catch (e) {
-      _updateCameraPosition(position1, 0);
+      // On bounds failure, zoom to the asset (position2), not the car.
+      if (_isValidMapPoint(position2)) {
+        await _updateCameraPosition(position2, 0);
+      } else if (_isValidMapPoint(position1)) {
+        await _updateCameraPosition(position1, 0);
+      }
     }
   }
 
-  void _updateCameraPosition(LatLng newPosition, double newRotation) async {
+  Future<void> _updateCameraPosition(
+      LatLng newPosition, double newRotation) async {
+    if (!_isValidMapPoint(newPosition)) return;
     try {
       final GoogleMapController? controller = await _controller.future;
       await controller?.animateCamera(
         CameraUpdate.newCameraPosition(
           CameraPosition(
             target: newPosition,
-            zoom: 16,
+            zoom: 17,
             bearing: newRotation,
           ),
         ),
@@ -154,6 +254,34 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
     } catch (e) {
       // Error handling: silently ignore errors
     }
+  }
+
+  void _applySelectedAsset(dynamic item) {
+    final dest = _parseLatLngFromAsset(item);
+    if (dest == null) {
+      _showSnackbar(
+        context,
+        'Selected item has no valid map coordinates.',
+        Colors.orange,
+      );
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+    setState(() {
+      choice = item;
+      selected = null;
+      accountno = (item['accountNo'] ?? item['AccountNo'] ?? '').toString();
+      id = (item['id'] ?? item['ObjectID'] ?? '').toString();
+      destination = dest;
+      destinationPosition = Marker(
+        markerId: const MarkerId('destination'),
+        position: dest,
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+      );
+    });
+    // Zoom to the searched asset — not the vehicle / Null Island.
+    _updateCameraPosition(dest, 0);
   }
 
   // ==========================================
@@ -210,6 +338,11 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
 
   void getDirections(LatLng dst) async {
     try {
+      if (!_isValidMapPoint(dst)) {
+        _showSnackbar(
+            context, 'Destination has no valid coordinates.', Colors.orange);
+        return;
+      }
       List<LatLng> polylineCoordinates = [];
       List<dynamic> points = [];
 
@@ -660,45 +793,8 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                         0, 0, 0, 16),
                                                 child: TextButton(
                                                     onPressed: () {
-                                                      setState(() {
-                                                        accountno = selected[
-                                                                "accountNo"]
-                                                            .toString();
-                                                        id = selected["id"]
-                                                            .toString();
-                                                      });
-                                                      FocusScope.of(context)
-                                                          .unfocus();
-                                                      setState(() {
-                                                        choice = selected;
-                                                        selected = null;
-                                                        destination = LatLng(
-                                                            double.tryParse(choice[
-                                                                    "latitude"]
-                                                                .toString())!,
-                                                            double.tryParse(choice[
-                                                                    "longitude"]
-                                                                .toString())!);
-                                                        destinationPosition =
-                                                            Marker(
-                                                          markerId:
-                                                              const MarkerId(
-                                                                  'destination'),
-                                                          position: LatLng(
-                                                              double.tryParse(choice[
-                                                                      "latitude"]
-                                                                  .toString())!,
-                                                              double.tryParse(choice[
-                                                                      "longitude"]
-                                                                  .toString())!),
-                                                          icon: BitmapDescriptor
-                                                              .defaultMarkerWithHue(
-                                                                  BitmapDescriptor
-                                                                      .hueOrange),
-                                                        );
-                                                        _updateCameraPosition(
-                                                            destination, 0);
-                                                      });
+                                                      _applySelectedAsset(
+                                                          selected);
                                                     },
                                                     child: Container(
                                                       width: double.infinity,

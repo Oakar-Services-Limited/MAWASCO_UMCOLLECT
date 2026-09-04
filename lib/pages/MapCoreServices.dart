@@ -89,6 +89,7 @@ class _MapCoreServicesState extends State<MapCoreServices> {
   LatLng _currentLocation = const LatLng(-1.2940491, 36.8076449);
   bool _isLoadingLocation = true;
   bool _isLoadingLayers = false;
+  String _loadingLayersMessage = 'Loading layers…';
   MapType _mapType = MapType.normal;
   double _nearbyRadiusMeters = 100;
   String _nearbyUnit = 'm'; // 'm' or 'km'
@@ -113,6 +114,8 @@ class _MapCoreServicesState extends State<MapCoreServices> {
   bool _allLayersRequested = false;
   bool _allLayersZoomed = false;
   Timer? _fitDebounce;
+  /// Bumped on each category switch so stale loads don't hide the spinner early.
+  int _categoryLoadToken = 0;
 
   /// Highlights the last tapped asset on the map (GIS-style); cleared on blank map tap.
   String? _highlightedAssetKey;
@@ -121,6 +124,26 @@ class _MapCoreServicesState extends State<MapCoreServices> {
   static const bool _debugMap = true;
 
   bool _legendOpen = false;
+  bool _toolsExpanded = false;
+
+  /// Full unfiltered customer meters from GeoJSON (used for client-side search).
+  List<_MapFeature>? _customerMetersSource;
+
+  /// Dense point layers (15k+) crash native Google Maps if all markers are added.
+  /// Keep full data in memory; only render markers in the current viewport (capped).
+  static const int _maxVisiblePointMarkers = 700;
+  LatLngBounds? _visibleBounds;
+  Set<Marker> _renderedMarkers = {};
+  Timer? _viewportDebounce;
+  int _customerMetersTotalCount = 0;
+
+  /// Toggleable live device GNSS readout (lat/long, altitude, H/V accuracy, speed).
+  bool _gnssPanelOpen = false;
+  bool _gnssFollow = true;
+  bool _gnssProgrammaticMove = false;
+  Position? _gnssPosition;
+  String? _gnssError;
+  StreamSubscription<Position>? _gnssSubscription;
 
   static const List<String> _categories = [
     'All',
@@ -160,9 +183,11 @@ class _MapCoreServicesState extends State<MapCoreServices> {
 
   @override
   void dispose() {
+    _gnssSubscription?.cancel();
     _searchController.dispose();
     _nearbyController.dispose();
     _fitDebounce?.cancel();
+    _viewportDebounce?.cancel();
     super.dispose();
   }
 
@@ -216,25 +241,169 @@ class _MapCoreServicesState extends State<MapCoreServices> {
   Future<void> _animateTo(LatLng target, {double zoom = 16}) async {
     try {
       final controller = await _controller.future;
+      _gnssProgrammaticMove = true;
       await controller.animateCamera(
         CameraUpdate.newCameraPosition(
           CameraPosition(target: target, zoom: zoom),
         ),
       );
-    } catch (_) {}
+    } catch (_) {
+    } finally {
+      // Allow a short settle so onCameraMoveStarted from this move is ignored.
+      Future<void>.delayed(const Duration(milliseconds: 400), () {
+        _gnssProgrammaticMove = false;
+      });
+    }
   }
 
-  Future<void> _loadLayer(MapLayerType type) async {
+  Future<void> _toggleGnssPanel() async {
+    if (_gnssPanelOpen) {
+      await _stopGnssStream();
+      if (!mounted) return;
+      setState(() {
+        _gnssPanelOpen = false;
+        _gnssError = null;
+      });
+      return;
+    }
+
     setState(() {
-      _isLoadingLayers = true;
+      _gnssPanelOpen = true;
+      _gnssError = null;
+      _gnssFollow = true;
     });
+    await _startGnssStream();
+  }
+
+  Future<void> _startGnssStream() async {
+    await _gnssSubscription?.cancel();
+    _gnssSubscription = null;
 
     try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (!mounted) return;
+        setState(() {
+          _gnssError = 'Location services are turned off';
+        });
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        if (!mounted) return;
+        setState(() {
+          _gnssError = 'Location permission denied';
+        });
+        return;
+      }
+
+      _gnssSubscription = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.bestForNavigation,
+          distanceFilter: 0,
+        ),
+      ).listen(
+        _onGnssUpdate,
+        onError: (Object e) {
+          if (!mounted) return;
+          setState(() {
+            _gnssError = 'Unable to read device position';
+          });
+        },
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _gnssError = 'Unable to start device positioning';
+      });
+    }
+  }
+
+  Future<void> _stopGnssStream() async {
+    await _gnssSubscription?.cancel();
+    _gnssSubscription = null;
+  }
+
+  void _onGnssUpdate(Position position) {
+    if (!mounted || !_gnssPanelOpen) return;
+    setState(() {
+      _gnssPosition = position;
+      _gnssError = null;
+      _currentLocation = LatLng(position.latitude, position.longitude);
+      _isLoadingLocation = false;
+    });
+    if (_gnssFollow) {
+      _animateTo(
+        LatLng(position.latitude, position.longitude),
+        zoom: 18,
+      );
+    }
+  }
+
+  String _formatDecimalDegrees(double value, {int decimals = 7}) {
+    return value.toStringAsFixed(decimals);
+  }
+
+  String _formatGnssMeters(double? value, {int decimals = 1}) {
+    if (value == null || value.isNaN || value < 0) return '—';
+    return '${value.toStringAsFixed(decimals)} m';
+  }
+
+  String _formatSpeed(double? metresPerSecond) {
+    if (metresPerSecond == null || metresPerSecond.isNaN || metresPerSecond < 0) {
+      return '—';
+    }
+    final kmh = metresPerSecond * 3.6;
+    return '${metresPerSecond.toStringAsFixed(1)} m/s  (${kmh.toStringAsFixed(1)} km/h)';
+  }
+
+  double? _verticalAccuracy(Position? p) {
+    if (p == null) return null;
+    final v = p.altitudeAccuracy;
+    if (v.isNaN || v < 0) return null;
+    return v;
+  }
+
+  Future<void> _loadLayer(
+    MapLayerType type, {
+    bool forceRefresh = false,
+    bool clearLoadingWhenDone = true,
+  }) async {
+    if (clearLoadingWhenDone && mounted) {
+      setState(() {
+        _isLoadingLayers = true;
+        _loadingLayersMessage = _isDensePointLayer(type)
+            ? 'Loading ${type == MapLayerType.customerMeters ? 'customer meters' : 'dormant meters'}…\nThis can take a while (~15,000 records).'
+            : 'Loading layers…';
+      });
+    }
+
+    try {
+      final layerFilter = _buildLayerFilter(type);
+      final useGeoJson =
+          _shouldUseGeoJsonForLayer(type) && layerFilter.isEmpty;
+
+      if (useGeoJson) {
+        await _loadGeoJsonLayer(
+          type,
+          forceRefresh: forceRefresh,
+          clearLoadingWhenDone: clearLoadingWhenDone,
+        );
+        return;
+      }
+
       final uri = _buildLayerUri(type);
       if (uri == null) {
-        setState(() {
-          _isLoadingLayers = false;
-        });
+        if (clearLoadingWhenDone && mounted) {
+          setState(() {
+            _isLoadingLayers = false;
+          });
+        }
         return;
       }
 
@@ -262,9 +431,11 @@ class _MapCoreServicesState extends State<MapCoreServices> {
       }
 
       if (response.statusCode != 200) {
-        setState(() {
-          _isLoadingLayers = false;
-        });
+        if (clearLoadingWhenDone && mounted) {
+          setState(() {
+            _isLoadingLayers = false;
+          });
+        }
         return;
       }
 
@@ -310,56 +481,499 @@ class _MapCoreServicesState extends State<MapCoreServices> {
         }
       }
 
-      setState(() {
-        _layerData[type] = features;
-        _isLoadingLayers = false;
-      });
-      _updateZonesWithAssets();
-      _rebuildZonePolygons();
-      _scheduleFitToActiveAssets();
+      await _applyLoadedFeatures(
+        type,
+        features,
+        clearLoadingWhenDone: clearLoadingWhenDone,
+      );
     } catch (_) {
       if (!mounted) return;
-      setState(() {
-        _isLoadingLayers = false;
-      });
+      if (clearLoadingWhenDone) {
+        setState(() {
+          _isLoadingLayers = false;
+        });
+      }
     }
+  }
+
+  bool _shouldUseGeoJsonForLayer(MapLayerType type) {
+    return type == MapLayerType.customerMeters;
+  }
+
+  String? _geoJsonTableForLayer(MapLayerType type) {
+    switch (type) {
+      case MapLayerType.customerMeters:
+        return 'wt_customer_meters';
+      default:
+        return null;
+    }
+  }
+
+  Future<void> _loadGeoJsonLayer(
+    MapLayerType type, {
+    bool forceRefresh = false,
+    bool clearLoadingWhenDone = true,
+  }) async {
+    final table = _geoJsonTableForLayer(type);
+    if (table == null) {
+      if (!mounted) return;
+      if (clearLoadingWhenDone) {
+        setState(() {
+          _isLoadingLayers = false;
+        });
+      }
+      return;
+    }
+
+    try {
+      final query = forceRefresh ? '?refresh=1' : '';
+      final uri = Uri.parse('${getUrl()}geojson/$table$query');
+
+      if (_debugMap) {
+        debugPrint('[Map] Loading geojson layer ${type.name} url=$uri');
+      }
+
+      final token = await _storage.read(key: 'mwstaffjwt');
+      final headers = <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+      };
+
+      final response = await http.get(uri, headers: headers);
+      if (response.statusCode != 200) {
+        if (_debugMap) {
+          debugPrint(
+              '[Map] GeoJSON ${type.name} failed status=${response.statusCode}; falling back to REST');
+        }
+        if (type == MapLayerType.customerMeters) {
+          await _loadCustomerMetersViaRest(
+            clearLoadingWhenDone: clearLoadingWhenDone,
+          );
+          return;
+        }
+        if (!mounted) return;
+        if (clearLoadingWhenDone) {
+          setState(() {
+            _isLoadingLayers = false;
+          });
+        }
+        return;
+      }
+
+      final decoded = jsonDecode(response.body);
+      if (decoded is! Map<String, dynamic>) {
+        if (type == MapLayerType.customerMeters) {
+          await _loadCustomerMetersViaRest(
+            clearLoadingWhenDone: clearLoadingWhenDone,
+          );
+          return;
+        }
+        if (!mounted) return;
+        if (clearLoadingWhenDone) {
+          setState(() {
+            _isLoadingLayers = false;
+          });
+        }
+        return;
+      }
+
+      final featureList = decoded['features'] as List<dynamic>? ?? [];
+      final features = <_MapFeature>[];
+      for (final raw in featureList) {
+        if (raw is! Map) continue;
+        final f = _parseGeoJsonFeature(
+          type,
+          raw.cast<String, dynamic>(),
+        );
+        if (f != null) features.add(f);
+      }
+
+      if (_debugMap) {
+        debugPrint(
+            '[Map] GeoJSON layer ${type.name} parsedFeatures=${features.length}');
+      }
+
+      // Empty GeoJSON (e.g. geom-only filter on older API): fall back to REST.
+      if (features.isEmpty && type == MapLayerType.customerMeters) {
+        if (_debugMap) {
+          debugPrint(
+              '[Map] GeoJSON customerMeters empty; falling back to REST pagination');
+        }
+        await _loadCustomerMetersViaRest(
+          clearLoadingWhenDone: clearLoadingWhenDone,
+        );
+        return;
+      }
+
+      await _applyLoadedFeatures(
+        type,
+        features,
+        clearLoadingWhenDone: clearLoadingWhenDone,
+      );
+    } catch (e) {
+      if (_debugMap) {
+        debugPrint('[Map] GeoJSON ${type.name} error: $e');
+      }
+      if (type == MapLayerType.customerMeters) {
+        try {
+          await _loadCustomerMetersViaRest(
+            clearLoadingWhenDone: clearLoadingWhenDone,
+          );
+          return;
+        } catch (_) {}
+      }
+      if (!mounted) return;
+      if (clearLoadingWhenDone) {
+        setState(() {
+          _isLoadingLayers = false;
+        });
+      }
+    }
+  }
+
+  /// Paginated REST load for customer meters (lat/long). Used when GeoJSON is
+  /// empty/unavailable so mapped meters still appear on the map.
+  Future<void> _loadCustomerMetersViaRest({
+    bool clearLoadingWhenDone = true,
+  }) async {
+    final token = await _storage.read(key: 'mwstaffjwt');
+    final headers = <String, String>{
+      'Content-Type': 'application/json; charset=UTF-8',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+    };
+
+    const pageSize = 2000;
+    var offset = 0;
+    final features = <_MapFeature>[];
+    var pages = 0;
+    const maxPages = 50; // safety cap
+
+    while (pages < maxPages) {
+      final uri = Uri.parse(
+        '${getUrl()}wt/customer-meters?limit=$pageSize&offset=$offset',
+      );
+      if (_debugMap) {
+        debugPrint('[Map] REST customerMeters GET $uri');
+      }
+
+      final response = await http.get(uri, headers: headers);
+      if (response.statusCode != 200) {
+        if (_debugMap) {
+          debugPrint(
+              '[Map] REST customerMeters status=${response.statusCode}');
+        }
+        break;
+      }
+
+      final decoded = jsonDecode(response.body);
+      final List data =
+          decoded is Map<String, dynamic> ? (decoded['data'] ?? []) : decoded;
+      if (data.isEmpty) break;
+
+      for (final raw in data) {
+        if (raw is! Map) continue;
+        final f = _parseFeature(
+          MapLayerType.customerMeters,
+          raw.cast<String, dynamic>(),
+        );
+        if (f != null) features.add(f);
+      }
+
+      pages += 1;
+      if (data.length < pageSize) break;
+      offset += pageSize;
+    }
+
+    if (_debugMap) {
+      debugPrint(
+          '[Map] REST customerMeters parsedFeatures=${features.length} pages=$pages');
+    }
+
+    await _applyLoadedFeatures(
+      MapLayerType.customerMeters,
+      features,
+      clearLoadingWhenDone: clearLoadingWhenDone,
+    );
+  }
+
+  Future<void> _applyLoadedFeatures(
+    MapLayerType type,
+    List<_MapFeature> features, {
+    bool clearLoadingWhenDone = true,
+  }) async {
+    if (!mounted) return;
+    if (type == MapLayerType.customerMeters) {
+      _customerMetersSource = List<_MapFeature>.from(features);
+      _customerMetersTotalCount = features.length;
+    }
+    setState(() {
+      _layerData[type] = features;
+    });
+    _updateZonesWithAssets();
+    _rebuildZonePolygons();
+    if (clearLoadingWhenDone) {
+      _scheduleFitToActiveAssets();
+      // Keep spinner until markers are actually on the map.
+      await _rebuildVisibleMarkers();
+      if (mounted) {
+        setState(() {
+          _isLoadingLayers = false;
+        });
+      }
+    }
+  }
+
+  bool _isDensePointLayer(MapLayerType type) {
+    return type == MapLayerType.customerMeters ||
+        type == MapLayerType.dormantMeters;
+  }
+
+  void _scheduleRebuildVisibleMarkers() {
+    _viewportDebounce?.cancel();
+    _viewportDebounce = Timer(const Duration(milliseconds: 250), () {
+      _rebuildVisibleMarkers();
+    });
+  }
+
+  Future<void> _onCameraIdle() async {
+    try {
+      final controller = await _controller.future;
+      final bounds = await controller.getVisibleRegion();
+      if (!mounted) return;
+      _visibleBounds = bounds;
+      await _rebuildVisibleMarkers();
+    } catch (_) {}
+  }
+
+  bool _pointInBounds(LatLng p, LatLngBounds b) {
+    final sw = b.southwest;
+    final ne = b.northeast;
+    // Handle antimeridian simply: our data is Kenya-local.
+    return p.latitude >= sw.latitude &&
+        p.latitude <= ne.latitude &&
+        p.longitude >= sw.longitude &&
+        p.longitude <= ne.longitude;
+  }
+
+  Future<void> _rebuildVisibleMarkers() async {
+    if (!mounted) return;
+
+    LatLngBounds? bounds = _visibleBounds;
+    if (bounds == null && _controller.isCompleted) {
+      try {
+        final controller = await _controller.future;
+        bounds = await controller.getVisibleRegion();
+        _visibleBounds = bounds;
+      } catch (_) {}
+    }
+
+    final markers = <Marker>{};
+    final activeLayer = _categoryToLayer[_selectedCategory];
+    var denseShown = 0;
+    var denseTotal = 0;
+    var denseCapped = false;
+
+    _layerData.forEach((type, features) {
+      if (activeLayer != null && activeLayer != type) return;
+
+      // On "All", skip dense customer/dormant meter markers — load via category.
+      if (activeLayer == null && _isDensePointLayer(type)) {
+        return;
+      }
+
+      final dense = _isDensePointLayer(type);
+      final candidates = <_MapFeature>[];
+
+      for (final f in features) {
+        if (f.point == null) continue;
+        if (dense && bounds != null && !_pointInBounds(f.point!, bounds)) {
+          continue;
+        }
+        candidates.add(f);
+      }
+
+      if (dense) {
+        denseTotal += features.where((f) => f.point != null).length;
+        if (candidates.length > _maxVisiblePointMarkers) {
+          denseCapped = true;
+          // Keep highlighted asset if present, then first N in viewport.
+          final highlighted = candidates
+              .where((f) => _assetMapKey(type, f.id) == _highlightedAssetKey)
+              .toList();
+          final rest = candidates
+              .where((f) => _assetMapKey(type, f.id) != _highlightedAssetKey)
+              .take(_maxVisiblePointMarkers - highlighted.length)
+              .toList();
+          candidates
+            ..clear()
+            ..addAll(highlighted)
+            ..addAll(rest);
+        }
+        denseShown += candidates.length;
+      }
+
+      for (final f in candidates) {
+        final key = _assetMapKey(type, f.id);
+        final highlighted = key == _highlightedAssetKey;
+        markers.add(
+          Marker(
+            markerId: MarkerId(key),
+            position: f.point!,
+            infoWindow: InfoWindow(title: f.name),
+            icon: BitmapDescriptor.defaultMarkerWithHue(
+              _markerHueForMap(type, highlighted),
+            ),
+            zIndexInt: highlighted ? 1 : 0,
+            onTap: () => _openAssetDetailsSheet(f),
+          ),
+        );
+      }
+    });
+
+    if (!mounted) return;
+    setState(() {
+      _renderedMarkers = markers;
+    });
+
+    if (_debugMap && denseTotal > 0) {
+      debugPrint(
+          '[Map] Visible dense markers=$denseShown of ~$denseTotal (cap=$_maxVisiblePointMarkers capped=$denseCapped)');
+    }
+  }
+
+  List<_MapFeature> _filterFeatures(
+    List<_MapFeature> features,
+    String column,
+    String query,
+  ) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return features;
+
+    return features.where((f) {
+      final prop = f.props[column]?.toString().toLowerCase() ?? '';
+      if (prop.contains(q)) return true;
+      if (column == 'accountNo' && f.name.toLowerCase().contains(q)) {
+        return true;
+      }
+      if (column == 'name') {
+        final account =
+            f.props['accountNo']?.toString().toLowerCase() ?? '';
+        if (account.contains(q)) return true;
+      }
+      return false;
+    }).toList();
+  }
+
+  Future<void> _ensureCustomerMetersSourceLoaded() async {
+    if (_customerMetersSource != null && _customerMetersSource!.isNotEmpty) {
+      return;
+    }
+    await _loadGeoJsonLayer(MapLayerType.customerMeters);
+  }
+
+  _MapFeature? _parseGeoJsonFeature(
+    MapLayerType type,
+    Map<String, dynamic> feature,
+  ) {
+    try {
+      final props = feature['properties'] as Map<String, dynamic>? ?? {};
+      final geom = feature['geometry'] as Map<String, dynamic>?;
+      if (geom == null) return null;
+
+      final id = (props['id'] ?? props['ObjectID'] ?? '').toString();
+      final name = (props['name'] ??
+              props['accountNo'] ??
+              props['meterNo'] ??
+              props['lineName'] ??
+              props['location'] ??
+              '')
+          .toString();
+      final zoneId = (props['zone'] ??
+              props['dma_zone'] ??
+              props['dmaZone'] ??
+              props['Zone'] ??
+              props['ZONE'])
+          ?.toString();
+
+      if (type == MapLayerType.waterPipes || type == MapLayerType.sewerLines) {
+        return _parseFeature(type, props);
+      }
+
+      final point = _pointFromGeometry(geom) ?? _pointFromRaw(props);
+      if (point == null) return null;
+
+      return _MapFeature(
+        id: id,
+        name: name,
+        type: type,
+        point: point,
+        zoneId: zoneId,
+        props: _extractProps(props, keys: _relevantKeysForType(type).toList()),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  LatLng? _pointFromRaw(Map<String, dynamic> raw) {
+    final lat = double.tryParse(raw['latitude']?.toString() ?? '');
+    final lon = double.tryParse(raw['longitude']?.toString() ?? '');
+    if (lat != null && lon != null) {
+      return LatLng(lat, lon);
+    }
+    return _pointFromGeometry(raw['geom']);
+  }
+
+  LatLng? _pointFromGeometry(dynamic geom) {
+    if (geom is! Map) return null;
+    final gType = geom['type']?.toString();
+    final gCoords = geom['coordinates'];
+    if (gType == 'Point' && gCoords is List && gCoords.length >= 2) {
+      final lon = double.tryParse(gCoords[0]?.toString() ?? '');
+      final lat = double.tryParse(gCoords[1]?.toString() ?? '');
+      if (lat != null && lon != null) {
+        return LatLng(lat, lon);
+      }
+    }
+    return null;
   }
 
   Uri? _buildLayerUri(MapLayerType type) {
     final base = getUrl();
     const denseLimit = 1000;
+    const filteredLimit = 5000;
     final layerFilter = _buildLayerFilter(type);
+    final limit = layerFilter.isNotEmpty ? filteredLimit : denseLimit;
     switch (type) {
       case MapLayerType.customerMeters:
         return Uri.parse(
-            '${base}wt/customer-meters?limit=$denseLimit&offset=0$layerFilter');
+            '${base}wt/customer-meters?limit=$limit&offset=0$layerFilter');
       case MapLayerType.waterPipes:
         return Uri.parse(
-            '${base}wt/water-pipes?limit=$denseLimit&offset=0$layerFilter');
+            '${base}wt/water-pipes?limit=$limit&offset=0$layerFilter');
       case MapLayerType.waterTanks:
-        return Uri.parse(
-            '${base}wt/tanks?limit=$denseLimit&offset=0$layerFilter');
+        return Uri.parse('${base}wt/tanks?limit=$limit&offset=0$layerFilter');
       case MapLayerType.valves:
         return Uri.parse(
-            '${base}wt/valves?limit=$denseLimit&offset=0$layerFilter');
+            '${base}wt/valves?limit=$limit&offset=0$layerFilter');
       case MapLayerType.masterMeters:
         return Uri.parse(
-            '${base}wt/master-meters?limit=$denseLimit&offset=0$layerFilter');
+            '${base}wt/master-meters?limit=$limit&offset=0$layerFilter');
       case MapLayerType.washouts:
         return Uri.parse(
-            '${base}wt/washouts?limit=$denseLimit&offset=0$layerFilter');
+            '${base}wt/washouts?limit=$limit&offset=0$layerFilter');
       case MapLayerType.kiosks:
         return Uri.parse(
-            '${base}wt/kiosks?limit=$denseLimit&offset=0$layerFilter');
+            '${base}wt/kiosks?limit=$limit&offset=0$layerFilter');
       case MapLayerType.dormantMeters:
         return Uri.parse(
-            '${base}wt/dormant-customer-meters?limit=$denseLimit&offset=0$layerFilter');
+            '${base}wt/dormant-customer-meters?limit=$limit&offset=0$layerFilter');
       case MapLayerType.sewerLines:
         return Uri.parse(
-            '${base}sr/sewer-lines?limit=$denseLimit&offset=0$layerFilter');
+            '${base}sr/sewer-lines?limit=$limit&offset=0$layerFilter');
       case MapLayerType.manholes:
         return Uri.parse(
-            '${base}sr/manholes?limit=$denseLimit&offset=0$layerFilter');
+            '${base}sr/manholes?limit=$limit&offset=0$layerFilter');
     }
   }
 
@@ -468,15 +1082,14 @@ class _MapCoreServicesState extends State<MapCoreServices> {
         return null;
       }
 
-      final lat = double.tryParse(raw['latitude']?.toString() ?? '');
-      final lon = double.tryParse(raw['longitude']?.toString() ?? '');
-      if (lat == null || lon == null) return null;
+      final point = _pointFromRaw(raw);
+      if (point == null) return null;
 
       return _MapFeature(
         id: id,
         name: name,
         type: type,
-        point: LatLng(lat, lon),
+        point: point,
         zoneId: zoneId,
         props: _extractProps(raw, keys: _relevantKeysForType(type).toList()),
       );
@@ -645,11 +1258,13 @@ class _MapCoreServicesState extends State<MapCoreServices> {
     final key = _assetMapKey(f.type, f.id);
     if (_highlightedAssetKey == key) return;
     setState(() => _highlightedAssetKey = key);
+    _scheduleRebuildVisibleMarkers();
   }
 
   void _clearHighlightedAsset() {
     if (_highlightedAssetKey == null) return;
     setState(() => _highlightedAssetKey = null);
+    _scheduleRebuildVisibleMarkers();
   }
 
   /// Yellow highlight for selected points (red when the asset type already uses yellow, e.g. manholes).
@@ -659,33 +1274,7 @@ class _MapCoreServicesState extends State<MapCoreServices> {
     return BitmapDescriptor.hueYellow;
   }
 
-  Set<Marker> get _markers {
-    final markers = <Marker>{};
-    _layerData.forEach((type, features) {
-      // If a specific category is selected, only show that layer
-      final activeLayer = _categoryToLayer[_selectedCategory];
-      if (activeLayer != null && activeLayer != type) return;
-
-      for (final f in features) {
-        if (f.point == null) continue;
-        final key = _assetMapKey(type, f.id);
-        final highlighted = key == _highlightedAssetKey;
-        markers.add(
-          Marker(
-            markerId: MarkerId(key),
-            position: f.point!,
-            infoWindow: InfoWindow(title: f.name),
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-              _markerHueForMap(type, highlighted),
-            ),
-            zIndexInt: highlighted ? 1 : 0,
-            onTap: () => _openAssetDetailsSheet(f),
-          ),
-        );
-      }
-    });
-    return markers;
-  }
+  Set<Marker> get _markers => _renderedMarkers;
 
   Set<Marker> get _measureMarkers {
     final markers = <Marker>{};
@@ -1692,7 +2281,22 @@ class _MapCoreServicesState extends State<MapCoreServices> {
   Future<void> _recenter() async {
     setState(() {
       _isLoadingLocation = true;
+      if (_gnssPanelOpen) {
+        _gnssFollow = true;
+      }
     });
+    if (_gnssPanelOpen && _gnssPosition != null) {
+      await _animateTo(
+        LatLng(_gnssPosition!.latitude, _gnssPosition!.longitude),
+        zoom: 18,
+      );
+      if (mounted) {
+        setState(() {
+          _isLoadingLocation = false;
+        });
+      }
+      return;
+    }
     await _initLocation();
   } 
 
@@ -1733,6 +2337,16 @@ class _MapCoreServicesState extends State<MapCoreServices> {
             },
             onMapCreated: (controller) {
               _controller.complete(controller);
+              _onCameraIdle();
+            },
+            onCameraIdle: _onCameraIdle,
+            onCameraMoveStarted: () {
+              if (_gnssPanelOpen &&
+                  _gnssFollow &&
+                  !_gnssProgrammaticMove &&
+                  mounted) {
+                setState(() => _gnssFollow = false);
+              }
             },
           ),
           Positioned(
@@ -1770,6 +2384,13 @@ class _MapCoreServicesState extends State<MapCoreServices> {
               ),
             ),
           ),
+          if (_gnssPanelOpen)
+            Positioned(
+              left: 12,
+              right: _toolsExpanded ? 280 : 88,
+              bottom: (_measuring ? 168 : 64) + bottomPadding,
+              child: _buildGnssPanel(),
+            ),
           if (_measuring)
             Positioned(
               left: 12,
@@ -1779,26 +2400,62 @@ class _MapCoreServicesState extends State<MapCoreServices> {
             ),
           if (_isLoadingLocation || _isLoadingLayers)
             Positioned(
-              top: 16,
-              right: 16,
+              left: 12,
+              right: 72,
+              top: topPadding + 120,
               child: Card(
-                elevation: 4,
+                elevation: 6,
+                color: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
                 child: Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      LoadingAnimationWidget.horizontalRotatingDots(
-                        color: AppTheme.primaryMain,
-                        size: 24,
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: LoadingAnimationWidget.horizontalRotatingDots(
+                          color: AppTheme.primaryMain,
+                          size: 28,
+                        ),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _isLoadingLocation
-                            ? 'Getting location…'
-                            : 'Loading layers…',
-                        style: const TextStyle(fontSize: 12),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _isLoadingLocation
+                                  ? 'Getting location…'
+                                  : (_loadingLayersMessage.contains('\n')
+                                      ? _loadingLayersMessage.split('\n').first
+                                      : _loadingLayersMessage),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            if (!_isLoadingLocation &&
+                                _loadingLayersMessage.contains('\n')) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                _loadingLayersMessage
+                                    .split('\n')
+                                    .skip(1)
+                                    .join(' '),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[700],
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -1807,48 +2464,300 @@ class _MapCoreServicesState extends State<MapCoreServices> {
             ),
         ],
       ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          FloatingActionButton(
-            heroTag: 'recenter_fab',
-            mini: true,
-            onPressed: _recenter,
-            backgroundColor: Colors.white,
-            foregroundColor: AppTheme.primaryMain,
-            child: const Icon(Icons.my_location),
+      floatingActionButton: _buildMapToolsFab(),
+    );
+  }
+
+  Widget _buildMapToolsFab() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        if (_toolsExpanded) ...[
+          _mapToolChip(
+            icon: Icons.pin_drop_outlined,
+            label: 'Device Position',
+            subtitle: 'Live lat, long, altitude & accuracy',
+            active: _gnssPanelOpen,
+            activeColor: AppTheme.primaryMain,
+            onTap: () {
+              _toggleGnssPanel();
+            },
           ),
-          const SizedBox(height: 12),
-          FloatingActionButton(
-            heroTag: 'basemap_fab',
-            mini: true,
-            onPressed: _toggleMapType,
-            backgroundColor: Colors.white,
-            foregroundColor: AppTheme.primaryMain,
-            child: Icon(
-              _mapType == MapType.normal
-                  ? Icons.satellite_alt
-                  : Icons.map_outlined,
+          const SizedBox(height: 8),
+          _mapToolChip(
+            icon: Icons.navigation,
+            label: 'Go to My Location',
+            subtitle: 'Centre / follow the map on you',
+            onTap: () {
+              setState(() => _toolsExpanded = false);
+              _recenter();
+            },
+          ),
+          const SizedBox(height: 8),
+          _mapToolChip(
+            icon: _mapType == MapType.normal
+                ? Icons.satellite_alt
+                : Icons.map_outlined,
+            label: 'Base Map',
+            subtitle: _mapType == MapType.normal
+                ? 'Switch to satellite view'
+                : 'Switch to street map',
+            onTap: () {
+              _toggleMapType();
+            },
+          ),
+          const SizedBox(height: 8),
+          _mapToolChip(
+            icon: Icons.radar,
+            label: 'Assets Near Me',
+            subtitle: 'List assets within a radius',
+            activeColor: AppTheme.primaryMain,
+            onTap: () {
+              setState(() => _toolsExpanded = false);
+              _openBufferSheet();
+            },
+          ),
+          const SizedBox(height: 8),
+          _mapToolChip(
+            icon: Icons.straighten,
+            label: 'Measure',
+            subtitle: 'Distance or area on the map',
+            active: _measuring,
+            activeColor: Colors.deepOrange,
+            onTap: () {
+              setState(() => _toolsExpanded = false);
+              _toggleMeasure();
+            },
+          ),
+          const SizedBox(height: 10),
+        ],
+        FloatingActionButton.extended(
+          heroTag: 'map_tools_fab',
+          onPressed: () {
+            setState(() => _toolsExpanded = !_toolsExpanded);
+          },
+          backgroundColor: AppTheme.primaryMain,
+          foregroundColor: Colors.white,
+          icon: Icon(_toolsExpanded ? Icons.close : Icons.handyman_outlined),
+          label: Text(_toolsExpanded ? 'Close tools' : 'Map tools'),
+        ),
+      ],
+    );
+  }
+
+  Widget _mapToolChip({
+    required IconData icon,
+    required String label,
+    required String subtitle,
+    required VoidCallback onTap,
+    bool active = false,
+    Color activeColor = const Color(0xff0288D1),
+  }) {
+    final bg = active ? activeColor : Colors.white;
+    final fg = active ? Colors.white : AppTheme.primaryMain;
+    return Material(
+      elevation: 4,
+      borderRadius: BorderRadius.circular(14),
+      color: bg,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          constraints: const BoxConstraints(minWidth: 220, maxWidth: 260),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: active
+                      ? Colors.white.withValues(alpha: 0.2)
+                      : AppTheme.primaryMain.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: fg, size: 22),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        color: active ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: active
+                            ? Colors.white.withValues(alpha: 0.9)
+                            : Colors.grey[700],
+                        height: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGnssPanel() {
+    final p = _gnssPosition;
+    final hAcc = p?.accuracy;
+    final vAcc = _verticalAccuracy(p);
+
+    return Card(
+      elevation: 6,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.gps_fixed, color: AppTheme.primaryMain, size: 20),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Device Position',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                  ),
+                ),
+                IconButton(
+                  tooltip: _gnssFollow
+                      ? 'Stop following device'
+                      : 'Follow device',
+                  onPressed: () {
+                    setState(() => _gnssFollow = !_gnssFollow);
+                    if (_gnssFollow && _gnssPosition != null) {
+                      _animateTo(
+                        LatLng(
+                          _gnssPosition!.latitude,
+                          _gnssPosition!.longitude,
+                        ),
+                        zoom: 18,
+                      );
+                    }
+                  },
+                  icon: Icon(
+                    _gnssFollow ? Icons.lock : Icons.lock_open,
+                    size: 18,
+                    color: _gnssFollow
+                        ? AppTheme.primaryMain
+                        : Colors.grey[600],
+                  ),
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Close',
+                  onPressed: _toggleGnssPanel,
+                  icon: Icon(Icons.close, size: 18, color: Colors.grey[700]),
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
+                ),
+              ],
+            ),
+            if (_gnssError != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                _gnssError!,
+                style: TextStyle(color: Colors.red[700], fontSize: 12),
+              ),
+            ] else if (p == null) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  LoadingAnimationWidget.horizontalRotatingDots(
+                    color: AppTheme.primaryMain,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Waiting for GPS fix…',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                  ),
+                ],
+              ),
+            ] else ...[
+              const SizedBox(height: 6),
+              _gnssRow(
+                'Latitude',
+                '${_formatDecimalDegrees(p.latitude)} °',
+              ),
+              _gnssRow(
+                'Longitude',
+                '${_formatDecimalDegrees(p.longitude)} °',
+              ),
+              _gnssRow('Altitude', _formatGnssMeters(p.altitude)),
+              _gnssRow('H. Accuracy', _formatGnssMeters(hAcc)),
+              _gnssRow('V. Accuracy', _formatGnssMeters(vAcc)),
+              _gnssRow('Speed', _formatSpeed(p.speed)),
+              const SizedBox(height: 4),
+              Text(
+                _gnssFollow
+                    ? 'Following device — map updates as you move'
+                    : 'Follow unlocked — pan freely; tap lock to track',
+                style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _gnssRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 96,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[700],
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
-          const SizedBox(height: 12),
-          FloatingActionButton(
-            heroTag: 'buffer_fab',
-            mini: true,
-            onPressed: _openBufferSheet,
-            backgroundColor: AppTheme.primaryMain,
-            foregroundColor: Colors.white,
-            child: const Icon(Icons.radar),
-          ),
-          const SizedBox(height: 12),
-          FloatingActionButton(
-            heroTag: 'measure_fab',
-            mini: true,
-            onPressed: _toggleMeasure,
-            backgroundColor: _measuring ? Colors.deepOrange : Colors.white,
-            foregroundColor: _measuring ? Colors.white : AppTheme.primaryMain,
-            child: const Icon(Icons.straighten),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                fontFamily: 'monospace',
+              ),
+            ),
           ),
         ],
       ),
@@ -2222,6 +3131,15 @@ class _MapCoreServicesState extends State<MapCoreServices> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildSearchControls(),
+            if (_selectedCategory == 'Customer Meters' &&
+                _customerMetersTotalCount > _maxVisiblePointMarkers) ...[
+              const SizedBox(height: 6),
+              Text(
+                'Showing up to $_maxVisiblePointMarkers meters in view '
+                '(of $_customerMetersTotalCount). Zoom in or search by DMA/account.',
+                style: TextStyle(fontSize: 11, color: Colors.grey[700]),
+              ),
+            ],
             const SizedBox(height: 10),
             SizedBox(
               height: 36,
@@ -2264,47 +3182,167 @@ class _MapCoreServicesState extends State<MapCoreServices> {
   }
 
   void _onCategorySelected(String cat) {
+    final layer = _categoryToLayer[cat];
+    final token = ++_categoryLoadToken;
+
     setState(() {
       _selectedCategory = cat;
       _selectedSearchColumn = null;
       _searchError = null;
       _searchController.clear();
       _highlightedAssetKey = null;
+      // Drop previous category markers immediately so "All" pins don't linger.
+      _renderedMarkers = {};
+      _isLoadingLayers = true;
+      _loadingLayersMessage = _loadingMessageForCategory(cat, layer);
     });
-    _ensureCategoryLoaded(cat);
+
+    _ensureCategoryLoaded(cat, loadToken: token);
   }
 
-  void _ensureCategoryLoaded(String cat) {
-    if (cat == 'All') {
-      if (!_allLayersRequested) {
+  String _loadingMessageForCategory(String cat, MapLayerType? layer) {
+    if (cat == 'All') return 'Loading network layers…';
+    if (layer == MapLayerType.customerMeters) {
+      return 'Loading customer meters…\nThis can take a while (~15,000 records). Please wait.';
+    }
+    if (layer == MapLayerType.dormantMeters) {
+      return 'Loading dormant meters…\nThis can take a while. Please wait.';
+    }
+    return 'Loading $cat…';
+  }
+
+  Future<void> _refreshMapData() async {
+    final token = ++_categoryLoadToken;
+    setState(() {
+      _highlightedAssetKey = null;
+      _searchError = null;
+      _customerMetersSource = null;
+      _renderedMarkers = {};
+      _isLoadingLayers = true;
+      _loadingLayersMessage = _selectedCategory == 'Customer Meters'
+          ? 'Refreshing customer meters…\nThis can take a while. Please wait.'
+          : 'Refreshing map layers…';
+    });
+
+    try {
+      final cat = _selectedCategory;
+      if (cat == 'All') {
+        // Reload light layers only; keep dense caches out of All view.
+        for (final type
+            in MapLayerType.values.where((t) => !_isDensePointLayer(t))) {
+          _layerData.remove(type);
+        }
         _allLayersRequested = true;
         _allLayersZoomed = false;
-        // Load all layers in background, then auto-fit to their combined extent.
-        Future.wait(MapLayerType.values.map(_loadLayer)).then((_) {
-          if (!mounted) return;
-          _zoomToAllLoadedAssets();
-        });
+        final lightLayers =
+            MapLayerType.values.where((t) => !_isDensePointLayer(t)).toList();
+        await Future.wait(
+          lightLayers.map(
+            (type) => _loadLayer(type, clearLoadingWhenDone: false),
+          ),
+        );
+        if (!mounted || token != _categoryLoadToken) return;
+        await _zoomToAllLoadedAssets();
+        await _rebuildVisibleMarkers();
       } else {
-        // Re-selecting ALL: if assets already loaded, fit immediately.
-        _zoomToAllLoadedAssets();
+        final layer = _categoryToLayer[cat];
+        if (layer != null) {
+          _layerData.remove(layer);
+          if (layer == MapLayerType.customerMeters) {
+            _customerMetersSource = null;
+            _customerMetersTotalCount = 0;
+          }
+          await _loadLayer(
+            layer,
+            forceRefresh: layer == MapLayerType.customerMeters &&
+                _buildLayerFilter(layer).isEmpty,
+            clearLoadingWhenDone: false,
+          );
+          if (!mounted || token != _categoryLoadToken) return;
+          await _zoomToLayer(layer);
+          await _rebuildVisibleMarkers();
+        }
       }
-      return;
+
+      if (!mounted || token != _categoryLoadToken) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Map data refreshed')),
+      );
+    } finally {
+      if (mounted && token == _categoryLoadToken) {
+        setState(() {
+          _isLoadingLayers = false;
+        });
+      }
     }
+  }
 
-    final layer = _categoryToLayer[cat];
-    if (layer == null) return;
+  Future<void> _ensureCategoryLoaded(
+    String cat, {
+    int? loadToken,
+  }) async {
+    final token = loadToken ?? _categoryLoadToken;
 
-    // If already loaded, just zoom to it for immediate feedback.
-    final alreadyLoaded = (_layerData[layer]?.isNotEmpty ?? false);
-    if (alreadyLoaded) {
-      _zoomToLayer(layer);
-      return;
+    try {
+      if (cat == 'All') {
+        if (!_allLayersRequested) {
+          _allLayersRequested = true;
+          _allLayersZoomed = false;
+          if (mounted) {
+            setState(() {
+              _isLoadingLayers = true;
+              _loadingLayersMessage = 'Loading network layers…';
+            });
+          }
+          // Do NOT load dense customer/dormant meters on All — ~15k markers OOMs
+          // Android. Those layers load when their category chip is selected.
+          final lightLayers = MapLayerType.values
+              .where((t) => !_isDensePointLayer(t))
+              .toList();
+          await Future.wait(
+            lightLayers.map(
+              (t) => _loadLayer(t, clearLoadingWhenDone: false),
+            ),
+          );
+          if (!mounted || token != _categoryLoadToken) return;
+          await _zoomToAllLoadedAssets();
+          await _rebuildVisibleMarkers();
+        } else {
+          // Re-selecting ALL: reuse cache; hide dense meters, show light layers.
+          await _rebuildVisibleMarkers();
+          if (!mounted || token != _categoryLoadToken) return;
+          _zoomToAllLoadedAssets();
+        }
+        return;
+      }
+
+      final layer = _categoryToLayer[cat];
+      if (layer == null) return;
+
+      // If already loaded, zoom + rebuild markers, then hide spinner.
+      final alreadyLoaded = (_layerData[layer]?.isNotEmpty ?? false);
+      if (alreadyLoaded) {
+        await _zoomToLayer(layer);
+        if (!mounted || token != _categoryLoadToken) return;
+        await _rebuildVisibleMarkers();
+        return;
+      }
+
+      // Otherwise load unfiltered data then zoom — keep spinner until markers show.
+      await _loadLayer(layer, clearLoadingWhenDone: false);
+      if (!mounted || token != _categoryLoadToken || _selectedCategory != cat) {
+        return;
+      }
+      await _zoomToLayer(layer);
+      if (!mounted || token != _categoryLoadToken) return;
+      await _rebuildVisibleMarkers();
+    } finally {
+      if (mounted && token == _categoryLoadToken) {
+        setState(() {
+          _isLoadingLayers = false;
+        });
+      }
     }
-
-    // Otherwise load unfiltered data then zoom.
-    _loadLayer(layer).then((_) {
-      _zoomToLayer(layer);
-    });
   }
 
   Widget _buildSearchControls() {
@@ -2390,6 +3428,20 @@ class _MapCoreServicesState extends State<MapCoreServices> {
                         ),
                       )
                     : const Icon(Icons.search, size: 18),
+              ),
+            ),
+            const SizedBox(width: 8),
+            SizedBox(
+              height: 44,
+              width: 44,
+              child: OutlinedButton(
+                onPressed: _isLoadingLayers ? null : _refreshMapData,
+                style: OutlinedButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  foregroundColor: AppTheme.primaryMain,
+                  side: const BorderSide(color: AppTheme.primaryMain),
+                ),
+                child: const Icon(Icons.refresh, size: 18),
               ),
             ),
           ],
@@ -2576,8 +3628,42 @@ class _MapCoreServicesState extends State<MapCoreServices> {
     });
 
     try {
+      if (layer == MapLayerType.customerMeters) {
+        await _ensureCustomerMetersSourceLoaded();
+        final source = _customerMetersSource ?? const <_MapFeature>[];
+        final filtered = _filterFeatures(
+          source,
+          _selectedSearchColumn!,
+          value,
+        );
+
+        if (!mounted) return;
+        setState(() {
+          _layerData[layer] = filtered;
+        });
+        _updateZonesWithAssets();
+        _rebuildZonePolygons();
+        await _rebuildVisibleMarkers();
+
+        if (!mounted) return;
+        if (filtered.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'No customer meters found for ${_labelForKey(_selectedSearchColumn!)}: $value',
+              ),
+            ),
+          );
+        } else {
+          await _zoomToLayer(layer);
+          await _rebuildVisibleMarkers();
+        }
+        return;
+      }
+
       await _loadLayer(layer);
       await _zoomToLayer(layer);
+      await _rebuildVisibleMarkers();
     } finally {
       if (mounted) {
         setState(() {

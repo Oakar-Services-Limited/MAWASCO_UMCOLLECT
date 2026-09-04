@@ -19,6 +19,8 @@ class _IncidencesHomeState extends State<IncidencesHome> {
   late final PageController _pageController;
   final storage = const FlutterSecureStorage();
   int _selectedItem = 0;
+  int _pendingRefreshNonce = 0;
+  int _completeRefreshNonce = 0;
 
   @override
   void initState() {
@@ -33,19 +35,41 @@ class _IncidencesHomeState extends State<IncidencesHome> {
     super.dispose();
   }
 
+  void _onTabSelected(int index) {
+    setState(() {
+      _selectedItem = index;
+    });
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.linear,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: PageView(
         onPageChanged: (index) {
-          _selectedItem = index;
+          setState(() {
+            _selectedItem = index;
+            if (index == 0) {
+              _pendingRefreshNonce++;
+            } else {
+              _completeRefreshNonce++;
+            }
+          });
         },
         controller: _pageController,
         children: [
-          PendingIncidences(staffid: widget.staffid),
+          PendingIncidences(
+            staffid: widget.staffid,
+            refreshNonce: _pendingRefreshNonce,
+          ),
           CompleteIncidences(
             staffid: widget.staffid,
-          )
+            refreshNonce: _completeRefreshNonce,
+          ),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -55,14 +79,7 @@ class _IncidencesHomeState extends State<IncidencesHome> {
           BottomNavigationBarItem(icon: Icon(Icons.login), label: 'Complete'),
         ],
         currentIndex: _selectedItem,
-        onTap: (index) {
-          setState(() {
-            _selectedItem = index;
-            _pageController.animateToPage(_selectedItem,
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.linear);
-          });
-        },
+        onTap: _onTabSelected,
         fixedColor: Colors.orange,
       ),
     );

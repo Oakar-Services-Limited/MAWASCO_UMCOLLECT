@@ -65,15 +65,15 @@ class _FeedbackForm extends StatefulWidget {
 
 class _FeedbackFormState extends State<_FeedbackForm> {
   final TextEditingController _remarksController = TextEditingController();
-  final TextEditingController _accountNoController = TextEditingController();
-  final TextEditingController _customerNameController = TextEditingController();
+  final TextEditingController _manualAccountController = TextEditingController();
+  final TextEditingController _manualNameController = TextEditingController();
   final TextEditingController _reporterNameController = TextEditingController();
 
   @override
   void dispose() {
     _remarksController.dispose();
-    _accountNoController.dispose();
-    _customerNameController.dispose();
+    _manualAccountController.dispose();
+    _manualNameController.dispose();
     _reporterNameController.dispose();
     super.dispose();
   }
@@ -87,16 +87,16 @@ class _FeedbackFormState extends State<_FeedbackForm> {
             _remarksController.clear();
           });
         }
-        final selectedAccountNo = ctrl.selectedCustomer?.accountNo ?? '';
-        if (_accountNoController.text != selectedAccountNo) {
+        if (ctrl.manualAccountNo.isEmpty &&
+            _manualAccountController.text.isNotEmpty) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            _accountNoController.text = selectedAccountNo;
+            _manualAccountController.clear();
           });
         }
-        final selectedName = ctrl.selectedCustomerName;
-        if (_customerNameController.text != selectedName) {
+        if (ctrl.manualCustomerName.isEmpty &&
+            _manualNameController.text.isNotEmpty) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            _customerNameController.text = selectedName;
+            _manualNameController.clear();
           });
         }
         if (_reporterNameController.text != ctrl.reporterName) {
@@ -123,30 +123,44 @@ class _FeedbackFormState extends State<_FeedbackForm> {
             const SizedBox(height: 8),
             _routeDropdown(ctrl),
             const SizedBox(height: 24),
-            _sectionTitle('5. Select Account Number'),
+            _sectionTitle('5. Customer'),
             const SizedBox(height: 8),
-            _customerSection(context, ctrl),
+            _customerEntryModeChoice(ctrl),
+            const SizedBox(height: 12),
+            if (ctrl.customerEntryMode == CustomerEntryMode.fromList) ...[
+              _sectionSubtitle('Account Number'),
+              const SizedBox(height: 8),
+              _customerListSection(context, ctrl),
+              const SizedBox(height: 16),
+              _sectionSubtitle('Customer Name'),
+              const SizedBox(height: 8),
+              _customerNameField(ctrl),
+            ] else ...[
+              _sectionSubtitle('Account Number'),
+              const SizedBox(height: 8),
+              _manualAccountField(ctrl),
+              const SizedBox(height: 16),
+              _sectionSubtitle('Customer Name'),
+              const SizedBox(height: 8),
+              _manualCustomerNameField(ctrl),
+            ],
             const SizedBox(height: 24),
-            _sectionTitle('6. Customer Name'),
-            const SizedBox(height: 8),
-            _customerNameField(),
-            const SizedBox(height: 24),
-            _sectionTitle('7. Data Collection Mode'),
+            _sectionTitle('6. Data Collection Mode'),
             const SizedBox(height: 8),
             _collectionModeDropdown(ctrl),
             const SizedBox(height: 24),
-            _sectionTitle('8. Water Available?'),
+            _sectionTitle('7. Water Available?'),
             const SizedBox(height: 8),
             _waterAvailableRadio(ctrl),
             if (ctrl.waterAvailable == true) ...[
               const SizedBox(height: 16),
-              _sectionTitle('9. Satisfaction'),
+              _sectionTitle('8. Satisfaction'),
               const SizedBox(height: 8),
               _satisfactionRadio(ctrl),
             ],
             const SizedBox(height: 24),
             _sectionTitle(
-                ctrl.waterAvailable == true ? '10. Remarks' : '9. Remarks'),
+                ctrl.waterAvailable == true ? '9. Remarks' : '8. Remarks'),
             const SizedBox(height: 8),
             _remarksField(ctrl),
             if (ctrl.waterAvailable == false)
@@ -163,22 +177,32 @@ class _FeedbackFormState extends State<_FeedbackForm> {
             const SizedBox(height: 24),
             _sectionTitle(
                 ctrl.waterAvailable == true
-                    ? '11. Current Location (optional)'
-                    : '10. Current Location (optional)'),
+                    ? '10. Current Location (optional)'
+                    : '9. Current Location (optional)'),
             const SizedBox(height: 8),
             _locationSection(ctrl),
             const SizedBox(height: 24),
             _sectionTitle(
                 ctrl.waterAvailable == true
-                    ? '12. Photo (optional)'
-                    : '11. Photo (optional)'),
+                    ? '11. Photo / Proof'
+                    : '10. Photo / Proof'),
             const SizedBox(height: 8),
             _photoSection(ctrl),
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                'Required — capture or choose a photo as proof',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.orange[800],
+                ),
+              ),
+            ),
             const SizedBox(height: 24),
             _sectionTitle(
                 ctrl.waterAvailable == true
-                    ? '13. Reporter Name'
-                    : '12. Reporter Name'),
+                    ? '12. Reporter Name'
+                    : '11. Reporter Name'),
             const SizedBox(height: 8),
             _reporterNameField(ctrl),
             const SizedBox(height: 32),
@@ -187,6 +211,102 @@ class _FeedbackFormState extends State<_FeedbackForm> {
           ],
         );
       },
+    );
+  }
+
+  Widget _sectionSubtitle(String text) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        color: Colors.grey[700],
+      ),
+    );
+  }
+
+  Widget _customerEntryModeChoice(FeedbackController ctrl) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(
+          color: const Color(0xff0288D1).withValues(alpha: 0.1),
+        ),
+      ),
+      child: Column(
+        children: [
+          RadioListTile<CustomerEntryMode>(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Choose from customer list'),
+            subtitle: const Text(
+              'Search and pick an account loaded from the database',
+              style: TextStyle(fontSize: 12),
+            ),
+            value: CustomerEntryMode.fromList,
+            groupValue: ctrl.customerEntryMode,
+            onChanged: (v) {
+              if (v != null) ctrl.updateCustomerEntryMode(v);
+            },
+            activeColor: const Color(0xff0288D1),
+          ),
+          RadioListTile<CustomerEntryMode>(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Enter account details manually'),
+            subtitle: const Text(
+              'Type the account number and customer name',
+              style: TextStyle(fontSize: 12),
+            ),
+            value: CustomerEntryMode.manual,
+            groupValue: ctrl.customerEntryMode,
+            onChanged: (v) {
+              if (v != null) ctrl.updateCustomerEntryMode(v);
+            },
+            activeColor: const Color(0xff0288D1),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _manualAccountField(FeedbackController ctrl) {
+    return TextField(
+      controller: _manualAccountController,
+      onChanged: ctrl.updateManualAccountNo,
+      decoration: InputDecoration(
+        hintText: 'Enter account number',
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: const BorderSide(color: Color(0xff0288D1)),
+        ),
+      ),
+    );
+  }
+
+  Widget _manualCustomerNameField(FeedbackController ctrl) {
+    return TextField(
+      controller: _manualNameController,
+      onChanged: ctrl.updateManualCustomerName,
+      decoration: InputDecoration(
+        hintText: 'Enter customer name',
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: const BorderSide(color: Color(0xff0288D1)),
+        ),
+      ),
     );
   }
 
@@ -357,7 +477,7 @@ class _FeedbackFormState extends State<_FeedbackForm> {
     );
   }
 
-  Widget _customerSection(BuildContext context, FeedbackController ctrl) {
+  Widget _customerListSection(BuildContext context, FeedbackController ctrl) {
     if (ctrl.selectedRoute.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(16),
@@ -441,8 +561,9 @@ class _FeedbackFormState extends State<_FeedbackForm> {
           onSelected: (Customer c) => ctrl.updateCustomer(c),
           fieldViewBuilder:
               (context, textEditingController, focusNode, onFieldSubmitted) {
-            if (textEditingController.text != _accountNoController.text) {
-              textEditingController.text = _accountNoController.text;
+            final selectedAccountNo = ctrl.selectedCustomer?.accountNo ?? '';
+            if (textEditingController.text != selectedAccountNo) {
+              textEditingController.text = selectedAccountNo;
             }
             return TextField(
               controller: textEditingController,
@@ -500,11 +621,15 @@ class _FeedbackFormState extends State<_FeedbackForm> {
             );
           },
         ),
-        if (ctrl.selectedCustomer == null && _accountNoController.text.isNotEmpty)
+        if (ctrl.selectedCustomer == null &&
+            ctrl.selectedRoute.isNotEmpty &&
+            !ctrl.isLoadingCustomers &&
+            ctrl.customersError == null &&
+            ctrl.filteredCustomers.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 6, left: 4),
             child: Text(
-              'Choose an account from suggestions',
+              'Type to search, then choose an account from the suggestions',
               style: TextStyle(fontSize: 12, color: Colors.orange[800]),
             ),
           ),
@@ -512,14 +637,14 @@ class _FeedbackFormState extends State<_FeedbackForm> {
     );
   }
 
-  Widget _customerNameField() {
+  Widget _customerNameField(FeedbackController ctrl) {
     return TextField(
-      controller: _customerNameController,
       readOnly: true,
+      controller: TextEditingController(text: ctrl.selectedCustomerName),
       decoration: InputDecoration(
         hintText: 'Customer name auto-populates after account selection',
         filled: true,
-        fillColor: Colors.white,
+        fillColor: Colors.grey[100],
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
         ),
@@ -772,8 +897,8 @@ class _FeedbackFormState extends State<_FeedbackForm> {
             )
           else
             Text(
-              'No photo captured',
-              style: TextStyle(color: Colors.grey[600]),
+              'Photo required — capture or choose a file',
+              style: TextStyle(color: Colors.orange[800]),
             ),
           const SizedBox(height: 12),
           Row(

@@ -10,7 +10,13 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class CompleteIncidences extends StatefulWidget {
   final String staffid;
-  const CompleteIncidences({super.key, required this.staffid});
+  /// Bumped by parent when this tab is shown again so the list reloads.
+  final int refreshNonce;
+  const CompleteIncidences({
+    super.key,
+    required this.staffid,
+    this.refreshNonce = 0,
+  });
 
   @override
   State<CompleteIncidences> createState() => _CompleteIncidencesState();
@@ -28,6 +34,15 @@ class _CompleteIncidencesState extends State<CompleteIncidences> {
   void initState() {
     fetchCompleteIncidences();
     super.initState();
+  }
+
+  @override
+  void didUpdateWidget(covariant CompleteIncidences oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.refreshNonce != widget.refreshNonce &&
+        widget.refreshNonce > 0) {
+      fetchCompleteIncidences();
+    }
   }
 
   Future<void> fetchCompleteIncidences() async {

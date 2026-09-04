@@ -92,17 +92,59 @@ class _NavigateNRWState extends State<NavigateNRW> {
   }
 
   Future<void> _fitCameraToBounds(LatLng position1, LatLng position2) async {
-    _updateCameraPosition(position1, 0);
     try {
       final GoogleMapController? controller = await _controller.future;
-      LatLngBounds bounds = LatLngBounds(
-        southwest: position1,
-        northeast: position2,
+      if (controller == null) return;
+
+      final bool p1Ok = (position1.latitude.abs() >= 0.0001 ||
+              position1.longitude.abs() >= 0.0001) &&
+          position1.latitude.abs() <= 90 &&
+          position1.longitude.abs() <= 180;
+      final bool p2Ok = (position2.latitude.abs() >= 0.0001 ||
+              position2.longitude.abs() >= 0.0001) &&
+          position2.latitude.abs() <= 90 &&
+          position2.longitude.abs() <= 180;
+
+      if (!p1Ok && p2Ok) {
+        _updateCameraPosition(position2, 0);
+        return;
+      }
+      if (p1Ok && !p2Ok) {
+        _updateCameraPosition(position1, 0);
+        return;
+      }
+      if (!p1Ok && !p2Ok) return;
+
+      final southwest = LatLng(
+        position1.latitude < position2.latitude
+            ? position1.latitude
+            : position2.latitude,
+        position1.longitude < position2.longitude
+            ? position1.longitude
+            : position2.longitude,
       );
-      CameraUpdate cameraUpdate = CameraUpdate.newLatLngBounds(bounds, 50);
-      controller?.animateCamera(cameraUpdate);
+      final northeast = LatLng(
+        position1.latitude > position2.latitude
+            ? position1.latitude
+            : position2.latitude,
+        position1.longitude > position2.longitude
+            ? position1.longitude
+            : position2.longitude,
+      );
+
+      await controller.animateCamera(
+        CameraUpdate.newLatLngBounds(
+          LatLngBounds(southwest: southwest, northeast: northeast),
+          80,
+        ),
+      );
     } catch (e) {
-      _updateCameraPosition(position1, 0);
+      if ((position2.latitude.abs() >= 0.0001 ||
+          position2.longitude.abs() >= 0.0001)) {
+        _updateCameraPosition(position2, 0);
+      } else {
+        _updateCameraPosition(position1, 0);
+      }
     }
   }
 
