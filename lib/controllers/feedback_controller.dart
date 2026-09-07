@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -15,6 +16,8 @@ import 'package:um_collect/services/rationing_schedule_service.dart';
 
 enum CustomerEntryMode { fromList, manual }
 
+enum ManualAccountStatus { idle, checking, found, notFound, error }
+
 class FeedbackController extends ChangeNotifier {
   final _schedule = RationingScheduleService.instance;
   final _storage = const FlutterSecureStorage();
@@ -29,6 +32,9 @@ class FeedbackController extends ChangeNotifier {
   Customer? selectedCustomer;
   String manualAccountNo = '';
   String manualCustomerName = '';
+  ManualAccountStatus manualAccountStatus = ManualAccountStatus.idle;
+  Customer? manualMatchedCustomer;
+  Timer? _manualLookupDebounce;
   bool? waterAvailable; // true = Yes, false = No
   String? satisfaction; // 'Sufficient' | 'Low Pressure' when water available
   String remarks = '';
@@ -184,21 +190,114 @@ class FeedbackController extends ChangeNotifier {
 
   void updateCustomerEntryMode(CustomerEntryMode mode) {
     if (customerEntryMode == mode) return;
+    _manualLookupDebounce?.cancel();
     customerEntryMode = mode;
     selectedCustomer = null;
     manualAccountNo = '';
     manualCustomerName = '';
+    manualMatchedCustomer = null;
+    manualAccountStatus = ManualAccountStatus.idle;
     notifyListeners();
   }
 
   void updateManualAccountNo(String value) {
     manualAccountNo = value;
+    manualMatchedCustomer = null;
+    manualAccountStatus = ManualAccountStatus.idle;
     notifyListeners();
+
+    _manualLookupDebounce?.cancel();
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return;
+    _manualLookupDebounce = Timer(const Duration(milliseconds: 550), () {
+      verifyManualAccount(trimmed);
+    });
   }
 
   void updateManualCustomerName(String value) {
     manualCustomerName = value;
     notifyListeners();
+  }
+
+  /// Looks up account in wt_customer_meters. Exact accountNo match required.
+  Future<bool> verifyManualAccount([String? account]) async {
+    final q = (account ?? manualAccountNo).trim();
+    if (q.isEmpty) {
+      manualAccountStatus = ManualAccountStatus.idle;
+      manualMatchedCustomer = null;
+      notifyListeners();
+      return false;
+    }
+
+    manualAccountStatus = ManualAccountStatus.checking;
+    notifyListeners();
+
+    try {
+      final token = await _storage.read(key: 'mwstaffjwt');
+      if (token == null || token.isEmpty) {
+        manualAccountStatus = ManualAccountStatus.error;
+        manualMatchedCustomer = null;
+        notifyListeners();
+        return false;
+      }
+
+      final uri = Uri.parse(
+        '${getUrl()}wt/customer-meters?accountNo=${Uri.encodeComponent(q)}&limit=20',
+      );
+      final response = await http.get(
+        uri,
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 203) {
+        manualAccountStatus = ManualAccountStatus.error;
+        manualMatchedCustomer = null;
+        notifyListeners();
+        return false;
+      }
+
+      final decoded = jsonDecode(response.body);
+      final List data = decoded is Map<String, dynamic>
+          ? (decoded['data'] is List ? decoded['data'] as List : const [])
+          : (decoded is List ? decoded : const []);
+
+      Customer? match;
+      final qLower = q.toLowerCase();
+      for (final raw in data) {
+        if (raw is! Map) continue;
+        final c = Customer.fromJson(raw.cast<String, dynamic>());
+        if (c.accountNo.trim().toLowerCase() == qLower) {
+          match = c;
+          break;
+        }
+      }
+
+      if (match == null) {
+        manualAccountStatus = ManualAccountStatus.notFound;
+        manualMatchedCustomer = null;
+        notifyListeners();
+        return false;
+      }
+
+      manualMatchedCustomer = match;
+      manualAccountStatus = ManualAccountStatus.found;
+      // Prefer registry name so submitted feedback matches billing records.
+      if (match.name.trim().isNotEmpty) {
+        manualCustomerName = match.name.trim();
+      }
+      notifyListeners();
+      return true;
+    } catch (e) {
+      if (kDebugMode) debugPrint('[verifyManualAccount] $e');
+      manualAccountStatus = ManualAccountStatus.error;
+      manualMatchedCustomer = null;
+      notifyListeners();
+      return false;
+    }
   }
 
   void updateCollectionMode(String value) {
@@ -416,6 +515,16 @@ class FeedbackController extends ChangeNotifier {
       if (manualAccountNo.trim().isEmpty) {
         return 'Please enter the account number';
       }
+      if (manualAccountStatus == ManualAccountStatus.checking) {
+        return 'Checking account number… please wait';
+      }
+      if (manualAccountStatus == ManualAccountStatus.notFound ||
+          manualMatchedCustomer == null) {
+        return 'Account number not found. Enter a valid customer account.';
+      }
+      if (manualAccountStatus == ManualAccountStatus.error) {
+        return 'Could not verify account. Check connection and try again.';
+      }
       if (manualCustomerName.trim().isEmpty) {
         return 'Please enter the customer name';
       }
@@ -436,6 +545,14 @@ class FeedbackController extends ChangeNotifier {
 
   /// Submit feedback to POST /customer-feedback. Returns null on success, error message otherwise.
   Future<String?> submitFeedback() async {
+    if (customerEntryMode == CustomerEntryMode.manual) {
+      final ok = await verifyManualAccount();
+      if (!ok) {
+        return validate() ??
+            'Account number not found. Enter a valid customer account.';
+      }
+    }
+
     final err = validate();
     if (err != null) return err;
 
@@ -450,15 +567,22 @@ class FeedbackController extends ChangeNotifier {
       final req = http.MultipartRequest('POST', uri);
       req.headers['Authorization'] = 'Bearer $token';
 
+      final Customer? matched = manualMatchedCustomer;
       final customerId = customerEntryMode == CustomerEntryMode.fromList
           ? selectedCustomer!.id
-          : manualAccountNo.trim();
+          : (matched != null && matched.id.isNotEmpty
+              ? matched.id
+              : manualAccountNo.trim());
       final accountNo = customerEntryMode == CustomerEntryMode.fromList
           ? selectedCustomer!.accountNo
-          : manualAccountNo.trim();
+          : (matched?.accountNo.isNotEmpty == true
+              ? matched!.accountNo
+              : manualAccountNo.trim());
       final customerName = customerEntryMode == CustomerEntryMode.fromList
           ? selectedCustomer!.name
-          : manualCustomerName.trim();
+          : (matched != null && matched.name.trim().isNotEmpty
+              ? matched.name.trim()
+              : manualCustomerName.trim());
 
       req.fields['day'] = selectedDay;
       req.fields['zone'] = selectedZone;
@@ -527,6 +651,8 @@ class FeedbackController extends ChangeNotifier {
     selectedCustomer = null;
     manualAccountNo = '';
     manualCustomerName = '';
+    manualMatchedCustomer = null;
+    manualAccountStatus = ManualAccountStatus.idle;
     waterAvailable = null;
     satisfaction = null;
     remarks = '';
@@ -548,5 +674,11 @@ class FeedbackController extends ChangeNotifier {
   static String _normalizeZoneForApi(String zone) {
     if (zone.isEmpty) return zone;
     return zone.replaceAll(RegExp(r'\s*-\s*'), ' - ');
+  }
+
+  @override
+  void dispose() {
+    _manualLookupDebounce?.cancel();
+    super.dispose();
   }
 }

@@ -93,10 +93,9 @@ class _FeedbackFormState extends State<_FeedbackForm> {
             _manualAccountController.clear();
           });
         }
-        if (ctrl.manualCustomerName.isEmpty &&
-            _manualNameController.text.isNotEmpty) {
+        if (_manualNameController.text != ctrl.manualCustomerName) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            _manualNameController.clear();
+            _manualNameController.text = ctrl.manualCustomerName;
           });
         }
         if (_reporterNameController.text != ctrl.reporterName) {
@@ -273,32 +272,91 @@ class _FeedbackFormState extends State<_FeedbackForm> {
   }
 
   Widget _manualAccountField(FeedbackController ctrl) {
-    return TextField(
-      controller: _manualAccountController,
-      onChanged: ctrl.updateManualAccountNo,
-      decoration: InputDecoration(
-        hintText: 'Enter account number',
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextField(
+          controller: _manualAccountController,
+          onChanged: ctrl.updateManualAccountNo,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => ctrl.verifyManualAccount(),
+          decoration: InputDecoration(
+            hintText: 'Enter account number',
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15),
+              borderSide: const BorderSide(color: Color(0xff0288D1)),
+            ),
+            suffixIcon: ctrl.manualAccountStatus == ManualAccountStatus.checking
+                ? const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : ctrl.manualAccountStatus == ManualAccountStatus.found
+                    ? const Icon(Icons.check_circle, color: Colors.green)
+                    : ctrl.manualAccountStatus == ManualAccountStatus.notFound
+                        ? Icon(Icons.error_outline, color: Colors.red[700])
+                        : null,
+          ),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: const BorderSide(color: Color(0xff0288D1)),
-        ),
-      ),
+        if (ctrl.manualAccountStatus == ManualAccountStatus.found)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 4),
+            child: Text(
+              'Account found${ctrl.manualMatchedCustomer?.name.isNotEmpty == true ? ': ${ctrl.manualMatchedCustomer!.name}' : ''}',
+              style: TextStyle(fontSize: 12, color: Colors.green[800]),
+            ),
+          )
+        else if (ctrl.manualAccountStatus == ManualAccountStatus.notFound)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 4),
+            child: Text(
+              'No customer with this account number',
+              style: TextStyle(fontSize: 12, color: Colors.red[700]),
+            ),
+          )
+        else if (ctrl.manualAccountStatus == ManualAccountStatus.error)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 4),
+            child: Text(
+              'Could not verify account. Check connection and retry.',
+              style: TextStyle(fontSize: 12, color: Colors.orange[800]),
+            ),
+          )
+        else if (ctrl.manualAccountStatus == ManualAccountStatus.checking)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 4),
+            child: Text(
+              'Checking account…',
+              style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+            ),
+          ),
+      ],
     );
   }
 
   Widget _manualCustomerNameField(FeedbackController ctrl) {
+    final lockedFromRegistry =
+        ctrl.manualAccountStatus == ManualAccountStatus.found &&
+            (ctrl.manualMatchedCustomer?.name.trim().isNotEmpty ?? false);
     return TextField(
       controller: _manualNameController,
-      onChanged: ctrl.updateManualCustomerName,
+      readOnly: lockedFromRegistry,
+      onChanged: lockedFromRegistry ? null : ctrl.updateManualCustomerName,
       decoration: InputDecoration(
-        hintText: 'Enter customer name',
+        hintText: lockedFromRegistry
+            ? 'Name from customer records'
+            : 'Enter customer name (after valid account)',
         filled: true,
-        fillColor: Colors.white,
+        fillColor: lockedFromRegistry ? Colors.grey[100] : Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
         ),
