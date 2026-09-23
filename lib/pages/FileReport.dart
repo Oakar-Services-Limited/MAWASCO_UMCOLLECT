@@ -14,6 +14,7 @@ import 'package:um_collect/pages/complete.dart';
 import 'package:um_collect/components/MyTextInput.dart';
 import 'package:um_collect/services/connectivity_helper.dart';
 import 'package:um_collect/services/database_helper.dart';
+import 'package:um_collect/services/offline_image_store.dart';
 
 class FileReport extends StatefulWidget {
   final dynamic item;
@@ -56,11 +57,28 @@ class _FileReportState extends State<FileReport> {
     final now = DateTime.now();
     final resolvedDate = DateFormat('yyyy-MM-dd').format(now);
     final resolvedTime = DateFormat('hh:mm a').format(now);
+
+    String? durablePhotoPath;
+    if (repairedImage.isNotEmpty) {
+      durablePhotoPath = await OfflineImageStore.persistFromFile(
+        sourcePath: repairedImage,
+        submissionId: 'incident_res_$id',
+      );
+      // Fall back to original path if copy failed but file still exists.
+      if (durablePhotoPath == null) {
+        final original = File(repairedImage);
+        if (await original.exists()) {
+          durablePhotoPath = repairedImage;
+        }
+      }
+    }
+
     final payload = <String, dynamic>{
       'taskRemark': taskremark.trim(),
       'resolvedDate': resolvedDate,
       'resolvedTime': resolvedTime,
-      if (repairedImage.isNotEmpty) 'repairedImagePath': repairedImage,
+      if (durablePhotoPath != null && durablePhotoPath.isNotEmpty)
+        'repairedImagePath': durablePhotoPath,
     };
 
     await _db.saveSubmission(
@@ -75,9 +93,13 @@ class _FileReportState extends State<FileReport> {
       },
     );
 
+    final hadPhoto = repairedImage.isNotEmpty;
+    final photoQueued = durablePhotoPath != null && durablePhotoPath.isNotEmpty;
     return Message(
       token: null,
-      success: 'Draft saved offline. Will sync when online. ($reason)',
+      success: hadPhoto && !photoQueued
+          ? 'Draft saved offline but photo could not be stored. Will sync without photo. ($reason)'
+          : 'Draft saved offline. Will sync when online. ($reason)',
       error: null,
     );
   }

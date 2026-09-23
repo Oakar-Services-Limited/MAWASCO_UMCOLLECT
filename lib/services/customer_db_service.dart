@@ -1,14 +1,14 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
+
+import 'package:um_collect/components/Utils.dart';
 
 @immutable
 class CustomerDbEntry {
-  /// This is the **account number** in our `customer_db.csv`.
-  ///
-  /// Historically the CSV header used `name` for this value, so we support both
-  /// `account_number` and `name` when parsing.
+  /// Account number from dormant_meters (formerly customer_db.csv).
   final String accountNumber;
   final String connectionNumber;
   final String customerName;
@@ -31,39 +31,87 @@ class CustomerDbEntry {
     required this.label,
   });
 
-  static CustomerDbEntry fromCsvRow(Map<String, String> row) {
+  static CustomerDbEntry fromJson(Map<String, dynamic> json) {
+    String s(dynamic v) => v == null ? '' : v.toString().trim();
     return CustomerDbEntry(
-      accountNumber: (row['account_number'] ?? '').trim(),
-      connectionNumber: (row['connection_number'] ?? '').trim(),
-      customerName: (row['customer_name'] ?? '').trim(),
-      meterNo: (row['meter_no'] ?? '').trim(),
-      scheme: (row['scheme'] ?? '').trim(),
-      zone: (row['zone'] ?? '').trim(),
-      route: (row['route'] ?? '').trim(),
-      routeId: (row['route_id'] ?? '').trim(),
-      label: (row['label'] ?? '').trim(),
+      accountNumber: s(json['account_number'] ?? json['accountNumber']),
+      connectionNumber:
+          s(json['connection_number'] ?? json['connectionNumber']),
+      customerName: s(json['customer_name'] ?? json['customerName']),
+      meterNo: s(json['meter_no'] ?? json['meterNo']),
+      scheme: s(json['scheme'] ?? json['schemeName']),
+      zone: s(json['zone']),
+      route: s(json['route']),
+      routeId: s(json['route_id'] ?? json['routeId']),
+      label: s(json['label']),
     );
   }
 }
 
-/// Loads `customer_db.csv` shipped with the app and exposes helpers for
-/// scheme/zone/route/account filtering similar to Customer Supply Feedback.
+/// Loads dormant survey accounts from GET /dormant-meters and exposes the same
+/// scheme/zone/route/account helpers used by the Dormant Survey form.
 class CustomerDbService {
   CustomerDbService._();
 
   static final CustomerDbService instance = CustomerDbService._();
 
+  final _storage = const FlutterSecureStorage();
+
   List<CustomerDbEntry> _entries = const [];
   bool _loaded = false;
 
-  Future<void> ensureLoaded() async {
-    if (_loaded) return;
-    final raw = await rootBundle.loadString('assets/customer_db.csv');
-    _entries = _parseCsv(raw);
-    _loaded = true;
-  }
-
   List<CustomerDbEntry> get entries => _entries;
+  bool get isLoaded => _loaded;
+
+  /// Fetch catalog from API (once per app session). Same filtering UX as CSV.
+  Future<void> ensureLoaded({bool forceRefresh = false}) async {
+    if (_loaded && !forceRefresh) return;
+
+    final token = await _storage.read(key: 'mwstaffjwt');
+    if (token == null || token.isEmpty) {
+      throw Exception('Not authenticated');
+    }
+
+    final uri = Uri.parse(
+      '${getUrl()}dormant-meters?limit=20000&offset=0',
+    );
+    if (kDebugMode) {
+      debugPrint('[CustomerDbService] GET $uri');
+    }
+
+    final response = await http.get(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        'Failed to load dormant meters (${response.statusCode})',
+      );
+    }
+
+    final body = json.decode(response.body);
+    List<dynamic> list = [];
+    if (body is Map && body['data'] is List) {
+      list = body['data'] as List<dynamic>;
+    } else if (body is List) {
+      list = body;
+    }
+
+    _entries = list
+        .whereType<Map>()
+        .map((e) => CustomerDbEntry.fromJson(Map<String, dynamic>.from(e)))
+        .where((e) => e.accountNumber.isNotEmpty)
+        .toList();
+    _loaded = true;
+
+    if (kDebugMode) {
+      debugPrint('[CustomerDbService] loaded ${_entries.length} accounts');
+    }
+  }
 
   List<String> schemes() {
     final set = <String>{};
@@ -121,29 +169,6 @@ class CustomerDbService {
 
       out.add(e);
       if (out.length >= limit) break;
-    }
-    return out;
-  }
-
-  // Minimal CSV parser (comma-separated, no quoted commas expected for this dataset).
-  static List<CustomerDbEntry> _parseCsv(String raw) {
-    final lines = const LineSplitter().convert(raw);
-    if (lines.isEmpty) return const [];
-
-    final header = lines.first.split(',').map((s) => s.trim()).toList();
-    final out = <CustomerDbEntry>[];
-
-    for (var i = 1; i < lines.length; i++) {
-      final line = lines[i];
-      if (line.trim().isEmpty) continue;
-      final parts = line.split(',');
-      if (parts.length < header.length) continue;
-
-      final row = <String, String>{};
-      for (var c = 0; c < header.length; c++) {
-        row[header[c]] = c < parts.length ? parts[c] : '';
-      }
-      out.add(CustomerDbEntry.fromCsvRow(row));
     }
     return out;
   }

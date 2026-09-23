@@ -96,7 +96,8 @@ flutter:
     - assets/images/
     - assets/config/
     - assets/config/rationing_schedule.json
-    - assets/customer_db.csv
+    - assets/config/zone_routes.json
+    # customer_db.csv retired — Dormant Survey loads from /dormant-meters API
     - assets/Meters Replacement Exercise.csv
 
   # An image asset can refer to one or more resolution-specific "variants", see

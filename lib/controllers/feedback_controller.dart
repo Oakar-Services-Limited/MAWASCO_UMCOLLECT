@@ -13,6 +13,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/models/customer.dart';
 import 'package:um_collect/services/rationing_schedule_service.dart';
+import 'package:um_collect/services/zone_routes_service.dart';
 
 enum CustomerEntryMode { fromList, manual }
 
@@ -107,12 +108,29 @@ class FeedbackController extends ChangeNotifier {
       ? availableRoutes
       : _uniqueRoutesFrom(customers);
 
+  /// Zone 023 82 (Rural Institutions): allow typed account/name even if not in meters.
+  bool get allowsUnregisteredManualCustomer =>
+      selectedZone == ZoneRoutesService.ruralInstitutionsZone;
+
   static List<String> _uniqueRoutesFrom(List<Customer> list) {
     final set = <String>{};
     for (final c in list) {
       if (c.route.isNotEmpty) set.add(c.route);
     }
     return set.toList()..sort();
+  }
+
+  void _applyConfiguredRoutesForZone() {
+    final configured =
+        ZoneRoutesService.instance.routesForZone(selectedZone);
+    if (configured.isEmpty) {
+      availableRoutes = [];
+      return;
+    }
+    availableRoutes = ZoneRoutesService.mergeRoutes(
+      configured,
+      _uniqueRoutesFrom(customers),
+    );
   }
 
   /// Customers for selected zone (and route when refetched). API filters by zone and route.
@@ -154,6 +172,7 @@ class FeedbackController extends ChangeNotifier {
     customers = [];
     availableRoutes = [];
     customersError = null;
+    _applyConfiguredRoutesForZone();
     notifyListeners();
   }
 
@@ -163,8 +182,8 @@ class FeedbackController extends ChangeNotifier {
     selectedRoute = '';
     selectedCustomer = null;
     customers = [];
-    availableRoutes = [];
     customersError = null;
+    _applyConfiguredRoutesForZone();
     notifyListeners();
     if (value.isNotEmpty && selectedZone.isNotEmpty) {
       fetchCustomers();
@@ -479,7 +498,12 @@ class FeedbackController extends ChangeNotifier {
             .map((e) => Customer.fromJson(e as Map<String, dynamic>))
             .toList();
         if (selectedRoute.isEmpty) {
-          availableRoutes = _uniqueRoutesFrom(customers);
+          final fromApi = _uniqueRoutesFrom(customers);
+          final configured =
+              ZoneRoutesService.instance.routesForZone(selectedZone);
+          availableRoutes = configured.isNotEmpty
+              ? ZoneRoutesService.mergeRoutes(configured, fromApi)
+              : fromApi;
         }
         customersError = null;
       } else {
@@ -518,12 +542,20 @@ class FeedbackController extends ChangeNotifier {
       if (manualAccountStatus == ManualAccountStatus.checking) {
         return 'Checking account number… please wait';
       }
-      if (manualAccountStatus == ManualAccountStatus.notFound ||
-          manualMatchedCustomer == null) {
-        return 'Account number not found. Enter a valid customer account.';
-      }
-      if (manualAccountStatus == ManualAccountStatus.error) {
-        return 'Could not verify account. Check connection and try again.';
+      if (allowsUnregisteredManualCustomer) {
+        // Rural Institutions: account need not exist in meters DB.
+        if (manualAccountStatus == ManualAccountStatus.error &&
+            manualCustomerName.trim().isEmpty) {
+          return 'Could not verify account. Enter customer name to continue, or retry.';
+        }
+      } else {
+        if (manualAccountStatus == ManualAccountStatus.notFound ||
+            manualMatchedCustomer == null) {
+          return 'Account number not found. Enter a valid customer account.';
+        }
+        if (manualAccountStatus == ManualAccountStatus.error) {
+          return 'Could not verify account. Check connection and try again.';
+        }
       }
       if (manualCustomerName.trim().isEmpty) {
         return 'Please enter the customer name';
@@ -547,7 +579,7 @@ class FeedbackController extends ChangeNotifier {
   Future<String?> submitFeedback() async {
     if (customerEntryMode == CustomerEntryMode.manual) {
       final ok = await verifyManualAccount();
-      if (!ok) {
+      if (!ok && !allowsUnregisteredManualCustomer) {
         return validate() ??
             'Account number not found. Enter a valid customer account.';
       }

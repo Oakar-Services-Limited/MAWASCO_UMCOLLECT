@@ -4,9 +4,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 String getUrl() {
-  // return "http://192.168.1.121:3003/api/";
+  return "http://192.168.1.121:3003/api/";
   // return "http://192.168.1.136:3003/api/";
-  return "https://api-utilitymanager.mawasco.co.ke/api/";
+  // return "https://api-utilitymanager.mawasco.co.ke/api/";
 }
 
 Map<String, dynamic> parseJwt(String token) {
@@ -22,6 +22,38 @@ Map<String, dynamic> parseJwt(String token) {
   }
 
   return payloadMap;
+}
+
+/// User-facing copy when offline sync needs a fresh staff login.
+const String kSessionExpiredSyncMessage =
+    'Your token has expired. Log in again to sync.';
+
+/// True when token is missing, malformed, or past JWT `exp`.
+bool isJwtExpiredOrInvalid(String? token) {
+  if (token == null || token.trim().isEmpty) return true;
+  final decoded = parseJwt(token);
+  if (decoded['error'] != null) return true;
+  final exp = decoded['exp'];
+  if (exp is! num) return false;
+  final expiry =
+      DateTime.fromMillisecondsSinceEpoch((exp * 1000).round(), isUtc: true);
+  return DateTime.now().toUtc().isAfter(expiry);
+}
+
+bool responseIndicatesInvalidToken(int statusCode, String body) {
+  if (statusCode == 401) return true;
+  if (statusCode != 400) return false;
+  try {
+    final data = json.decode(body);
+    if (data is Map) {
+      final err = (data['error'] ?? data['message'] ?? '').toString().toLowerCase();
+      return err.contains('invalid token') ||
+          err.contains('jwt expired') ||
+          err.contains('token expired') ||
+          err.contains('jwt malformed');
+    }
+  } catch (_) {}
+  return false;
 }
 
 /// Staff display name from JWT payload (login token includes `name` when issued by admin/login).

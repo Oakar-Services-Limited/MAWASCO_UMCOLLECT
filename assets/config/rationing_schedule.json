@@ -857,5 +857,18 @@
       "Thursday",
       "Friday"
     ]
+  },
+  {
+    "zone": "023 82",
+    "area": "Rural Institutions",
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday"
+    ]
   }
 ]

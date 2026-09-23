@@ -40,6 +40,10 @@ class SyncService {
       return 'Nothing to sync.';
     }
 
+    var syncedCount = 0;
+    var authBlockedCount = 0;
+    var failedCount = 0;
+
     for (final row in submissions) {
       final id = row['id'] as String;
       try {
@@ -64,6 +68,7 @@ class SyncService {
         await _attachQueuedImage(body);
 
         if (endpoint == null || endpoint.isEmpty) {
+          failedCount++;
           await _db.updateSubmissionSyncStatus(
             id: id,
             synced: false,
@@ -80,12 +85,14 @@ class SyncService {
           staffToken: staffToken,
           publicToken: publicToken,
         );
-        if (requiresAuth && (token == null || token.isEmpty)) {
+
+        if (requiresAuth && isJwtExpiredOrInvalid(token)) {
+          authBlockedCount++;
           await _db.updateSubmissionSyncStatus(
             id: id,
             synced: false,
             syncStatus: 'failed',
-            syncError: 'Authentication token not found. Please login to sync.',
+            syncError: kSessionExpiredSyncMessage,
           );
           continue;
         }
@@ -97,6 +104,7 @@ class SyncService {
             body: body,
           );
           if (missingFilesError != null) {
+            failedCount++;
             await _db.updateSubmissionSyncStatus(
               id: id,
               synced: false,
@@ -138,6 +146,7 @@ class SyncService {
                     ? 2
                     : 0;
             if (expectedFiles > 0 && multipart.files.length < expectedFiles) {
+              failedCount++;
               await _db.updateSubmissionSyncStatus(
                 id: id,
                 synced: false,
@@ -164,15 +173,24 @@ class SyncService {
         } else if (method == 'PUT') {
           final repairedImagePath = body['repairedImagePath']?.toString();
           if (repairedImagePath != null && repairedImagePath.isNotEmpty) {
+            final file = File(repairedImagePath);
+            if (!await file.exists()) {
+              failedCount++;
+              await _db.updateSubmissionSyncStatus(
+                id: id,
+                synced: false,
+                syncStatus: 'failed',
+                syncError:
+                    'Resolution photo missing on device. Delete this entry and submit again.',
+              );
+              continue;
+            }
             final multipart = http.MultipartRequest('PUT', uri);
             if (token != null && token.isNotEmpty) {
               multipart.headers['Authorization'] = 'Bearer $token';
             }
-            final file = File(repairedImagePath);
-            if (await file.exists()) {
-              multipart.files
-                  .add(await http.MultipartFile.fromPath('image', file.path));
-            }
+            multipart.files
+                .add(await http.MultipartFile.fromPath('image', file.path));
             for (final entry in body.entries) {
               if (entry.key == 'repairedImagePath') continue;
               multipart.fields[entry.key] = entry.value?.toString() ?? '';
@@ -191,6 +209,7 @@ class SyncService {
             );
           }
         } else {
+          failedCount++;
           await _db.updateSubmissionSyncStatus(
             id: id,
             synced: false,
@@ -204,6 +223,7 @@ class SyncService {
             response.statusCode == 201 ||
             response.statusCode == 203 ||
             response.statusCode == 204) {
+          syncedCount++;
           await _db.deleteSubmission(id);
 
           // Best-effort: delete any local files referenced explicitly
@@ -225,6 +245,15 @@ class SyncService {
               }
             } catch (_) {}
           }
+          final repairedPath = body['repairedImagePath']?.toString();
+          if (repairedPath != null && repairedPath.isNotEmpty) {
+            try {
+              final file = File(repairedPath);
+              if (await file.exists()) {
+                await file.delete();
+              }
+            } catch (_) {}
+          }
           for (final value in body.values) {
             if (value is String && _looksLikeLocalPath(value)) {
               try {
@@ -235,7 +264,17 @@ class SyncService {
               } catch (_) {}
             }
           }
+        } else if (responseIndicatesInvalidToken(
+            response.statusCode, response.body)) {
+          authBlockedCount++;
+          await _db.updateSubmissionSyncStatus(
+            id: id,
+            synced: false,
+            syncStatus: 'failed',
+            syncError: kSessionExpiredSyncMessage,
+          );
         } else {
+          failedCount++;
           String message = 'Server error (${response.statusCode})';
           try {
             final errorBody = jsonDecode(response.body);
@@ -253,6 +292,7 @@ class SyncService {
           );
         }
       } catch (e) {
+        failedCount++;
         await _db.updateSubmissionSyncStatus(
           id: id,
           synced: false,
@@ -263,7 +303,20 @@ class SyncService {
     }
 
     OfflineQueueNotifier.instance.refresh();
-    return 'Sync completed.';
+
+    if (authBlockedCount > 0 && syncedCount == 0 && failedCount == 0) {
+      return '$kSessionExpiredSyncMessage ($authBlockedCount waiting).';
+    }
+    if (authBlockedCount > 0) {
+      return 'Synced $syncedCount. $kSessionExpiredSyncMessage ($authBlockedCount need login).'
+          '${failedCount > 0 ? ' $failedCount other failed.' : ''}';
+    }
+    if (failedCount > 0) {
+      return 'Synced $syncedCount. $failedCount failed — check each item for details.';
+    }
+    return syncedCount > 0
+        ? 'Sync completed ($syncedCount item${syncedCount == 1 ? '' : 's'}).'
+        : 'Sync completed.';
   }
 
   Future<String?> _validateMultipartFiles({
@@ -330,6 +383,10 @@ class SyncService {
   bool _requiresAuth(String endpoint) {
     // Public incident reporting endpoint can sync without JWT.
     if (endpoint == 'om/reports') return false;
+    // Many asset mapping endpoints do not enforce auth (same as online submit).
+    if (endpoint.startsWith('wt/')) return false;
+    if (endpoint.startsWith('sr/')) return false;
+    if (endpoint.startsWith('pj/')) return false;
     return true;
   }
 

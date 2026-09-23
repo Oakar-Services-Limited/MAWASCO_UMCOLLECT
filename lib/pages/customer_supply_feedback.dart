@@ -303,7 +303,14 @@ class _FeedbackFormState extends State<_FeedbackForm> {
                 : ctrl.manualAccountStatus == ManualAccountStatus.found
                     ? const Icon(Icons.check_circle, color: Colors.green)
                     : ctrl.manualAccountStatus == ManualAccountStatus.notFound
-                        ? Icon(Icons.error_outline, color: Colors.red[700])
+                        ? Icon(
+                            ctrl.allowsUnregisteredManualCustomer
+                                ? Icons.info_outline
+                                : Icons.error_outline,
+                            color: ctrl.allowsUnregisteredManualCustomer
+                                ? Colors.orange[800]
+                                : Colors.red[700],
+                          )
                         : null,
           ),
         ),
@@ -319,15 +326,24 @@ class _FeedbackFormState extends State<_FeedbackForm> {
           Padding(
             padding: const EdgeInsets.only(top: 6, left: 4),
             child: Text(
-              'No customer with this account number',
-              style: TextStyle(fontSize: 12, color: Colors.red[700]),
+              ctrl.allowsUnregisteredManualCustomer
+                  ? 'Account not in database — enter customer name to continue'
+                  : 'No customer with this account number',
+              style: TextStyle(
+                fontSize: 12,
+                color: ctrl.allowsUnregisteredManualCustomer
+                    ? Colors.orange[800]
+                    : Colors.red[700],
+              ),
             ),
           )
         else if (ctrl.manualAccountStatus == ManualAccountStatus.error)
           Padding(
             padding: const EdgeInsets.only(top: 6, left: 4),
             child: Text(
-              'Could not verify account. Check connection and retry.',
+              ctrl.allowsUnregisteredManualCustomer
+                  ? 'Could not verify account. You can still enter the customer name.'
+                  : 'Could not verify account. Check connection and retry.',
               style: TextStyle(fontSize: 12, color: Colors.orange[800]),
             ),
           )
@@ -354,7 +370,9 @@ class _FeedbackFormState extends State<_FeedbackForm> {
       decoration: InputDecoration(
         hintText: lockedFromRegistry
             ? 'Name from customer records'
-            : 'Enter customer name (after valid account)',
+            : ctrl.allowsUnregisteredManualCustomer
+                ? 'Enter customer name'
+                : 'Enter customer name (after valid account)',
         filled: true,
         fillColor: lockedFromRegistry ? Colors.grey[100] : Colors.white,
         border: OutlineInputBorder(

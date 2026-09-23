@@ -111,6 +111,9 @@ class DormantSurveyController extends ChangeNotifier {
       dbError = null;
       notifyListeners();
       await _db.ensureLoaded();
+      if (_db.entries.isEmpty) {
+        dbError = 'No dormant meter accounts returned from server';
+      }
     } catch (e, st) {
       if (kDebugMode) {
         debugPrint('[DormantSurvey.init] Failed to load customer DB: $e');
@@ -592,16 +595,17 @@ class DormantSurveyController extends ChangeNotifier {
     final body = Map<String, dynamic>.from(_buildSubmitFields(enumeratorName));
 
     if (photo != null) {
-      final file = File(photo!.path);
-      if (await file.exists()) {
-        body['photoPath'] = photo!.path;
+      // Always copy into app storage so sync still has the file later.
+      final saved = await OfflineImageStore.persistFromFile(
+        sourcePath: photo!.path,
+        submissionId: '${submissionId}_photo',
+      );
+      if (saved != null) {
+        body['photoPath'] = saved;
       } else {
-        final saved = await OfflineImageStore.persistFromFile(
-          sourcePath: photo!.path,
-          submissionId: submissionId,
-        );
-        if (saved != null) {
-          body['photoPath'] = saved;
+        final file = File(photo!.path);
+        if (await file.exists()) {
+          body['photoPath'] = photo!.path;
         }
       }
     }

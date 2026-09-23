@@ -1,7 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/pages/OfflineSubmissionsPage.dart';
 import 'package:um_collect/services/database_helper.dart';
 import 'package:um_collect/services/offline_queue_notifier.dart';
@@ -25,6 +27,7 @@ class OfflinePendingCard extends StatefulWidget {
 class _OfflinePendingCardState extends State<OfflinePendingCard> {
   int _count = 0;
   bool _loading = true;
+  bool _sessionExpired = false;
 
   @override
   void initState() {
@@ -63,9 +66,12 @@ class _OfflinePendingCardState extends State<OfflinePendingCard> {
 
   Future<void> _refreshCount() async {
     final count = await _countPending();
+    final token =
+        await const FlutterSecureStorage().read(key: 'mwstaffjwt');
     if (!mounted) return;
     setState(() {
       _count = count;
+      _sessionExpired = isJwtExpiredOrInvalid(token);
       _loading = false;
     });
   }
@@ -99,15 +105,36 @@ class _OfflinePendingCardState extends State<OfflinePendingCard> {
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              const Icon(Icons.cloud_off, color: Color(0xff0288D1)),
+              Icon(
+                _sessionExpired ? Icons.lock_clock : Icons.cloud_off,
+                color: _sessionExpired
+                    ? Colors.orange.shade800
+                    : const Color(0xff0288D1),
+              ),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(
-                  '${widget.label}: $_count waiting to be synced',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${widget.label}: $_count waiting to be synced',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (_sessionExpired) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        kSessionExpiredSyncMessage,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.orange.shade800,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
               const Icon(Icons.chevron_right),

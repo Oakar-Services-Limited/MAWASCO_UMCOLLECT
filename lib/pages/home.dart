@@ -50,8 +50,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   String name = '';
   String staffid = '';
   String position = '';
-  String pending = '';
-  String complete = '';
+  String pending = '0';
+  String complete = '0';
   String formattedDate = '';
   String offset = '0';
   bool isnew = false;
@@ -143,9 +143,12 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       });
 
       final storage = const FlutterSecureStorage();
-      final token = await storage.read(key: "mwstaffjwt");
-
-      if (token == null) {
+      // Prefer in-memory staffid; fall back to stored id so counts work after JWT expiry.
+      var idForStats = id;
+      if (idForStats.isEmpty) {
+        idForStats = (await storage.read(key: 'staffid'))?.trim() ?? '';
+      }
+      if (idForStats.isEmpty) {
         if (!mounted) return;
         setState(() {
           pending = '0';
@@ -156,17 +159,15 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       }
 
       final pendingCount = await AssignedReportsService.fetchCount(
-        userId: id,
+        userId: idForStats,
         status: 'Inprogress',
-        token: token,
       );
 
       if (!mounted) return;
 
       final resolvedCount = await AssignedReportsService.fetchCount(
-        userId: id,
+        userId: idForStats,
         status: 'Resolved',
-        token: token,
       );
 
       if (!mounted) return;
@@ -399,63 +400,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildQuickStats() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
-        children: [
-          _buildStatCard("Pending", pending, Icons.pending_actions),
-          const SizedBox(width: 15),
-          _buildStatCard("Completed", complete, Icons.task_alt),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatCard(String title, String value, IconData icon) {
-    return Expanded(
-      child: Card(
-        elevation: 0,
-        color: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        child: Padding(
-          padding: const EdgeInsets.all(15),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xff0288D1).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, color: const Color(0xff0288D1)),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.black54,
-                    ),
-                  ),
-                  Text(
-                    value,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xff0288D1),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  String _countLabel(String value) {
+    final v = value.trim();
+    if (v.isEmpty) return '0';
+    return v;
   }
 
   Widget _buildSectionTitle(String title) {
@@ -548,7 +496,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             'Pending',
             Icons.pending_actions_outlined,
             () => _openIncidences(selectedItem: 0),
-            count: pending,
+            count: _countLabel(pending),
           ),
         ),
         const SizedBox(width: 15),
@@ -557,7 +505,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             'Completed',
             Icons.task_alt_outlined,
             () => _openIncidences(selectedItem: 1),
-            count: complete,
+            count: _countLabel(complete),
           ),
         ),
       ],

@@ -6,9 +6,7 @@ import 'package:um_collect/components/StaffDrawer.dart';
 import 'package:um_collect/components/incidence_list_pagination.dart';
 import 'package:um_collect/services/assigned_reports_service.dart';
 import 'package:um_collect/pages/home.dart';
-import 'package:um_collect/pages/login.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class PendingIncidences extends StatefulWidget {
   final String staffid;
@@ -56,17 +54,9 @@ class _PendingIncidencesState extends State<PendingIncidences> {
     });
 
     try {
-      final storage = const FlutterSecureStorage();
-      final token = await storage.read(key: "mwstaffjwt");
-
-      if (token == null) {
-        throw Exception("No authentication token found");
-      }
-
       final reports = await AssignedReportsService.fetchAll(
         userId: widget.staffid,
         status: 'Inprogress',
-        token: token,
       );
       setState(() {
         incireported = reports;
@@ -74,22 +64,6 @@ class _PendingIncidencesState extends State<PendingIncidences> {
         isLoading = null;
       });
     } catch (e) {
-      if (e is AssignedReportsAuthException) {
-        final storage = const FlutterSecureStorage();
-        await storage.delete(key: 'mwstaffjwt');
-        await storage.delete(key: 'isstaff');
-        setState(() {
-          incireported = [];
-          isLoading = null;
-        });
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const Login()),
-          );
-        }
-        return;
-      }
       setState(() {
         incireported = [];
         isLoading = null;
