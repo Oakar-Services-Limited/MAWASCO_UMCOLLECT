@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
 
@@ -21,15 +22,23 @@ class DormantSurveyController extends ChangeNotifier {
 
   bool duplicateCheckInProgress = false;
 
-  bool isLoadingDb = true;
+  bool isLoadingDb = false;
   String? dbError;
 
-  // Step A: account search
+  // Step A: account search (lazy-loaded from API)
   String scheme = '';
   String zone = '';
   String route = '';
   CustomerDbEntry? selectedAccount;
   String accountSearchQuery = '';
+  List<String> availableZones = const [];
+  List<String> availableRoutes = const [];
+  List<CustomerDbEntry> availableAccounts = const [];
+  bool isLoadingZones = false;
+  bool isLoadingRoutes = false;
+  bool isLoadingAccounts = false;
+  Timer? _accountSearchDebounce;
+  bool _disposed = false;
 
   // Step B: ground verification
   String sourceOfWater = ''; // choice
@@ -106,74 +115,129 @@ class DormantSurveyController extends ChangeNotifier {
   ];
 
   Future<void> init() async {
-    try {
-      isLoadingDb = true;
-      dbError = null;
-      notifyListeners();
-      await _db.ensureLoaded();
-      if (_db.entries.isEmpty) {
-        dbError = 'No dormant meter accounts returned from server';
-      }
-    } catch (e, st) {
-      if (kDebugMode) {
-        debugPrint('[DormantSurvey.init] Failed to load customer DB: $e');
-        debugPrintStack(stackTrace: st);
-      }
-      dbError = 'Failed to load customer DB: $e';
-    } finally {
-      isLoadingDb = false;
-      notifyListeners();
-    }
+    // Form opens immediately; zones/routes/accounts load on demand.
+    dbError = null;
+    isLoadingDb = false;
+    _safeNotify();
   }
 
-  List<String> zonesForSelectedScheme() {
-    if (scheme.isEmpty) return const [];
-    return _db.zonesForScheme(scheme);
+  void _safeNotify() {
+    if (!_disposed) notifyListeners();
   }
 
-  List<String> routesForSelectedZone() {
-    if (scheme.isEmpty || zone.isEmpty) return const [];
-    return _db.routesForZone(scheme, zone);
+  @override
+  void dispose() {
+    _disposed = true;
+    _accountSearchDebounce?.cancel();
+    super.dispose();
   }
 
-  List<CustomerDbEntry> accountOptions() {
-    if (scheme.isEmpty || zone.isEmpty || route.isEmpty) return const [];
-    return _db.accounts(
-      scheme: scheme,
-      zone: zone,
-      route: route,
-      query: accountSearchQuery,
-      limit: 200,
-    );
-  }
-
-  void setScheme(String v) {
+  Future<void> setScheme(String v) async {
     if (scheme == v) return;
     scheme = v;
     zone = '';
     route = '';
     selectedAccount = null;
-    notifyListeners();
+    accountSearchQuery = '';
+    availableZones = const [];
+    availableRoutes = const [];
+    availableAccounts = const [];
+    _safeNotify();
+
+    if (scheme.isEmpty) return;
+    isLoadingZones = true;
+    dbError = null;
+    _safeNotify();
+    try {
+      availableZones = await _db.fetchZones(scheme);
+    } catch (e) {
+      if (kDebugMode) debugPrint('[DormantSurvey.setScheme] $e');
+      dbError = 'Failed to load zones: $e';
+      availableZones = const [];
+    } finally {
+      isLoadingZones = false;
+      _safeNotify();
+    }
   }
 
-  void setZone(String v) {
+  Future<void> setZone(String v) async {
     if (zone == v) return;
     zone = v;
     route = '';
     selectedAccount = null;
-    notifyListeners();
+    accountSearchQuery = '';
+    availableRoutes = const [];
+    availableAccounts = const [];
+    _safeNotify();
+
+    if (scheme.isEmpty || zone.isEmpty) return;
+    isLoadingRoutes = true;
+    dbError = null;
+    _safeNotify();
+    try {
+      availableRoutes = await _db.fetchRoutes(scheme, zone);
+    } catch (e) {
+      if (kDebugMode) debugPrint('[DormantSurvey.setZone] $e');
+      dbError = 'Failed to load routes: $e';
+      availableRoutes = const [];
+    } finally {
+      isLoadingRoutes = false;
+      _safeNotify();
+    }
   }
 
-  void setRoute(String v) {
+  Future<void> setRoute(String v) async {
     if (route == v) return;
     route = v;
     selectedAccount = null;
-    notifyListeners();
+    accountSearchQuery = '';
+    availableAccounts = const [];
+    _safeNotify();
+    if (route.isNotEmpty) {
+      await _reloadAccounts();
+    }
   }
 
   void setAccount(CustomerDbEntry? v) {
     selectedAccount = v;
-    notifyListeners();
+    _safeNotify();
+  }
+
+  void setAccountSearchQuery(String v) {
+    accountSearchQuery = v;
+    _safeNotify();
+    _accountSearchDebounce?.cancel();
+    if (scheme.isEmpty || zone.isEmpty || route.isEmpty) return;
+    _accountSearchDebounce = Timer(const Duration(milliseconds: 350), () {
+      _reloadAccounts();
+    });
+  }
+
+  Future<void> _reloadAccounts() async {
+    if (scheme.isEmpty || zone.isEmpty || route.isEmpty) {
+      availableAccounts = const [];
+      _safeNotify();
+      return;
+    }
+    isLoadingAccounts = true;
+    _safeNotify();
+    try {
+      availableAccounts = await _db.fetchAccounts(
+        scheme: scheme,
+        zone: zone,
+        route: route,
+        query: accountSearchQuery,
+        limit: 200,
+      );
+      dbError = null;
+    } catch (e) {
+      if (kDebugMode) debugPrint('[DormantSurvey._reloadAccounts] $e');
+      dbError = 'Failed to load accounts: $e';
+      availableAccounts = const [];
+    } finally {
+      isLoadingAccounts = false;
+      _safeNotify();
+    }
   }
 
   String _normalizeName(String v) {
@@ -189,7 +253,7 @@ class DormantSurveyController extends ChangeNotifier {
       if (normalized.isEmpty) return false;
 
       duplicateCheckInProgress = true;
-      notifyListeners();
+      _safeNotify();
 
       final uri = Uri.parse('${getUrl()}dormant-survey/exists').replace(
         queryParameters: {'customerName': normalized},
@@ -209,18 +273,13 @@ class DormantSurveyController extends ChangeNotifier {
       return false;
     } finally {
       duplicateCheckInProgress = false;
-      notifyListeners();
+      _safeNotify();
     }
-  }
-
-  void setAccountSearchQuery(String v) {
-    accountSearchQuery = v;
-    notifyListeners();
   }
 
   void setSourceOfWater(String v) {
     sourceOfWater = v;
-    notifyListeners();
+    _safeNotify();
   }
 
   void setDetailsMatch(bool? v) {
@@ -241,22 +300,22 @@ class DormantSurveyController extends ChangeNotifier {
     relationshipToAccountHolder = '';
     currentOccupantName = '';
     currentOccupantPhone = '';
-    notifyListeners();
+    _safeNotify();
   }
 
   void setWillingToRegularize(String? v) {
     willingToRegularize = v;
-    notifyListeners();
+    _safeNotify();
   }
 
   void setCurrentAccountNumber(String v) {
     currentAccountNumber = v;
-    notifyListeners();
+    _safeNotify();
   }
 
   void setCurrentMeterNumber(String v) {
     currentMeterNumber = v;
-    notifyListeners();
+    _safeNotify();
   }
 
   void setCurrentUserIsRegisteredCustomer(bool? v) {
@@ -266,7 +325,7 @@ class DormantSurveyController extends ChangeNotifier {
     relationshipToAccountHolder = '';
     currentOccupantName = '';
     currentOccupantPhone = '';
-    notifyListeners();
+    _safeNotify();
   }
 
   void setRequiresInvestigation(bool? v) {
@@ -274,27 +333,27 @@ class DormantSurveyController extends ChangeNotifier {
     if (v != true) {
       investigationReason = '';
     }
-    notifyListeners();
+    _safeNotify();
   }
 
   void setInvestigationReason(String v) {
     investigationReason = v;
-    notifyListeners();
+    _safeNotify();
   }
 
   void setRelationshipToAccountHolder(String v) {
     relationshipToAccountHolder = v;
-    notifyListeners();
+    _safeNotify();
   }
 
   void setCurrentOccupantName(String v) {
     currentOccupantName = v;
-    notifyListeners();
+    _safeNotify();
   }
 
   void setCurrentOccupantPhone(String v) {
     currentOccupantPhone = v;
-    notifyListeners();
+    _safeNotify();
   }
 
   void setMeterCondition(String v) {
@@ -302,12 +361,12 @@ class DormantSurveyController extends ChangeNotifier {
     if (meterCondition == 'No Meter (Direct)') {
       photo = null;
     }
-    notifyListeners();
+    _safeNotify();
   }
 
   void setMeterReading(String v) {
     meterReading = v;
-    notifyListeners();
+    _safeNotify();
   }
 
   void setGeneralCommentChoice(String v) {
@@ -316,12 +375,12 @@ class DormantSurveyController extends ChangeNotifier {
     if (generalCommentChoice != generalCommentOtherLabel) {
       generalCommentOther = '';
     }
-    notifyListeners();
+    _safeNotify();
   }
 
   void setGeneralCommentOther(String v) {
     generalCommentOther = v;
-    notifyListeners();
+    _safeNotify();
   }
 
   String? buildGeneralCommentsForSubmit() {
@@ -341,7 +400,7 @@ class DormantSurveyController extends ChangeNotifier {
       submissionId: 'dormant_$id',
     );
     photo = XFile(saved ?? picked.path);
-    notifyListeners();
+    _safeNotify();
   }
 
   Future<void> capturePhoto() async {
@@ -382,7 +441,7 @@ class DormantSurveyController extends ChangeNotifier {
 
   void clearPhoto() {
     photo = null;
-    notifyListeners();
+    _safeNotify();
   }
 
   Future<void> captureCurrentLocation() async {
@@ -408,14 +467,14 @@ class DormantSurveyController extends ChangeNotifier {
     latitude = pos.latitude;
     longitude = pos.longitude;
     locationAccuracy = pos.accuracy;
-    notifyListeners();
+    _safeNotify();
   }
 
   void clearLocation() {
     latitude = null;
     longitude = null;
     locationAccuracy = null;
-    notifyListeners();
+    _safeNotify();
   }
 
   void setCapturedLocation({
@@ -426,7 +485,7 @@ class DormantSurveyController extends ChangeNotifier {
     latitude = lat;
     longitude = lng;
     locationAccuracy = accuracy;
-    notifyListeners();
+    _safeNotify();
   }
 
   String? validate() {
@@ -694,7 +753,7 @@ class DormantSurveyController extends ChangeNotifier {
 
     isSubmitting = true;
     lastSubmitNotice = null;
-    notifyListeners();
+    _safeNotify();
     try {
       final token = await _storage.read(key: 'mwstaffjwt');
       if (token == null || token.isEmpty) return 'Not authenticated';
@@ -746,7 +805,7 @@ class DormantSurveyController extends ChangeNotifier {
       return 'Failed to submit dormant survey. $e';
     } finally {
       isSubmitting = false;
-      notifyListeners();
+      _safeNotify();
     }
   }
 
@@ -756,6 +815,12 @@ class DormantSurveyController extends ChangeNotifier {
     route = '';
     selectedAccount = null;
     accountSearchQuery = '';
+    availableZones = const [];
+    availableRoutes = const [];
+    availableAccounts = const [];
+    isLoadingZones = false;
+    isLoadingRoutes = false;
+    isLoadingAccounts = false;
     sourceOfWater = '';
     detailsMatch = null;
     willingToRegularize = null;

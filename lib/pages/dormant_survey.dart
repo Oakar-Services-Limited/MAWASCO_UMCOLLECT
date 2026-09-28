@@ -53,9 +53,7 @@ class _DormantSurveyForm extends StatelessWidget {
         if (ctrl.isLoadingDb) {
           return const Center(child: CircularProgressIndicator());
         }
-        if (ctrl.dbError != null) {
-          return Text(ctrl.dbError!, style: TextStyle(color: Colors.red[700]));
-        }
+        // Non-fatal cascade errors still show the form; message appears near Step A.
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -65,6 +63,10 @@ class _DormantSurveyForm extends StatelessWidget {
               label: 'Dormant Survey',
             ),
             const SizedBox(height: 12),
+            if (ctrl.dbError != null) ...[
+              Text(ctrl.dbError!, style: TextStyle(color: Colors.red[700])),
+              const SizedBox(height: 12),
+            ],
             _sectionTitle('A. Account search'),
             const SizedBox(height: 8),
             _schemeDropdown(ctrl),
@@ -317,37 +319,68 @@ class _DormantSurveyForm extends StatelessWidget {
   }
 
   Widget _zoneDropdown(DormantSurveyController ctrl) {
-    final zones = ctrl.zonesForSelectedScheme();
+    final zones = ctrl.availableZones;
+    String hint;
+    if (ctrl.scheme.isEmpty) {
+      hint = 'Select scheme first';
+    } else if (ctrl.isLoadingZones) {
+      hint = 'Loading zones...';
+    } else if (zones.isEmpty) {
+      hint = 'No zones for this scheme';
+    } else {
+      hint = 'Select zone';
+    }
     return _dropdown(
       label: 'Zone *',
-      hint: ctrl.scheme.isEmpty ? 'Select scheme first' : 'Select zone',
+      hint: hint,
       value: ctrl.zone.isEmpty ? null : ctrl.zone,
       items: zones,
-      onChanged: ctrl.scheme.isEmpty ? null : (v) => ctrl.setZone(v ?? ''),
+      onChanged: (ctrl.scheme.isEmpty || ctrl.isLoadingZones)
+          ? null
+          : (v) => ctrl.setZone(v ?? ''),
     );
   }
 
   Widget _routeDropdown(DormantSurveyController ctrl) {
-    final routes = ctrl.routesForSelectedZone();
+    final routes = ctrl.availableRoutes;
+    String hint;
+    if (ctrl.zone.isEmpty) {
+      hint = 'Select zone first';
+    } else if (ctrl.isLoadingRoutes) {
+      hint = 'Loading routes...';
+    } else if (routes.isEmpty) {
+      hint = 'No routes for this zone';
+    } else {
+      hint = 'Select route';
+    }
     return _dropdown(
       label: 'Route *',
-      hint: ctrl.zone.isEmpty ? 'Select zone first' : 'Select route',
+      hint: hint,
       value: ctrl.route.isEmpty ? null : ctrl.route,
       items: routes,
-      onChanged: ctrl.zone.isEmpty ? null : (v) => ctrl.setRoute(v ?? ''),
+      onChanged: (ctrl.zone.isEmpty || ctrl.isLoadingRoutes)
+          ? null
+          : (v) => ctrl.setRoute(v ?? ''),
     );
   }
 
   Widget _accountSearch(BuildContext context, DormantSurveyController ctrl) {
     final enabled =
         ctrl.scheme.isNotEmpty && ctrl.zone.isNotEmpty && ctrl.route.isNotEmpty;
-    final options = enabled ? ctrl.accountOptions() : const <CustomerDbEntry>[];
+    final options = enabled ? ctrl.availableAccounts : const <CustomerDbEntry>[];
+    final selected = options.contains(ctrl.selectedAccount)
+        ? ctrl.selectedAccount
+        : null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _textInput(
           label: 'Search account (name/account no)',
-          hint: 'Type to filter',
+          hint: !enabled
+              ? 'Select scheme, zone and route first'
+              : ctrl.isLoadingAccounts
+                  ? 'Loading accounts...'
+                  : 'Type to filter',
           value: ctrl.accountSearchQuery,
           onChanged: ctrl.setAccountSearchQuery,
           enabled: enabled,
@@ -357,19 +390,28 @@ class _DormantSurveyForm extends StatelessWidget {
           DropdownButtonHideUnderline(
             child: DropdownButton<CustomerDbEntry>(
               isExpanded: true,
-              value: ctrl.selectedAccount,
-              hint: Text(enabled
-                  ? 'Select account'
-                  : 'Select scheme, zone and route first'),
+              value: selected,
+              hint: Text(
+                !enabled
+                    ? 'Select scheme, zone and route first'
+                    : ctrl.isLoadingAccounts
+                        ? 'Loading accounts...'
+                        : options.isEmpty
+                            ? 'No accounts found'
+                            : 'Select account',
+              ),
               items: options
                   .map((e) => DropdownMenuItem(
                         value: e,
-                        child: Text(e.label.isNotEmpty
-                            ? e.label
-                            : '${e.accountNumber} - ${e.customerName}'),
+                        child: Text(
+                          e.label.isNotEmpty
+                              ? e.label
+                              : '${e.accountNumber} - ${e.customerName}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ))
                   .toList(),
-              onChanged: !enabled
+              onChanged: (!enabled || ctrl.isLoadingAccounts)
                   ? null
                   : (v) async {
                       if (v == null) {
@@ -388,7 +430,6 @@ class _DormantSurveyForm extends StatelessWidget {
                             duration: Duration(seconds: 3),
                           ),
                         );
-                        // Do not set this account.
                         return;
                       }
                       ctrl.setAccount(v);

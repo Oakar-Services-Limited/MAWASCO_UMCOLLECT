@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -8,7 +9,7 @@ import 'package:um_collect/components/Utils.dart';
 
 @immutable
 class CustomerDbEntry {
-  /// Account number from dormant_meters (formerly customer_db.csv).
+  /// Account number from dormant_meters.
   final String accountNumber;
   final String connectionNumber;
   final String customerName;
@@ -48,8 +49,7 @@ class CustomerDbEntry {
   }
 }
 
-/// Loads dormant survey accounts from GET /dormant-meters and exposes the same
-/// scheme/zone/route/account helpers used by the Dormant Survey form.
+/// Lazy dormant-meters catalog (zones/routes/accounts on demand — no 14k preload).
 class CustomerDbService {
   CustomerDbService._();
 
@@ -57,119 +57,120 @@ class CustomerDbService {
 
   final _storage = const FlutterSecureStorage();
 
-  List<CustomerDbEntry> _entries = const [];
-  bool _loaded = false;
+  final Map<String, List<String>> _zonesByScheme = {};
+  final Map<String, List<String>> _routesBySchemeZone = {};
+  final Map<String, List<CustomerDbEntry>> _accountsCache = {};
 
-  List<CustomerDbEntry> get entries => _entries;
-  bool get isLoaded => _loaded;
-
-  /// Fetch catalog from API (once per app session). Same filtering UX as CSV.
-  Future<void> ensureLoaded({bool forceRefresh = false}) async {
-    if (_loaded && !forceRefresh) return;
-
+  Future<Map<String, String>> _authHeaders() async {
     final token = await _storage.read(key: 'mwstaffjwt');
     if (token == null || token.isEmpty) {
       throw Exception('Not authenticated');
     }
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+  }
 
-    final uri = Uri.parse(
-      '${getUrl()}dormant-meters?limit=20000&offset=0',
-    );
-    if (kDebugMode) {
-      debugPrint('[CustomerDbService] GET $uri');
-    }
-
-    final response = await http.get(
-      uri,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
-
+  Future<List<dynamic>> _getJsonList(Uri uri) async {
+    if (kDebugMode) debugPrint('[CustomerDbService] GET $uri');
+    final response = await http.get(uri, headers: await _authHeaders());
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
         'Failed to load dormant meters (${response.statusCode})',
       );
     }
-
     final body = json.decode(response.body);
-    List<dynamic> list = [];
     if (body is Map && body['data'] is List) {
-      list = body['data'] as List<dynamic>;
-    } else if (body is List) {
-      list = body;
+      return body['data'] as List<dynamic>;
     }
-
-    _entries = list
-        .whereType<Map>()
-        .map((e) => CustomerDbEntry.fromJson(Map<String, dynamic>.from(e)))
-        .where((e) => e.accountNumber.isNotEmpty)
-        .toList();
-    _loaded = true;
-
-    if (kDebugMode) {
-      debugPrint('[CustomerDbService] loaded ${_entries.length} accounts');
-    }
+    if (body is List) return body;
+    return const [];
   }
 
-  List<String> schemes() {
-    final set = <String>{};
-    for (final e in _entries) {
-      if (e.scheme.isNotEmpty) set.add(e.scheme);
-    }
-    final list = set.toList();
-    list.sort();
-    return list;
+  Future<List<String>> fetchZones(String scheme) async {
+    final key = scheme.trim();
+    if (key.isEmpty) return const [];
+    final cached = _zonesByScheme[key];
+    if (cached != null) return List<String>.from(cached);
+
+    final uri = Uri.parse('${getUrl()}dormant-meters/zones').replace(
+      queryParameters: {'scheme': key},
+    );
+    final list = await _getJsonList(uri);
+    final zones = list
+        .map((e) => e?.toString().trim() ?? '')
+        .where((e) => e.isNotEmpty)
+        .toList()
+      ..sort();
+    _zonesByScheme[key] = zones;
+    return List<String>.from(zones);
   }
 
-  List<String> zonesForScheme(String scheme) {
-    final set = <String>{};
-    for (final e in _entries) {
-      if (scheme.isNotEmpty && e.scheme != scheme) continue;
-      if (e.zone.isNotEmpty) set.add(e.zone);
-    }
-    final list = set.toList();
-    list.sort();
-    return list;
+  Future<List<String>> fetchRoutes(String scheme, String zone) async {
+    final s = scheme.trim();
+    final z = zone.trim();
+    if (s.isEmpty || z.isEmpty) return const [];
+    final key = '$s|$z';
+    final cached = _routesBySchemeZone[key];
+    if (cached != null) return List<String>.from(cached);
+
+    final uri = Uri.parse('${getUrl()}dormant-meters/routes').replace(
+      queryParameters: {'scheme': s, 'zone': z},
+    );
+    final list = await _getJsonList(uri);
+    final routes = list
+        .map((e) => e?.toString().trim() ?? '')
+        .where((e) => e.isNotEmpty)
+        .toList()
+      ..sort();
+    _routesBySchemeZone[key] = routes;
+    return List<String>.from(routes);
   }
 
-  List<String> routesForZone(String scheme, String zone) {
-    final set = <String>{};
-    for (final e in _entries) {
-      if (scheme.isNotEmpty && e.scheme != scheme) continue;
-      if (zone.isNotEmpty && e.zone != zone) continue;
-      if (e.route.isNotEmpty) set.add(e.route);
-    }
-    final list = set.toList();
-    list.sort();
-    return list;
-  }
-
-  List<CustomerDbEntry> accounts({
+  Future<List<CustomerDbEntry>> fetchAccounts({
     required String scheme,
     required String zone,
     required String route,
     String query = '',
     int limit = 200,
-  }) {
-    final q = query.trim().toLowerCase();
-    final out = <CustomerDbEntry>[];
-    for (final e in _entries) {
-      if (scheme.isNotEmpty && e.scheme != scheme) continue;
-      if (zone.isNotEmpty && e.zone != zone) continue;
-      if (route.isNotEmpty && e.route != route) continue;
+  }) async {
+    final s = scheme.trim();
+    final z = zone.trim();
+    final r = route.trim();
+    if (s.isEmpty || z.isEmpty || r.isEmpty) return const [];
 
-      if (q.isNotEmpty) {
-        final hay =
-            '${e.customerName} ${e.accountNumber} ${e.connectionNumber} ${e.label}'
-                .toLowerCase();
-        if (!hay.contains(q)) continue;
-      }
+    final q = query.trim();
+    final cacheKey = '$s|$z|$r|${q.toLowerCase()}|$limit';
+    final cached = _accountsCache[cacheKey];
+    if (cached != null) return List<CustomerDbEntry>.from(cached);
 
-      out.add(e);
-      if (out.length >= limit) break;
-    }
-    return out;
+    final params = <String, String>{
+      'scheme': s,
+      'zone': z,
+      'route': r,
+      'limit': '$limit',
+      'offset': '0',
+    };
+    if (q.isNotEmpty) params['q'] = q;
+
+    final uri = Uri.parse('${getUrl()}dormant-meters').replace(
+      queryParameters: params,
+    );
+    final list = await _getJsonList(uri);
+    final accounts = list
+        .whereType<Map>()
+        .map((e) => CustomerDbEntry.fromJson(Map<String, dynamic>.from(e)))
+        .where((e) => e.accountNumber.isNotEmpty)
+        .toList();
+    _accountsCache[cacheKey] = accounts;
+    return List<CustomerDbEntry>.from(accounts);
+  }
+
+  /// Clears caches (e.g. after force refresh).
+  void clearCache() {
+    _zonesByScheme.clear();
+    _routesBySchemeZone.clear();
+    _accountsCache.clear();
   }
 }
