@@ -46,9 +46,8 @@ class _AssetsState extends State<Assets> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Map Assets',
-      theme: ThemeData(
+    return Theme(
+      data: ThemeData(
         primaryColor: const Color(0xff0288D1),
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff0288D1)),
         useMaterial3: true,
@@ -58,7 +57,7 @@ class _AssetsState extends State<Assets> {
           centerTitle: true,
         ),
       ),
-      home: Scaffold(
+      child: Scaffold(
         appBar: AppBar(
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),

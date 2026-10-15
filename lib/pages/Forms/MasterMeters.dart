@@ -147,6 +147,13 @@ class _MasterMetersState extends State<MasterMeters> {
       appBar: AppBar(
         actions: <Widget>[
           IconButton(
+            tooltip: 'Menu',
+            icon: const Icon(Icons.menu, color: Colors.white),
+            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          ),
+        ],
+        leading: IconButton(
+            tooltip: 'Back',
             icon: const Icon(
               Icons.arrow_back,
               color: Colors.white,
@@ -156,7 +163,6 @@ class _MasterMetersState extends State<MasterMeters> {
                   MaterialPageRoute(builder: (_) => Assets(staffid: staffid)));
             },
           ),
-        ],
         title: const Text(
           'MasterMeters Details',
           style: TextStyle(color: Colors.white),

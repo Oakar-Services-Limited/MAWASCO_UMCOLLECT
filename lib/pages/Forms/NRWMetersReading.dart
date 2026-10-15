@@ -437,6 +437,13 @@ class _NRWMeterReadingState extends State<NRWMeterReading> {
       appBar: AppBar(
         actions: <Widget>[
           IconButton(
+            tooltip: 'Menu',
+            icon: const Icon(Icons.menu, color: Colors.white),
+            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          ),
+        ],
+        leading: IconButton(
+            tooltip: 'Back',
             icon: const Icon(
               Icons.arrow_back,
               color: Colors.white,
@@ -446,7 +453,6 @@ class _NRWMeterReadingState extends State<NRWMeterReading> {
                   context, MaterialPageRoute(builder: (_) => const NRW()));
             },
           ),
-        ],
         title: const Text(
           'NRW Meter Reading',
           style: TextStyle(color: Colors.white, fontSize: 20),

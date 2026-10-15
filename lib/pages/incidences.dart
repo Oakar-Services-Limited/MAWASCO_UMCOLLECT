@@ -109,7 +109,7 @@ class _IncidencesState extends State<Incidences> {
     if (cached == null || cached.isEmpty) {
       setState(() {
         error =
-            'Error loading incidences. Please check your internet connection.';
+            'Error loading incidents. Please check your internet connection.';
         isLoading = false;
         showingCached = false;
       });
@@ -131,7 +131,7 @@ class _IncidencesState extends State<Incidences> {
     } catch (_) {
       setState(() {
         error =
-            'Error loading incidences. Please check your internet connection.';
+            'Error loading incidents. Please check your internet connection.';
         isLoading = false;
         showingCached = false;
       });
@@ -151,9 +151,8 @@ class _IncidencesState extends State<Incidences> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Incidences',
-      theme: ThemeData(
+    return Theme(
+      data: ThemeData(
         primaryColor: const Color(0xff0288D1),
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xff0288D1),
@@ -163,7 +162,7 @@ class _IncidencesState extends State<Incidences> {
         ),
         useMaterial3: true,
       ),
-      home: Scaffold(
+      child: Scaffold(
         key: _scaffoldKey,
         appBar: AppBar(
           elevation: 0,

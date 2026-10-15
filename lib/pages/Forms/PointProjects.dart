@@ -127,6 +127,13 @@ class _PointProjectsState extends State<PointProjects> {
       appBar: AppBar(
         actions: <Widget>[
           IconButton(
+            tooltip: 'Menu',
+            icon: const Icon(Icons.menu, color: Colors.white),
+            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          ),
+        ],
+        leading: IconButton(
+            tooltip: 'Back',
             icon: const Icon(
               Icons.arrow_back,
               color: Colors.white,
@@ -140,7 +147,6 @@ class _PointProjectsState extends State<PointProjects> {
                           )));
             },
           ),
-        ],
         title: const Text(
           'Point Project Details',
           style: TextStyle(color: Colors.white),

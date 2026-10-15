@@ -120,14 +120,13 @@ class _NRWState extends State<NRW> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'UM Collect',
-      theme: ThemeData(
+    return Theme(
+      data: ThemeData(
         primaryColor: const Color(0xff0288D1),
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff0288D1)),
         useMaterial3: true,
       ),
-      home: Scaffold(
+      child: Scaffold(
         appBar: AppBar(
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),

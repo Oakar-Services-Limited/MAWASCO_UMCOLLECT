@@ -98,7 +98,7 @@ class _NRWPendingState extends State<NRWPending> {
           ),
         ],
         title: const Text(
-          'Pending Incidences',
+          'Pending Incidents',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w600,
@@ -154,7 +154,7 @@ class _NRWPendingState extends State<NRWPending> {
             ),
             const SizedBox(height: 16),
             Text(
-              'No pending incidences',
+              'No pending incidents',
               style: TextStyle(
                 fontSize: 18,
                 color: Colors.grey[600],

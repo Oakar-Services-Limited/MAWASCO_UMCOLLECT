@@ -71,9 +71,9 @@ class _AssetNavigationState extends State<AssetNavigation> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'UM Navigator',
-      home: Scaffold(
+    return Theme(
+      data: Theme.of(context),
+      child: Scaffold(
         appBar: AppBar(
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
@@ -368,7 +368,7 @@ class _AssetNavigationState extends State<AssetNavigation> {
                                 child: LayoutBuilder(
                                   builder: (context, constraints) {
                                     return MyRowIII(
-                                      title: 'Incidences',
+                                      title: 'Incidents',
                                       image: 'assets/images/incident.png',
                                       availableWidth: constraints.maxWidth,
                                     );

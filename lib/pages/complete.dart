@@ -130,7 +130,7 @@ class _CompleteIncidencesState extends State<CompleteIncidences> {
           ),
         ],
         title: const Text(
-          'Resolved Incidences',
+          'Resolved Incidents',
           style: TextStyle(color: Colors.white),
         ),
         backgroundColor: const Color(0xff0288D1),

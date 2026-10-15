@@ -272,7 +272,7 @@ class _IncidencesListState extends State<IncidencesList> {
           ),
         ],
         title: const Text(
-          'My Reported Incidences',
+          'My Reported Incidents',
           style: TextStyle(color: Colors.white),
         ),
         backgroundColor: const Color(0xff0288D1),

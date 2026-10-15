@@ -416,8 +416,9 @@ class _NavigateNRWState extends State<NavigateNRW> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
+    return Theme(
+      data: Theme.of(context),
+      child: Scaffold(
         drawer: const MyDrawer(),
         appBar: AppBar(
           title: Row(

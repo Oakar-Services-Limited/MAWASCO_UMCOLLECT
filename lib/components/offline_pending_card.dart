@@ -5,8 +5,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'package:um_collect/components/Utils.dart';
 import 'package:um_collect/pages/OfflineSubmissionsPage.dart';
+import 'package:um_collect/services/auto_sync_service.dart';
 import 'package:um_collect/services/database_helper.dart';
 import 'package:um_collect/services/offline_queue_notifier.dart';
+import 'package:um_collect/services/sync_service.dart';
 
 class OfflinePendingCard extends StatefulWidget {
   final List<String> types;
@@ -25,7 +27,10 @@ class OfflinePendingCard extends StatefulWidget {
 }
 
 class _OfflinePendingCardState extends State<OfflinePendingCard> {
+  final _sync = SyncService();
+  final _online = AutoSyncService.instance.isOnline;
   int _count = 0;
+  int _failed = 0;
   bool _loading = true;
   bool _sessionExpired = false;
 
@@ -33,22 +38,29 @@ class _OfflinePendingCardState extends State<OfflinePendingCard> {
   void initState() {
     super.initState();
     OfflineQueueNotifier.instance.addListener(_onQueueChanged);
+    _sync.isSyncing.addListener(_onStatusChanged);
+    _online.addListener(_onStatusChanged);
     _refreshCount();
   }
 
   @override
   void dispose() {
     OfflineQueueNotifier.instance.removeListener(_onQueueChanged);
+    _sync.isSyncing.removeListener(_onStatusChanged);
+    _online.removeListener(_onStatusChanged);
     super.dispose();
   }
 
-  void _onQueueChanged() {
-    _refreshCount();
+  void _onQueueChanged() => _refreshCount();
+
+  void _onStatusChanged() {
+    if (mounted) setState(() {});
   }
 
-  Future<int> _countPending() async {
+  Future<void> _refreshCount() async {
     final rows = await DatabaseHelper().getUnsyncedSubmissions();
-    int count = 0;
+    var count = 0;
+    var failed = 0;
     for (final r in rows) {
       try {
         final responses =
@@ -56,21 +68,15 @@ class _OfflinePendingCardState extends State<OfflinePendingCard> {
         final t = responses['_type']?.toString();
         if (widget.allTypes || (t != null && widget.types.contains(t))) {
           count++;
+          if (r['sync_status'] == 'failed') failed++;
         }
-      } catch (_) {
-        // ignore rows that aren't valid JSON
-      }
+      } catch (_) {}
     }
-    return count;
-  }
-
-  Future<void> _refreshCount() async {
-    final count = await _countPending();
-    final token =
-        await const FlutterSecureStorage().read(key: 'mwstaffjwt');
+    final token = await const FlutterSecureStorage().read(key: 'mwstaffjwt');
     if (!mounted) return;
     setState(() {
       _count = count;
+      _failed = failed;
       _sessionExpired = isJwtExpiredOrInvalid(token);
       _loading = false;
     });
@@ -79,11 +85,28 @@ class _OfflinePendingCardState extends State<OfflinePendingCard> {
   Future<void> _openOfflinePage() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => const OfflineSubmissionsPage(),
-      ),
+      MaterialPageRoute(builder: (_) => const OfflineSubmissionsPage()),
     );
     await _refreshCount();
+  }
+
+  Future<void> _syncNow() async {
+    final message = await _sync.syncAllUnsynced();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+    );
+  }
+
+  String get _statusText {
+    if (_sync.isSyncing.value) return 'Uploading…';
+    if (!_online.value) {
+      return 'No internet — will upload automatically when you reconnect.';
+    }
+    if (_failed > 0) {
+      return '$_failed failed — tap to see details.';
+    }
+    return 'Online — uploading automatically, or tap Sync now.';
   }
 
   @override
@@ -92,21 +115,26 @@ class _OfflinePendingCardState extends State<OfflinePendingCard> {
       return const SizedBox.shrink();
     }
 
+    final syncing = _sync.isSyncing.value;
+    final online = _online.value;
+
     return Card(
       elevation: 2,
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: _openOfflinePage,
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
           child: Row(
             children: [
               Icon(
-                _sessionExpired ? Icons.lock_clock : Icons.cloud_off,
+                _sessionExpired
+                    ? Icons.lock_clock
+                    : online
+                        ? Icons.cloud_upload_outlined
+                        : Icons.cloud_off,
                 color: _sessionExpired
                     ? Colors.orange.shade800
                     : const Color(0xff0288D1),
@@ -123,21 +151,45 @@ class _OfflinePendingCardState extends State<OfflinePendingCard> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    if (_sessionExpired) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        kSessionExpiredSyncMessage,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.orange.shade800,
-                          fontWeight: FontWeight.w500,
-                        ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _sessionExpired ? kSessionExpiredSyncMessage : _statusText,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _sessionExpired
+                            ? Colors.orange.shade800
+                            : _failed > 0 && !syncing
+                                ? Colors.red.shade700
+                                : Colors.black54,
+                        fontWeight: FontWeight.w500,
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right),
+              const SizedBox(width: 8),
+              if (syncing)
+                const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              else if (online)
+                FilledButton.icon(
+                  onPressed: _syncNow,
+                  icon: const Icon(Icons.sync, size: 18),
+                  label: const Text('Sync now'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xff0288D1),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                )
+              else
+                const Icon(Icons.chevron_right),
             ],
           ),
         ),

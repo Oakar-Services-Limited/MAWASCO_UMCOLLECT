@@ -101,7 +101,7 @@ class _StaffDrawerState extends State<StaffDrawer> {
                     ),
                     _buildDrawerItem(
                       icon: Icons.sync_problem,
-                      title: 'Report Incidence',
+                      title: 'Report Incident',
                       onTap: () => Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
@@ -109,7 +109,7 @@ class _StaffDrawerState extends State<StaffDrawer> {
                     ),
                     _buildDrawerItem(
                       icon: Icons.report_problem,
-                      title: 'MyReported Incidents',
+                      title: 'My Reported Incidents',
                       onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(

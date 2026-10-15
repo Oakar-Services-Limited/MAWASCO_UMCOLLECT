@@ -148,6 +148,13 @@ class _OfftakesState extends State<Offtakes> {
       appBar: AppBar(
         actions: <Widget>[
           IconButton(
+            tooltip: 'Menu',
+            icon: const Icon(Icons.menu, color: Colors.white),
+            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          ),
+        ],
+        leading: IconButton(
+            tooltip: 'Back',
             icon: const Icon(
               Icons.arrow_back,
               color: Colors.white,
@@ -161,7 +168,6 @@ class _OfftakesState extends State<Offtakes> {
                           )));
             },
           ),
-        ],
         title: const Text(
           'Offtakes Details',
           style: TextStyle(color: Colors.white),

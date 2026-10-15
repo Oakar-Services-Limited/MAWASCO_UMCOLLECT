@@ -129,6 +129,13 @@ class _CustomerLinesState extends State<CustomerLines> {
       appBar: AppBar(
         actions: <Widget>[
           IconButton(
+            tooltip: 'Menu',
+            icon: const Icon(Icons.menu, color: Colors.white),
+            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          ),
+        ],
+        leading: IconButton(
+            tooltip: 'Back',
             icon: const Icon(
               Icons.arrow_back,
               color: Colors.white,
@@ -142,7 +149,6 @@ class _CustomerLinesState extends State<CustomerLines> {
                           )));
             },
           ),
-        ],
         title: const Text(
           'Customer Lines Details',
           style: TextStyle(color: Colors.white),

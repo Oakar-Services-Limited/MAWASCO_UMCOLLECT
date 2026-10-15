@@ -520,8 +520,9 @@ class _NavigateState extends State<Navigate> {
       );
     }
 
-    return MaterialApp(
-      home: Scaffold(
+    return Theme(
+      data: Theme.of(context),
+      child: Scaffold(
         drawer: const MyDrawer(),
         appBar: AppBar(
           title: Row(

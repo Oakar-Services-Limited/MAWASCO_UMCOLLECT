@@ -195,16 +195,15 @@ class _ReportIncidentState extends State<ReportIncident> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Report Incident',
-      theme: ThemeData(
+    return Theme(
+      data: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xff0288D1),
           brightness: Brightness.light,
         ),
       ),
-      home: Scaffold(
+      child: Scaffold(
         appBar: AppBar(
           elevation: 0,
           flexibleSpace: Container(
@@ -714,11 +713,19 @@ class _ReportIncidentState extends State<ReportIncident> {
                   zone = value;
                 });
               },
-              list: getZones(),
-              label: 'Zone',
+              list: [...getZones(), _zoneNotSure],
+              label: 'Zone (optional)',
               value: zone,
               labelFontSize: 18,
             ),
+            if (reportertype == "Public")
+              const Padding(
+                padding: EdgeInsets.only(top: 6, left: 4),
+                child: Text(
+                  "Not sure of your zone? Leave it blank or choose \"Not sure\" — your location is enough.",
+                  style: TextStyle(fontSize: 13, color: Colors.black54),
+                ),
+              ),
             const SizedBox(height: 16),
             MySelectInput(
               onSubmit: (value) {
@@ -942,6 +949,8 @@ class _ReportIncidentState extends State<ReportIncident> {
   }
 }
 
+const String _zoneNotSure = "Not sure";
+
 String? _validateIncidentInput({
   required String incident,
   required String myimage,
@@ -1002,7 +1011,9 @@ Map<String, dynamic> _buildIncidentPayload({
     'image': myimage,
     'location': location,
     'route': route,
-    'zone': zone.isNotEmpty && zone != "--Select--" ? zone : null,
+    'zone': zone.isNotEmpty && zone != "--Select--" && zone != _zoneNotSure
+        ? zone
+        : null,
     'userId': reportertype == "Staff" ? userId : null,
     'categoryId': categoryId,
     'longitude': longitude,

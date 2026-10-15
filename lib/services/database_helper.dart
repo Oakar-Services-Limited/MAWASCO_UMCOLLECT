@@ -171,6 +171,25 @@ class DatabaseHelper {
     );
   }
 
+  /// Rows left in `syncing` (e.g. app killed mid-upload) go back to the queue.
+  Future<void> resetSyncingToPending() async {
+    final db = await database;
+    await db.update(
+      submissionsTable,
+      {'sync_status': 'pending'},
+      where: "synced = 0 AND sync_status = 'syncing'",
+    );
+  }
+
+  Future<int> countRetryableSubmissions() async {
+    final db = await database;
+    final rows = await db.rawQuery(
+      "SELECT COUNT(*) AS c FROM $submissionsTable "
+      "WHERE synced = 0 AND (sync_status IS NULL OR sync_status IN ('pending', 'syncing'))",
+    );
+    return (rows.first['c'] as int?) ?? 0;
+  }
+
   Future<void> deleteSubmission(String id) async {
     final db = await database;
     await db.delete(

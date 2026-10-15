@@ -103,7 +103,7 @@ class _MyDrawerState extends State<MyDrawer> {
                                   width: 24,
                                 ),
                                 Text(
-                                  'My Reported Incidences',
+                                  'My Reported Incidents',
                                   style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 20,

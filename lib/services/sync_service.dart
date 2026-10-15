@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
@@ -22,10 +24,36 @@ class SyncService {
     'photoNewMeterPath': 'photoNewMeter',
   };
 
+  static const Duration requestTimeout = Duration(seconds: 30);
+  static const String networkRetryMessage =
+      'Network problem — will retry automatically when online.';
+
   final _db = DatabaseHelper();
   final _storage = const FlutterSecureStorage();
 
-  Future<String> syncAllUnsynced() async {
+  final ValueNotifier<bool> isSyncing = ValueNotifier(false);
+  Future<String>? _inFlight;
+
+  /// Concurrent callers share the same run instead of uploading twice.
+  Future<String> syncAllUnsynced() {
+    final running = _inFlight;
+    if (running != null) return running;
+    isSyncing.value = true;
+    final run = _syncAll().whenComplete(() {
+      _inFlight = null;
+      isSyncing.value = false;
+    });
+    _inFlight = run;
+    return run;
+  }
+
+  bool _isNetworkError(Object e) =>
+      e is TimeoutException ||
+      e is SocketException ||
+      e is HandshakeException ||
+      e is http.ClientException;
+
+  Future<String> _syncAll() async {
     final isOnline = await ConnectivityHelper().checkConnectivity();
     if (!isOnline) {
       return 'No internet connection. Sync skipped.';
@@ -43,6 +71,7 @@ class SyncService {
     var syncedCount = 0;
     var authBlockedCount = 0;
     var failedCount = 0;
+    var networkDeferred = false;
 
     for (final row in submissions) {
       final id = row['id'] as String;
@@ -158,18 +187,21 @@ class SyncService {
             }
           }
 
-          final streamed = await multipart.send();
-          response = await http.Response.fromStream(streamed);
+          final streamed = await multipart.send().timeout(requestTimeout);
+          response = await http.Response.fromStream(streamed)
+              .timeout(requestTimeout);
         } else if (method == 'POST') {
-          response = await http.post(
-            uri,
-            headers: {
-              'Content-Type': 'application/json; charset=UTF-8',
-              if (token != null && token.isNotEmpty)
-                'Authorization': 'Bearer $token',
-            },
-            body: jsonEncode(body),
-          );
+          response = await http
+              .post(
+                uri,
+                headers: {
+                  'Content-Type': 'application/json; charset=UTF-8',
+                  if (token != null && token.isNotEmpty)
+                    'Authorization': 'Bearer $token',
+                },
+                body: jsonEncode(body),
+              )
+              .timeout(requestTimeout);
         } else if (method == 'PUT') {
           final repairedImagePath = body['repairedImagePath']?.toString();
           if (repairedImagePath != null && repairedImagePath.isNotEmpty) {
@@ -195,18 +227,21 @@ class SyncService {
               if (entry.key == 'repairedImagePath') continue;
               multipart.fields[entry.key] = entry.value?.toString() ?? '';
             }
-            final streamed = await multipart.send();
-            response = await http.Response.fromStream(streamed);
+            final streamed = await multipart.send().timeout(requestTimeout);
+            response = await http.Response.fromStream(streamed)
+                .timeout(requestTimeout);
           } else {
-            response = await http.put(
-              uri,
-              headers: {
-                'Content-Type': 'application/json; charset=UTF-8',
-                if (token != null && token.isNotEmpty)
-                  'Authorization': 'Bearer $token',
-              },
-              body: jsonEncode(body),
-            );
+            response = await http
+                .put(
+                  uri,
+                  headers: {
+                    'Content-Type': 'application/json; charset=UTF-8',
+                    if (token != null && token.isNotEmpty)
+                      'Authorization': 'Bearer $token',
+                  },
+                  body: jsonEncode(body),
+                )
+                .timeout(requestTimeout);
           }
         } else {
           failedCount++;
@@ -292,6 +327,17 @@ class SyncService {
           );
         }
       } catch (e) {
+        if (_isNetworkError(e)) {
+          networkDeferred = true;
+          await _db.updateSubmissionSyncStatus(
+            id: id,
+            synced: false,
+            syncStatus: 'pending',
+            syncError: networkRetryMessage,
+          );
+          // Remaining items would hit the same dead connection.
+          break;
+        }
         failedCount++;
         await _db.updateSubmissionSyncStatus(
           id: id,
@@ -302,7 +348,12 @@ class SyncService {
       }
     }
 
+    await _db.resetSyncingToPending();
     OfflineQueueNotifier.instance.refresh();
+
+    if (networkDeferred) {
+      return 'Synced $syncedCount. Connection lost — remaining items will retry automatically.';
+    }
 
     if (authBlockedCount > 0 && syncedCount == 0 && failedCount == 0) {
       return '$kSessionExpiredSyncMessage ($authBlockedCount waiting).';

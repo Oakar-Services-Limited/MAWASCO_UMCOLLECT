@@ -132,7 +132,7 @@ class _PendingIncidencesState extends State<PendingIncidences> {
           ),
         ],
         title: const Text(
-          'Pending Incidences',
+          'Pending Incidents',
           style: TextStyle(color: Colors.white),
         ),
         backgroundColor: const Color(0xff0288D1),

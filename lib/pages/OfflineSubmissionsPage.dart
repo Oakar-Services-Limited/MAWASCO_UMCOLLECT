@@ -30,7 +30,22 @@ class _OfflineSubmissionsPageState extends State<OfflineSubmissionsPage> {
   @override
   void initState() {
     super.initState();
+    OfflineQueueNotifier.instance.addListener(_load);
+    _syncService.isSyncing.addListener(_onSyncingChanged);
+    _isSyncing = _syncService.isSyncing.value;
     _load();
+  }
+
+  @override
+  void dispose() {
+    OfflineQueueNotifier.instance.removeListener(_load);
+    _syncService.isSyncing.removeListener(_onSyncingChanged);
+    super.dispose();
+  }
+
+  void _onSyncingChanged() {
+    if (!mounted) return;
+    setState(() => _isSyncing = _syncService.isSyncing.value);
   }
 
   Future<void> _refreshSessionState() async {
@@ -48,16 +63,12 @@ class _OfflineSubmissionsPageState extends State<OfflineSubmissionsPage> {
     setState(() {
       _items = rows;
     });
-    OfflineQueueNotifier.instance.refresh();
   }
 
   Future<void> _syncAll() async {
-    if (_isSyncing) return;
-    setState(() => _isSyncing = true);
     final message = await _syncService.syncAllUnsynced();
     await _load();
     if (!mounted) return;
-    setState(() => _isSyncing = false);
 
     final isAuthMsg = message.contains('token has expired') ||
         message.contains('Log in again');

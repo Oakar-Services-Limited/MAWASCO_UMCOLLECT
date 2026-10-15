@@ -97,6 +97,13 @@ class _LineProjectsState extends State<LineProjects> {
       appBar: AppBar(
         actions: <Widget>[
           IconButton(
+            tooltip: 'Menu',
+            icon: const Icon(Icons.menu, color: Colors.white),
+            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          ),
+        ],
+        leading: IconButton(
+            tooltip: 'Back',
             icon: const Icon(
               Icons.arrow_back,
               color: Colors.white,
@@ -110,7 +117,6 @@ class _LineProjectsState extends State<LineProjects> {
                           )));
             },
           ),
-        ],
         title: const Text(
           'Line Project',
           style: TextStyle(color: Colors.white),

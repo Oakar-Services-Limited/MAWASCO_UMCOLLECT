@@ -209,14 +209,13 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'UM Collect',
-      theme: ThemeData(
+    return Theme(
+      data: ThemeData(
         primaryColor: const Color(0xff0288D1),
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff0288D1)),
         useMaterial3: true,
       ),
-      home: Scaffold(
+      child: Scaffold(
         backgroundColor: Colors.grey[50],
         appBar: AppBar(
           title: const Text(
@@ -276,7 +275,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                     const SizedBox(height: 15),
                     _buildMeterManagementGrid(),
                     const SizedBox(height: 25),
-                    _buildSectionTitle("Incidence Tracking"),
+                    _buildSectionTitle("Incident Tracking"),
                     const SizedBox(height: 15),
                     _buildIncidenceCards(),
                     const SizedBox(height: 25),

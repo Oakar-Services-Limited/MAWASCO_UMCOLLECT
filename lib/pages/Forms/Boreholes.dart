@@ -144,6 +144,13 @@ class _BoreholesState extends State<Boreholes> {
       appBar: AppBar(
         actions: <Widget>[
           IconButton(
+            tooltip: 'Menu',
+            icon: const Icon(Icons.menu, color: Colors.white),
+            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          ),
+        ],
+        leading: IconButton(
+            tooltip: 'Back',
             icon: const Icon(
               Icons.arrow_back,
               color: Colors.white,
@@ -157,7 +164,6 @@ class _BoreholesState extends State<Boreholes> {
                           )));
             },
           ),
-        ],
         title: const Text(
           'Boreholes Details',
           style: TextStyle(color: Colors.white),

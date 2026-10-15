@@ -99,7 +99,7 @@ class _NRWCompleteState extends State<NRWComplete> {
           ),
         ],
         title: const Text(
-          'Resolved Incidences',
+          'Resolved Incidents',
           style: TextStyle(color: Colors.white),
         ),
         backgroundColor: const Color(0xff0288D1),

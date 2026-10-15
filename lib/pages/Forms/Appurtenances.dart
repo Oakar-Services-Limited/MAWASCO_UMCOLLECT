@@ -145,6 +145,13 @@ class _AppurtenancesState extends State<Appurtenances> {
       appBar: AppBar(
         actions: <Widget>[
           IconButton(
+            tooltip: 'Menu',
+            icon: const Icon(Icons.menu, color: Colors.white),
+            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          ),
+        ],
+        leading: IconButton(
+            tooltip: 'Back',
             icon: const Icon(
               Icons.arrow_back,
               color: Colors.white,
@@ -158,7 +165,6 @@ class _AppurtenancesState extends State<Appurtenances> {
                           )));
             },
           ),
-        ],
         title: const Text(
           'Appurtenances Details',
           style: TextStyle(color: Colors.white),

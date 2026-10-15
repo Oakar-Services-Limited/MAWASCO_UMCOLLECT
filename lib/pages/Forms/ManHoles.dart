@@ -132,6 +132,13 @@ class _ManHolesState extends State<ManHoles> {
       appBar: AppBar(
         actions: <Widget>[
           IconButton(
+            tooltip: 'Menu',
+            icon: const Icon(Icons.menu, color: Colors.white),
+            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          ),
+        ],
+        leading: IconButton(
+            tooltip: 'Back',
             icon: const Icon(
               Icons.arrow_back,
               color: Colors.white,
@@ -145,7 +152,6 @@ class _ManHolesState extends State<ManHoles> {
                           )));
             },
           ),
-        ],
         title: const Text(
           'Man Holes Details',
           style: TextStyle(color: Colors.white),

@@ -19,6 +19,7 @@ import 'package:um_collect/pages/Assets.dart';
 import 'package:um_collect/services/connectivity_helper.dart';
 import 'package:um_collect/services/database_helper.dart';
 import 'package:um_collect/services/offline_image_store.dart';
+import 'package:um_collect/services/sync_service.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:http/http.dart' as http;
@@ -212,6 +213,13 @@ class _CustomerMetersState extends State<CustomerMeters> {
       appBar: AppBar(
         actions: <Widget>[
           IconButton(
+            tooltip: 'Menu',
+            icon: const Icon(Icons.menu, color: Colors.white),
+            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          ),
+        ],
+        leading: IconButton(
+            tooltip: 'Back',
             icon: const Icon(
               Icons.arrow_back,
               color: Colors.white,
@@ -225,7 +233,6 @@ class _CustomerMetersState extends State<CustomerMeters> {
                           )));
             },
           ),
-        ],
         title: const Text(
           'Customer Details',
           style: TextStyle(color: Colors.white),
@@ -860,21 +867,25 @@ Future<Message> submitData(
     }
 
     if (id != '') {
-      response = await http.put(
-        Uri.parse("${getUrl()}wt/customer-meters/$id"),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: jsonEncode(payload),
-      );
+      response = await http
+          .put(
+            Uri.parse("${getUrl()}wt/customer-meters/$id"),
+            headers: <String, String>{
+              'Content-Type': 'application/json; charset=UTF-8',
+            },
+            body: jsonEncode(payload),
+          )
+          .timeout(SyncService.requestTimeout);
     } else {
-      response = await http.post(
-        Uri.parse("${getUrl()}wt/customer-meters"),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: jsonEncode(payload),
-      );
+      response = await http
+          .post(
+            Uri.parse("${getUrl()}wt/customer-meters"),
+            headers: <String, String>{
+              'Content-Type': 'application/json; charset=UTF-8',
+            },
+            body: jsonEncode(payload),
+          )
+          .timeout(SyncService.requestTimeout);
     }
 
     if (response.statusCode == 201 || response.statusCode == 200) {
@@ -900,6 +911,8 @@ Future<Message> submitData(
         error: responseBody['error'] ?? "Server error! Contact administrator.",
       );
     }
+  } on TimeoutException {
+    return await queueOffline('Weak connection');
   } catch (e) {
     return await queueOffline('Network error');
   }

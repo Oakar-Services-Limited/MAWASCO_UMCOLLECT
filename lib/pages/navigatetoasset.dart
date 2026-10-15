@@ -66,6 +66,9 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
   var choice;
   LatLng destination = const LatLng(0.0, 0.0);
   var loading;
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _searchDebounce;
+  int _searchSeq = 0;
 
   // ==========================================
   // Lifecycle Methods
@@ -79,6 +82,8 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
   @override
   void dispose() {
     locationSubscription?.cancel();
+    _searchDebounce?.cancel();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -268,6 +273,13 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
     }
 
     FocusScope.of(context).unfocus();
+    _searchDebounce?.cancel();
+    _searchSeq++;
+    final label = _assetLabel(item);
+    _searchController.value = TextEditingValue(
+      text: label,
+      selection: TextSelection.collapsed(offset: label.length),
+    );
     setState(() {
       choice = item;
       selected = null;
@@ -584,7 +596,68 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
     ));
   }
 
-  void searchObjectID(String v) async {
+  String _fieldText(dynamic item, List<String> keys) {
+    if (item is! Map) return '';
+    for (final k in keys) {
+      final v = item[k];
+      if (v != null && v.toString().trim().isNotEmpty) {
+        return v.toString().trim();
+      }
+    }
+    return '';
+  }
+
+  String _assetLabel(dynamic item) {
+    if (item == null) return '';
+    final name = _fieldText(item, ['name', 'Name']);
+    if (widget.label == "Customer Meters") {
+      final acc = _fieldText(item, ['accountNo', 'AccountNo']);
+      if (name.isNotEmpty && acc.isNotEmpty) return '$name ($acc)';
+      return name.isNotEmpty ? name : acc;
+    }
+    if (widget.label == "Incidences") {
+      final serial = _fieldText(item, ['serialNo', 'SerialNo']);
+      return serial.isNotEmpty ? 'Incident $serial' : 'Incident';
+    }
+    final objectId = _fieldText(item, ['ObjectID', 'objectId', 'id']);
+    if (name.isNotEmpty && objectId.isNotEmpty) {
+      return '$name (ObjectID $objectId)';
+    }
+    if (name.isNotEmpty) return name;
+    return objectId.isNotEmpty ? 'ObjectID $objectId' : widget.label;
+  }
+
+  void _onSearchChanged(String value) {
+    _searchDebounce?.cancel();
+    final query = value.trim();
+    final seq = ++_searchSeq;
+    setState(() {
+      if (choice != null && value != _assetLabel(choice)) choice = null;
+      if (query.isEmpty) selected = null;
+    });
+    if (query.isEmpty) return;
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+      if (widget.label == "Customer Meters") {
+        searchAccounts(query, seq);
+      } else {
+        searchObjectID(query, seq);
+      }
+    });
+  }
+
+  void _clearSelection() {
+    _searchDebounce?.cancel();
+    _searchSeq++;
+    _searchController.clear();
+    setState(() {
+      choice = null;
+      selected = null;
+    });
+  }
+
+  bool _isStale(int seq) => !mounted || seq != _searchSeq;
+
+  void searchObjectID(String v, int seq) async {
     String table;
 
     switch (widget.label) {
@@ -609,71 +682,45 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
       default:
         table = widget.label.replaceAll(RegExp(" "), "");
     }
+    dynamic result;
     try {
       final response = await http.get(
-        Uri.parse("${getUrl()}admin/$table/$v"),
+        Uri.parse("${getUrl()}admin/$table/${Uri.encodeComponent(v)}"),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },
       );
       if (response.statusCode == 200 || response.statusCode == 203) {
-        List<dynamic> body = jsonDecode(response.body);
-        if (body.isNotEmpty) {
-          setState(() {
-            selected = body.first;
-          });
-        } else {
-          setState(() {
-            selected = null;
-          });
-        }
+        final body = jsonDecode(response.body);
+        if (body is List && body.isNotEmpty) result = body.first;
       }
-    } catch (e) {
-      setState(() {
-        selected = null;
-      });
-    }
+    } catch (_) {}
+    if (_isStale(seq)) return;
+    setState(() => selected = result);
   }
 
-  void searchAccounts(String v) async {
+  void searchAccounts(String v, int seq) async {
+    dynamic result;
     try {
       final response = await http.get(
-        Uri.parse("${getUrl()}wt/customer-meters?accountNo=$v&limit=5"),
+        Uri.parse(
+            "${getUrl()}wt/customer-meters?accountNo=${Uri.encodeQueryComponent(v)}&limit=5"),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
           'Accept': 'application/json'
         },
       );
       if (response.statusCode == 200 || response.statusCode == 203) {
-        var data = jsonDecode(response.body);
-
+        final data = jsonDecode(response.body);
         if (data['success'] == true &&
-            data['data'] != null &&
-            data['data'] is List) {
-          if (data['data'].isNotEmpty) {
-            setState(() {
-              selected = data['data'].first;
-            });
-          } else {
-            setState(() {
-              selected = null;
-            });
-          }
-        } else {
-          setState(() {
-            selected = null;
-          });
+            data['data'] is List &&
+            (data['data'] as List).isNotEmpty) {
+          result = data['data'].first;
         }
-      } else {
-        setState(() {
-          selected = null;
-        });
       }
-    } catch (e) {
-      setState(() {
-        selected = null;
-      });
-    }
+    } catch (_) {}
+    if (_isStale(seq)) return;
+    setState(() => selected = result);
   }
 
   // ==========================================
@@ -690,7 +737,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
           children: [
             Expanded(
               child: Text(
-                "Navigation - ${widget.label}",
+                "Navigation - ${widget.label == "Incidences" ? "Incidents" : widget.label}",
                 style: const TextStyle(color: Colors.white, fontSize: 20),
               ),
             ),
@@ -946,23 +993,57 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                                     )),
                                               )
                                             : const SizedBox(),
+                                        if (choice != null)
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                                bottom: 12),
+                                            child: Container(
+                                              width: double.infinity,
+                                              padding:
+                                                  const EdgeInsets.fromLTRB(
+                                                      12, 8, 4, 8),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xff0288D1)
+                                                    .withValues(alpha: 0.1),
+                                                border: Border.all(
+                                                    color: const Color(
+                                                        0xff0288D1)),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                              child: Row(
+                                                children: [
+                                                  const Icon(
+                                                      Icons.check_circle,
+                                                      color: Color(0xff0288D1)),
+                                                  const SizedBox(width: 8),
+                                                  Expanded(
+                                                    child: Text(
+                                                      'Selected: ${_assetLabel(choice)}',
+                                                      style: const TextStyle(
+                                                          fontSize: 15,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          color: Color(
+                                                              0xff0288D1)),
+                                                    ),
+                                                  ),
+                                                  IconButton(
+                                                    tooltip: 'Clear selection',
+                                                    icon: const Icon(
+                                                        Icons.close,
+                                                        color: Colors.grey),
+                                                    onPressed: _clearSelection,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
                                         Stack(
                                           children: [
                                             TextField(
-                                              onChanged: (value) {
-                                                if (value != "") {
-                                                  if (widget.label ==
-                                                      "Customer Meters") {
-                                                    searchAccounts(value);
-                                                  } else {
-                                                    searchObjectID(value);
-                                                  }
-                                                } else {
-                                                  setState(() {
-                                                    selected = null;
-                                                  });
-                                                }
-                                              },
+                                              controller: _searchController,
+                                              onChanged: _onSearchChanged,
                                               decoration: InputDecoration(
                                                   contentPadding:
                                                       const EdgeInsets.all(12),
@@ -1036,7 +1117,7 @@ class _NavigateToAssetState extends State<NavigateToAsset> {
                                     child: Column(
                                       children: [
                                         Text(
-                                          "Trip Details: ${choice != null ? choice["Name"] : "Not Selected"}",
+                                          "Trip Details: ${choice != null ? _assetLabel(choice) : "Not Selected"}",
                                           softWrap: true,
                                           style: const TextStyle(
                                             fontSize: 18,

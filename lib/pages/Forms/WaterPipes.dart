@@ -124,6 +124,13 @@ class _WaterPipesState extends State<WaterPipes> {
       appBar: AppBar(
         actions: <Widget>[
           IconButton(
+            tooltip: 'Menu',
+            icon: const Icon(Icons.menu, color: Colors.white),
+            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          ),
+        ],
+        leading: IconButton(
+            tooltip: 'Back',
             icon: const Icon(
               Icons.arrow_back,
               color: Colors.white,
@@ -137,7 +144,6 @@ class _WaterPipesState extends State<WaterPipes> {
                           )));
             },
           ),
-        ],
         title: const Text(
           'Water Pipe Details',
           style: TextStyle(color: Colors.white),
